@@ -18,7 +18,8 @@ const PieChart = ({ config }: PieChartProps) => {
 
   // Build legend config per category to ensure correct label-color mapping per segment
   const chartConfig = data.reduce((acc, datum, index) => {
-    const categoryKey = String(datum[xAxisKey as keyof typeof datum]);
+    const record = datum as Record<string, string | number>;
+    const categoryKey = String(record[xAxisKey]);
     const seriesForIndex = series[index] ?? series[index % series.length] ?? series[0];
     acc[categoryKey] = {
       label: seriesForIndex?.label ?? categoryKey,

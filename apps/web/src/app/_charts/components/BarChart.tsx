@@ -21,7 +21,7 @@ export interface BarChartProps {
 const BarChart = ({ config }: BarChartProps) => {
   const { series, xAxisKey, data } = config;
 
-  const Tick = ({ x, y, payload }: any) => (
+  const Tick = ({ x, y, payload }: { x: number; y: number; payload: { value: string } }) => (
     <g transform={`translate(${x},${y})`}>
       <text dy={12} textAnchor="end" transform="rotate(-35)">
         {payload.value}
