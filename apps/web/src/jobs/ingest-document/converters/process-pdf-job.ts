@@ -13,6 +13,7 @@ export const processPdfJob = schemaTask({
     downloadUrl: z.string(),
     basePath: z.string()
   }),
+  machine: 'small-2x',
   retry: {
     outOfMemory: {
       machine: 'large-1x'

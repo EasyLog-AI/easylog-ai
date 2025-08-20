@@ -19,6 +19,7 @@ export const ingestDocumentJob = schemaTask({
   schema: z.object({
     documentId: z.string()
   }),
+  machine: 'small-2x',
   retry: {
     outOfMemory: {
       machine: 'large-1x'

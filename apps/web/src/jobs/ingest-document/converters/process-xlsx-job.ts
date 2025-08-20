@@ -12,6 +12,7 @@ export const processXlsxJob = schemaTask({
   schema: z.object({
     downloadUrl: z.string()
   }),
+  machine: 'small-2x',
   retry: {
     outOfMemory: {
       machine: 'large-1x'
