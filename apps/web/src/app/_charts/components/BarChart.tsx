@@ -13,6 +13,7 @@ import ChartTooltipContent from '@/app/_ui/components/Chart/ChartTooltipContent'
 import { ChartConfig } from '@/app/_ui/components/Chart/utils/chartConfig';
 
 import { InternalChartConfig } from '../schemas/internalChartConfigSchema';
+import BarChartTick from './BarChartTick';
 
 export interface BarChartProps {
   config: InternalChartConfig;
@@ -21,13 +22,6 @@ export interface BarChartProps {
 const BarChart = ({ config }: BarChartProps) => {
   const { series, xAxisKey, data } = config;
 
-  const Tick = ({ x, y, payload }: { x: number; y: number; payload: { value: string } }) => (
-    <g transform={`translate(${x},${y})`}>
-      <text dy={12} textAnchor="end" transform="rotate(-35)">
-        {payload.value}
-      </text>
-    </g>
-  );
 
   const chartConfig = series.reduce((acc, item) => {
     acc[item.dataKey] = {
@@ -47,7 +41,7 @@ const BarChart = ({ config }: BarChartProps) => {
           tickLine={false}
           tickMargin={10}
           axisLine={false}
-          tick={(props) => <Tick {...props} />}
+          tick={(props) => <BarChartTick {...props} />}
           interval={0}
         />
         <ChartTooltip content={<ChartTooltipContent hideLabel />} />
