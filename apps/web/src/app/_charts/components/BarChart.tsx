@@ -12,6 +12,7 @@ import ChartTooltip from '@/app/_ui/components/Chart/ChartTooltip';
 import ChartTooltipContent from '@/app/_ui/components/Chart/ChartTooltipContent';
 import { ChartConfig } from '@/app/_ui/components/Chart/utils/chartConfig';
 
+import BarChartTick from './BarChartTick';
 import { InternalChartConfig } from '../schemas/internalChartConfigSchema';
 
 export interface BarChartProps {
@@ -20,6 +21,7 @@ export interface BarChartProps {
 
 const BarChart = ({ config }: BarChartProps) => {
   const { series, xAxisKey, data } = config;
+
 
   const chartConfig = series.reduce((acc, item) => {
     acc[item.dataKey] = {
@@ -39,7 +41,8 @@ const BarChart = ({ config }: BarChartProps) => {
           tickLine={false}
           tickMargin={10}
           axisLine={false}
-          tickFormatter={(value) => value.slice(0, 3)}
+          tick={(props) => <BarChartTick {...props} />}
+          interval={0}
         />
         <ChartTooltip content={<ChartTooltipContent hideLabel />} />
         <ChartLegend content={<ChartLegendContent />} />
