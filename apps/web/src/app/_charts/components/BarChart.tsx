@@ -39,13 +39,13 @@ const BarChart = ({ config }: BarChartProps) => {
         <XAxis
           dataKey={xAxisKey}
           tickLine={false}
-          tickMargin={14}
+          tickMargin={10}
           axisLine={false}
           tick={(props) => <BarChartTick {...props} />}
           interval={0}
         />
         <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-        <ChartLegend verticalAlign="bottom" align="center" content={<ChartLegendContent verticalAlign="bottom" />} />
+        <ChartLegend content={<ChartLegendContent />} />
         {series.map((s) => (
           <Bar
             key={s.dataKey}
