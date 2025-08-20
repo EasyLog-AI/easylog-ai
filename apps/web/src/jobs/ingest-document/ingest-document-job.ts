@@ -19,7 +19,11 @@ export const ingestDocumentJob = schemaTask({
   schema: z.object({
     documentId: z.string()
   }),
-  machine: 'large-1x',
+  retry: {
+    outOfMemory: {
+      machine: 'large-1x'
+    }
+  },
   run: async ({ documentId }) => {
     const dbDocument = await db.query.documents.findFirst({
       where: {
