@@ -16,9 +16,9 @@ export interface PieChartProps {
 const PieChart = ({ config }: PieChartProps) => {
   const { series, xAxisKey, data } = config;
 
-  // Build legend config per category to ensure correct label-color mapping per segment
-  const chartConfig = data.reduce((acc, datum, index) => {
-    const record = datum as Record<string, string | number>;
+  /** Build legend config per category to ensure correct label-color mapping per segment */
+  const chartConfig = data.reduce((acc, row, index) => {
+    const record = row as Record<string, string | number>;
     const categoryKey = String(record[xAxisKey]);
     const seriesForIndex = series[index] ?? series[index % series.length] ?? series[0];
     acc[categoryKey] = {
