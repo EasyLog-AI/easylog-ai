@@ -7,6 +7,7 @@ import ChartTooltip from '@/app/_ui/components/Chart/ChartTooltip';
 import ChartTooltipContent from '@/app/_ui/components/Chart/ChartTooltipContent';
 import { ChartConfig } from '@/app/_ui/components/Chart/utils/chartConfig';
 
+import BarChartTick from './BarChartTick';
 import { InternalChartConfig } from '../schemas/internalChartConfigSchema';
 
 export interface StackedBarChartProps {
@@ -31,12 +32,13 @@ const StackedBarChart = ({ config }: StackedBarChartProps) => {
         <XAxis
           dataKey={xAxisKey}
           tickLine={false}
-          tickMargin={10}
+          tickMargin={14}
           axisLine={false}
-          tickFormatter={(value) => value.slice(0, 3)}
+          tick={(props) => <BarChartTick {...props} />}
+          interval={0}
         />
         <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-        <ChartLegend content={<ChartLegendContent />} />
+        <ChartLegend verticalAlign="bottom" align="center" content={<ChartLegendContent verticalAlign="bottom" />} />
         {series.map((s, idx, arr) => (
           <Bar
             key={s.dataKey}
