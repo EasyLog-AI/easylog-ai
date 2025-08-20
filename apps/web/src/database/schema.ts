@@ -161,6 +161,7 @@ export const agentRoles = pgTable('agent_roles', {
   agentId: uuid('agent_id')
     .references(() => agents.id, { onDelete: 'cascade' })
     .notNull(),
+  isDefault: boolean('is_default').notNull().default(false),
   name: text('name').notNull(),
   description: text('description').notNull().default(''),
   instructions: text('instructions')

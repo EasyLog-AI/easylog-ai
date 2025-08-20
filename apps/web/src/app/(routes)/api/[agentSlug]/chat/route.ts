@@ -77,6 +77,9 @@ export const POST = async (
     return new NextResponse('Chat not found', { status: 404 });
   }
 
+  const activeRole =
+    chat.activeRole ?? chat.agent.roles.find((r) => r.isDefault);
+
   const masterTemplate = `
   # SYSTEM INSTRUCTIONS
   
@@ -120,10 +123,10 @@ export const POST = async (
   Your behavior is governed by the following hierarchy. This is a critical rule.
   
   1.  **Primary Directive: ACTIVE ROLE.** Your instructions for this role are below. They **OVERRIDE** the Core Prompt.
-      - **Role Name:** \`${chat.activeRole?.name ?? 'Default'}\`
+      - **Role Name:** \`${activeRole?.name ?? 'Default'}\`
       - **Instructions:**
         <start_of_role_instructions>
-        ${chat.activeRole?.instructions ?? 'n/a'}
+        ${activeRole?.instructions ?? 'n/a'}
         </end_of_role_instructions>
   
   2.  **Fallback: CORE PROMPT.** This is your general baseline personality. Use it only when no specific role instruction applies.
@@ -135,9 +138,9 @@ export const POST = async (
   const promptWithContext = masterTemplate
     .replaceAll('{{user.name}}', user.name ?? 'Unknown')
     .replaceAll('{{agent.name}}', chat.agent.name)
-    .replaceAll('{{role.name}}', chat.activeRole?.name ?? 'default')
-    .replaceAll('{{role.instructions}}', chat.activeRole?.instructions ?? '')
-    .replaceAll('{{role.model}}', chat.activeRole?.model ?? 'gpt-5')
+    .replaceAll('{{role.name}}', activeRole?.name ?? 'default')
+    .replaceAll('{{role.instructions}}', activeRole?.instructions ?? '')
+    .replaceAll('{{role.model}}', activeRole?.model ?? 'gpt-5')
     .replaceAll('{{now}}', new Date().toISOString());
 
   const model = chat.activeRole?.model ?? chat.agent.defaultModel;
