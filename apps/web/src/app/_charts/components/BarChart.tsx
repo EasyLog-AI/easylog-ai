@@ -21,6 +21,14 @@ export interface BarChartProps {
 const BarChart = ({ config }: BarChartProps) => {
   const { series, xAxisKey, data } = config;
 
+  const Tick = ({ x, y, payload }: any) => (
+    <g transform={`translate(${x},${y})`}>
+      <text dy={12} textAnchor="end" transform="rotate(-35)">
+        {payload.value}
+      </text>
+    </g>
+  );
+
   const chartConfig = series.reduce((acc, item) => {
     acc[item.dataKey] = {
       label: item.label,
@@ -39,7 +47,8 @@ const BarChart = ({ config }: BarChartProps) => {
           tickLine={false}
           tickMargin={10}
           axisLine={false}
-          tickFormatter={(value) => value.slice(0, 3)}
+          tick={<Tick />}
+          interval={0}
         />
         <ChartTooltip content={<ChartTooltipContent hideLabel />} />
         <ChartLegend content={<ChartLegendContent />} />
