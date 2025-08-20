@@ -28,7 +28,7 @@ const PieChart = ({ config }: PieChartProps) => {
     return acc;
   }, {} as ChartConfig);
 
-  // Assuming the first series is the one to display in the pie chart
+  /** Assuming the first series is the one to display in the pie chart */
   const pieSeries = series[0];
   const colors = series.map((s) => s.color);
 
