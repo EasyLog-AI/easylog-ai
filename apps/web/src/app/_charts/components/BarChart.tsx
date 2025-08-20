@@ -47,7 +47,7 @@ const BarChart = ({ config }: BarChartProps) => {
           tickLine={false}
           tickMargin={10}
           axisLine={false}
-          tick={<Tick />}
+          tick={(props) => <Tick {...props} />}
           interval={0}
         />
         <ChartTooltip content={<ChartTooltipContent hideLabel />} />
