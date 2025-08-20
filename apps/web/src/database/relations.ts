@@ -19,6 +19,10 @@ const relations = defineRelations(schema, (r) => ({
     chats: r.many.chats({
       from: r.users.id,
       to: r.chats.userId
+    }),
+    memories: r.many.memories({
+      from: r.users.id,
+      to: r.memories.userId
     })
   },
   sessions: {
@@ -42,6 +46,13 @@ const relations = defineRelations(schema, (r) => ({
       optional: false
     })
   },
+  memories: {
+    user: r.one.users({
+      from: r.memories.userId,
+      to: r.users.id,
+      optional: false
+    })
+  },
   agents: {
     documents: r.many.documents({
       from: r.agents.id,
@@ -49,7 +60,22 @@ const relations = defineRelations(schema, (r) => ({
     }),
     chats: r.many.chats({
       from: r.agents.id,
-      to: r.chats.userId
+      to: r.chats.agentId
+    }),
+    roles: r.many.agentRoles({
+      from: r.agents.id,
+      to: r.agentRoles.agentId
+    })
+  },
+  agentRoles: {
+    agent: r.one.agents({
+      from: r.agentRoles.agentId,
+      to: r.agents.id,
+      optional: false
+    }),
+    activeChats: r.many.chats({
+      from: r.agentRoles.id,
+      to: r.chats.activeRoleId
     })
   },
   documents: {
@@ -73,6 +99,10 @@ const relations = defineRelations(schema, (r) => ({
       from: r.chats.userId,
       to: r.users.id,
       optional: false
+    }),
+    activeRole: r.one.agentRoles({
+      from: r.chats.activeRoleId,
+      to: r.agentRoles.id
     })
   },
   documentData: {
@@ -82,7 +112,6 @@ const relations = defineRelations(schema, (r) => ({
       optional: false
     })
   },
-  organizations: {},
   verifications: {}
 }));
 

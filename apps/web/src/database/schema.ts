@@ -9,9 +9,6 @@ import {
   uuid
 } from 'drizzle-orm/pg-core';
 
-import { AgentConfig } from '@/app/_agents/schemas/agentConfigSchema';
-import serverConfig from '@/server.config';
-
 export const timestamps = {
   createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { mode: 'date' })
@@ -40,12 +37,27 @@ export const fieldTypeEnum = pgEnum('field_type_enum', [
   'boolean'
 ]);
 
+export const reasoningEffortEnum = pgEnum('reasoning_effort_enum', [
+  'high',
+  'medium',
+  'low'
+]);
+
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name'),
   email: text('email').notNull().unique(),
   emailVerified: boolean('email_verified').default(false),
   image: text('image'),
+  ...timestamps
+});
+
+export const memories = pgTable('memories', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id')
+    .references(() => users.id, { onDelete: 'cascade' })
+    .notNull(),
+  content: text('content').notNull(),
   ...timestamps
 });
 
@@ -135,10 +147,31 @@ export const agents = pgTable('agents', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
   slug: text('slug').notNull().unique(),
-  config: jsonb('config')
-    .$type<AgentConfig>()
+  prompt: text('prompt').notNull().default('You are a helpful assistant.'),
+  defaultModel: text('default_model').notNull().default('gpt-5'),
+  defaultReasoning: boolean('default_reasoning').notNull().default(false),
+  defaultReasoningEffort: reasoningEffortEnum(
+    'default_reasoning_effort'
+  ).notNull(),
+  ...timestamps
+});
+
+export const agentRoles = pgTable('agent_roles', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  agentId: uuid('agent_id')
+    .references(() => agents.id, { onDelete: 'cascade' })
+    .notNull(),
+  isDefault: boolean('is_default').notNull().default(false),
+  name: text('name').notNull(),
+  description: text('description').notNull().default(''),
+  instructions: text('instructions')
     .notNull()
-    .default(serverConfig.defaultAgentConfig),
+    .default('You are a helpful assistant.'),
+  model: text('model').notNull().default('gpt-5'),
+  reasoning: boolean('reasoning').notNull().default(false),
+  reasoningEffort: reasoningEffortEnum('reasoning_effort')
+    .notNull()
+    .default('medium'),
   ...timestamps
 });
 
@@ -150,6 +183,9 @@ export const chats = pgTable('chats', {
   userId: uuid('user_id')
     .references(() => users.id, { onDelete: 'cascade' })
     .notNull(),
+  activeRoleId: uuid('active_role_id').references(() => agentRoles.id, {
+    onDelete: 'cascade'
+  }),
   /** TODO: come on jappie, we can do better than this */
   messages: jsonb('messages').notNull().default([]),
   ...timestamps
