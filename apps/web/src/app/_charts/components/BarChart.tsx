@@ -12,8 +12,8 @@ import ChartTooltip from '@/app/_ui/components/Chart/ChartTooltip';
 import ChartTooltipContent from '@/app/_ui/components/Chart/ChartTooltipContent';
 import { ChartConfig } from '@/app/_ui/components/Chart/utils/chartConfig';
 
-import { InternalChartConfig } from '../schemas/internalChartConfigSchema';
 import BarChartTick from './BarChartTick';
+import { InternalChartConfig } from '../schemas/internalChartConfigSchema';
 
 export interface BarChartProps {
   config: InternalChartConfig;
