@@ -32,13 +32,13 @@ const StackedBarChart = ({ config }: StackedBarChartProps) => {
         <XAxis
           dataKey={xAxisKey}
           tickLine={false}
-          tickMargin={10}
+          tickMargin={14}
           axisLine={false}
           tick={(props) => <BarChartTick {...props} />}
           interval={0}
         />
         <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-        <ChartLegend content={<ChartLegendContent />} />
+        <ChartLegend verticalAlign="bottom" align="center" content={<ChartLegendContent verticalAlign="bottom" />} />
         {series.map((s, idx, arr) => (
           <Bar
             key={s.dataKey}
