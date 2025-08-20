@@ -90,7 +90,7 @@ export const ingestDocumentJob = schemaTask({
     const {
       object: { summary, tags }
     } = await generateObject({
-      model: openrouterProvider(dbDocument.agent.config.model),
+      model: openrouterProvider(dbDocument.agent.defaultModel),
       prompt: `You are a professional data analyst and summarizer. Your task is to analyze the provided data structure and create a comprehensive summary with relevant tags.
 
 ## TASK
