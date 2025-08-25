@@ -16,15 +16,14 @@ export interface PieChartProps {
 const PieChart = ({ config }: PieChartProps) => {
   const { series, xAxisKey, data } = config;
 
-  /** Build legend config per category to ensure each slice shows its own label */
+  /** Build legend config per category to ensure correct label-color mapping per segment */
   const chartConfig = data.reduce((acc, row, index) => {
     const record = row as Record<string, string | number>;
     const categoryKey = String(record[xAxisKey]);
-    const colorForIndex =
-      series[index]?.color ?? series[index % series.length]?.color ?? series[0]?.color;
+    const seriesForIndex = series[index] ?? series[index % series.length] ?? series[0];
     acc[categoryKey] = {
-      label: categoryKey,
-      color: colorForIndex
+      label: seriesForIndex?.label ?? categoryKey,
+      color: seriesForIndex?.color
     };
     return acc;
   }, {} as ChartConfig);
