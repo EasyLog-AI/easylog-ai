@@ -143,12 +143,11 @@ export const POST = async (
     .replaceAll('{{role.model}}', activeRole?.model ?? 'gpt-5')
     .replaceAll('{{now}}', new Date().toISOString());
 
-  const model = chat.activeRole?.model ?? chat.agent.defaultModel;
+  const model = activeRole?.model ?? chat.agent.defaultModel;
 
   const reasoning = {
-    enabled: chat.activeRole?.reasoning ?? chat.agent.defaultReasoning,
-    effort:
-      chat.activeRole?.reasoningEffort ?? chat.agent.defaultReasoningEffort
+    enabled: activeRole?.reasoning ?? chat.agent.defaultReasoning,
+    effort: activeRole?.reasoningEffort ?? chat.agent.defaultReasoningEffort
   };
 
   const messages = [...(chat.messages as UIMessage[]), message];
