@@ -16,19 +16,15 @@ export interface PieChartProps {
 const PieChart = ({ config }: PieChartProps) => {
   const { series, xAxisKey, data } = config;
 
-  /** Build legend config per category to ensure correct label-color mapping per segment */
-  const chartConfig = data.reduce((acc, row, index) => {
-    const record = row as Record<string, string | number>;
-    const categoryKey = String(record[xAxisKey]);
-    const seriesForIndex = series[index] ?? series[index % series.length] ?? series[0];
-    acc[categoryKey] = {
-      label: seriesForIndex?.label ?? categoryKey,
-      color: seriesForIndex?.color
+  const chartConfig = series.reduce((acc, item) => {
+    acc[item.dataKey] = {
+      label: item.label,
+      color: item.color
     };
     return acc;
   }, {} as ChartConfig);
 
-  /** Assuming the first series is the one to display in the pie chart */
+  // Assuming the first series is the one to display in the pie chart
   const pieSeries = series[0];
   const colors = series.map((s) => s.color);
 
@@ -53,7 +49,7 @@ const PieChart = ({ config }: PieChartProps) => {
             );
           })}
         </Pie>
-        <ChartLegend content={<ChartLegendContent nameKey={xAxisKey} />} />
+        <ChartLegend content={<ChartLegendContent />} />
       </RechartsPieChart>
     </ChartContainer>
   );
