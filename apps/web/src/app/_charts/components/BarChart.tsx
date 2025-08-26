@@ -12,7 +12,6 @@ import ChartTooltip from '@/app/_ui/components/Chart/ChartTooltip';
 import ChartTooltipContent from '@/app/_ui/components/Chart/ChartTooltipContent';
 import { ChartConfig } from '@/app/_ui/components/Chart/utils/chartConfig';
 
-import BarChartTick from './BarChartTick';
 import { InternalChartConfig } from '../schemas/internalChartConfigSchema';
 
 export interface BarChartProps {
@@ -41,7 +40,7 @@ const BarChart = ({ config }: BarChartProps) => {
           tickLine={false}
           tickMargin={10}
           axisLine={false}
-          tick={(props) => <BarChartTick {...props} />}
+          tickFormatter={(value) => String(value).slice(0, 10)}
           interval={0}
         />
         <ChartTooltip content={<ChartTooltipContent hideLabel />} />
