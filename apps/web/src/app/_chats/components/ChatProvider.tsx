@@ -13,13 +13,13 @@ import z from 'zod';
 import internalChartConfigSchema from '@/app/_charts/schemas/internalChartConfigSchema';
 import useTRPC from '@/lib/trpc/browser';
 
-import documentSearchSchema from '../schemas/documentSearchSchema';
+import researchSchema from '../schemas/researchSchema';
 
 type ChatMessage = UIMessage<
   unknown,
   {
     chart: z.infer<typeof internalChartConfigSchema>;
-    'document-search': z.infer<typeof documentSearchSchema>;
+    research: z.infer<typeof researchSchema>;
   }
 >;
 
@@ -61,7 +61,7 @@ const ChatProvider = ({
     },
     dataPartSchemas: {
       chart: internalChartConfigSchema,
-      'document-search': documentSearchSchema
+      research: researchSchema
     },
     onToolCall: async ({ toolCall }) => {
       if (toolCall.toolName === 'clearChat') {

@@ -5,8 +5,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import ChatMessageAssistant from './ChatMessageAssistant';
 import ChatMessageAssistantChart from './ChatMessageAssistantChart';
-import ChatMessageAssistantDocumentSearch from './ChatMessageAssistantDocumentSearch';
 import ChatMessageAssistantMarkdownContent from './ChatMessageAssistantMarkdownContent';
+import ChatMessageAssistantResearch from './ChatMessageAssistantResearch';
 import ChatMessageUser from './ChatMessageUser';
 import ChatMessageUserTextContent from './ChatMessageUserTextContent';
 import useChatContext from '../hooks/useChatContext';
@@ -79,11 +79,12 @@ const ChatHistory = () => {
                       key={`${message.id}-${i}`}
                       config={part.data}
                     />
-                  ) : part.type === 'data-document-search' ? (
-                    <ChatMessageAssistantDocumentSearch
+                  ) : part.type === 'data-research' ? (
+                    <ChatMessageAssistantResearch
                       key={`${message.id}-${i}`}
                       status={part.data.status}
-                      content={part.data.content}
+                      title={part.data.title}
+                      body={part.data.body}
                     />
                   ) : null
                 )}
