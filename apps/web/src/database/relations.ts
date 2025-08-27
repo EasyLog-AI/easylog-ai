@@ -103,6 +103,10 @@ const relations = defineRelations(schema, (r) => ({
     activeRole: r.one.agentRoles({
       from: r.chats.activeRoleId,
       to: r.agentRoles.id
+    }),
+    multipleChoiceQuestions: r.many.multipleChoiceQuestions({
+      from: r.chats.id,
+      to: r.multipleChoiceQuestions.chatId
     })
   },
   documentData: {
@@ -112,7 +116,14 @@ const relations = defineRelations(schema, (r) => ({
       optional: false
     })
   },
-  verifications: {}
+  verifications: {},
+  multipleChoiceQuestions: {
+    chat: r.one.chats({
+      from: r.multipleChoiceQuestions.chatId,
+      to: r.chats.id,
+      optional: false
+    })
+  }
 }));
 
 export default relations;

@@ -202,3 +202,14 @@ export const documentData = pgTable('document_data', {
   rowData: jsonb('row_data').notNull().default({}),
   ...timestamps
 });
+
+export const multipleChoiceQuestions = pgTable('multiple_choice_questions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  chatId: uuid('chat_id')
+    .references(() => chats.id, { onDelete: 'cascade' })
+    .notNull(),
+  question: text('question').notNull(),
+  options: text('options').array().notNull().default([]),
+  value: text('value'),
+  ...timestamps
+});
