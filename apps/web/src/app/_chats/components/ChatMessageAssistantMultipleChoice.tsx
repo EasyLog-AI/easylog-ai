@@ -50,8 +50,6 @@ const ChatMessageAssistantMultipleChoice = ({
     })
   });
 
-  const isChecked = multipleChoiceQuestion?.value === answer;
-
   return (
     <div className="bg-surface-muted shadow-short max-w-lg space-y-2 overflow-auto rounded-xl p-3">
       <Typography variant="labelSm">{question}</Typography>
@@ -63,7 +61,10 @@ const ChatMessageAssistantMultipleChoice = ({
               contentLeft={
                 <Checkbox
                   id={option}
-                  checked={isChecked}
+                  checked={
+                    multipleChoiceQuestion?.value === option ||
+                    answer === option
+                  }
                   onCheckedChange={() => {
                     updateMultipleChoiceAnswer({
                       value: option,

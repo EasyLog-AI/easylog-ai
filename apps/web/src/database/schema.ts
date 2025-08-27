@@ -1,3 +1,4 @@
+import { UIMessage } from 'ai';
 import {
   boolean,
   integer,
@@ -188,7 +189,7 @@ export const chats = pgTable('chats', {
     onDelete: 'cascade'
   }),
   /** TODO: come on jappie, we can do better than this */
-  messages: jsonb('messages').notNull().default([]),
+  messages: jsonb('messages').notNull().default([]).$type<UIMessage[]>(),
   ...timestamps
 });
 
