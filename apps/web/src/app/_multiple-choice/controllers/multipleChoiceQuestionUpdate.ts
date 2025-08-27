@@ -30,42 +30,31 @@ const multipleChoiceQuestionUpdate = multipleChoiceQuestionMiddleware
       .where(eq(multipleChoiceQuestions.id, ctx.multipleChoiceQuestion.id))
       .returning();
 
-    const effectedMessageIndex = ctx.chat.messages.findIndex((message) => {
-      return message.parts.some((part) => {
-        return (
-          part.type === 'data-multiple-choice' &&
-          (part.data as MultipleChoiceSchema).id ===
-            ctx.multipleChoiceQuestion.id
-        );
-      });
-    });
+    const messages = structuredClone(ctx.chat.messages);
 
-    if (effectedMessageIndex === -1) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'Message not found'
-      });
-    }
+    messages.forEach((message, messageIndex) => {
+      message.parts.forEach((part) => {
+        if (part.type === 'data-multiple-choice') {
+          (part.data as MultipleChoiceSchema).answer = input.value;
 
-    ctx.chat.messages[effectedMessageIndex].parts.forEach((part) => {
-      if (part.type === 'data-multiple-choice') {
-        (part.data as MultipleChoiceSchema).answer = input.value;
-      }
-    });
+          console.log(messageIndex, messages.length);
 
-    if (effectedMessageIndex + 1 < ctx.chat.messages.length) {
-      ctx.chat.messages[effectedMessageIndex + 1].parts = [
-        {
-          type: 'text',
-          text: input.value
+          if (messageIndex + 1 < messages.length) {
+            messages[messageIndex + 1].parts = [
+              {
+                type: 'text',
+                text: input.value
+              }
+            ];
+          }
         }
-      ];
-    }
+      });
+    });
 
     await db
       .update(chats)
       .set({
-        messages: ctx.chat.messages
+        messages
       })
       .where(eq(chats.id, ctx.chat.id));
 

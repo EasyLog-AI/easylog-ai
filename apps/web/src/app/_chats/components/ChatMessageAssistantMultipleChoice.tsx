@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  useSuspenseQuery
+} from '@tanstack/react-query';
 
 import useAgentSlug from '@/app/_agents/hooks/useAgentSlug';
 import Checkbox from '@/app/_ui/components/Checkbox/Checkbox';
@@ -26,10 +31,44 @@ const ChatMessageAssistantMultipleChoice = ({
   messageId
 }: ChatMessageAssistantMultipleChoiceProps) => {
   const api = useTRPC();
+  const queryClient = useQueryClient();
 
   const { mutate: updateMultipleChoiceAnswer, isPending } = useMutation(
     api.multipleChoice.update.mutationOptions({
-      onSuccess: () => {
+      onMutate: async (newValue) => {
+        // Cancel any outgoing refetches
+        await queryClient.cancelQueries({
+          queryKey: api.chats.getOrCreate.queryKey({ agentId: agentSlug })
+        });
+        await queryClient.cancelQueries({
+          queryKey: api.multipleChoice.get.queryKey({
+            chatId,
+            multipleChoiceQuestionId
+          })
+        });
+
+        // Snapshot the previous value
+        const previousValue = multipleChoiceQuestion?.value;
+
+        // Optimistically update to the new value
+        queryClient.setQueryData(
+          api.multipleChoice.get.queryKey({
+            chatId,
+            multipleChoiceQuestionId
+          }),
+          (old: typeof multipleChoiceQuestion) => {
+            if (!old) return old;
+            return {
+              ...old,
+              value: newValue.value
+            };
+          }
+        );
+
+        // Return a context object with the snapshotted value
+        return { previousValue };
+      },
+      onSettled: () => {
         void refetchChat();
         void refetchMultipleChoiceQuestion();
       }
@@ -68,7 +107,7 @@ const ChatMessageAssistantMultipleChoice = ({
             <ContentWrapper
               contentLeft={
                 <Checkbox
-                  id={option}
+                  id={`${messageId}-${option}-${multipleChoiceQuestionId}`}
                   checked={
                     multipleChoiceQuestion?.value === option ||
                     answer === option
