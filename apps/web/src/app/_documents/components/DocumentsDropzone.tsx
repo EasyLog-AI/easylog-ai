@@ -63,6 +63,8 @@ const DocumentsDropzone = ({
       maxSize={50000000} // 50mb
       accept={{
         'application/pdf': ['.pdf'],
+        'application/xml': ['.xml'],
+        'text/xml': ['.xml'],
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': [
           '.xlsx'
         ]

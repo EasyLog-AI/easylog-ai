@@ -20,7 +20,8 @@ export const timestamps = {
 export const documentTypeEnum = pgEnum('document_type_enum', [
   'unknown',
   'pdf',
-  'xlsx'
+  'xlsx',
+  'xml'
 ]);
 
 export const documentStatusEnum = pgEnum('document_status_enum', [
