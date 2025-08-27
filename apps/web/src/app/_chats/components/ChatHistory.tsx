@@ -95,6 +95,7 @@ const ChatHistory = () => {
                       answer={part.data.answer}
                       multipleChoiceQuestionId={part.data.id}
                       chatId={id}
+                      messageId={message.id}
                     />
                   ) : null
                 )}

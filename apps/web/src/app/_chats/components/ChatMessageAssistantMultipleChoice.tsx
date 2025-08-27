@@ -6,12 +6,15 @@ import ContentWrapper from '@/app/_ui/components/ContentWrapper/ContentWrapper';
 import Typography from '@/app/_ui/components/Typography/Typography';
 import useTRPC from '@/lib/trpc/browser';
 
+import useChatContext from '../hooks/useChatContext';
+
 export interface ChatMessageAssistantMultipleChoiceProps {
   question: string;
   options: string[];
   answer: string | null;
   chatId: string;
   multipleChoiceQuestionId: string;
+  messageId: string;
 }
 
 const ChatMessageAssistantMultipleChoice = ({
@@ -19,7 +22,8 @@ const ChatMessageAssistantMultipleChoice = ({
   options,
   answer,
   chatId,
-  multipleChoiceQuestionId
+  multipleChoiceQuestionId,
+  messageId
 }: ChatMessageAssistantMultipleChoiceProps) => {
   const api = useTRPC();
 
@@ -50,6 +54,10 @@ const ChatMessageAssistantMultipleChoice = ({
     })
   });
 
+  const { sendMessage, messages } = useChatContext();
+
+  const isLastMessage = messages[messages.length - 1].id === messageId;
+
   return (
     <div className="bg-surface-muted shadow-short max-w-lg space-y-2 overflow-auto rounded-xl p-3">
       <Typography variant="labelSm">{question}</Typography>
@@ -71,6 +79,12 @@ const ChatMessageAssistantMultipleChoice = ({
                       chatId: chatId,
                       multipleChoiceQuestionId: multipleChoiceQuestionId
                     });
+
+                    if (isLastMessage) {
+                      void sendMessage({
+                        text: option
+                      });
+                    }
                   }}
                   disabled={isPending}
                 />
