@@ -1,4 +1,6 @@
 import { IconCheck } from '@tabler/icons-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 import ContentWrapper from '@/app/_ui/components/ContentWrapper/ContentWrapper';
 import IconSpinner from '@/app/_ui/components/Icon/IconSpinner';
@@ -16,7 +18,7 @@ const ChatMessageAssistantResearch = ({
   body
 }: ChatMessageAssistantResearchProps) => {
   return (
-    <div className="bg-surface-muted max-w-lg rounded-xl p-3">
+    <div className="bg-surface-muted shadow-short max-w-lg overflow-auto rounded-xl p-3">
       <Typography variant="bodySm">
         <ContentWrapper
           iconLeft={status === 'loading' ? IconSpinner : IconCheck}
@@ -26,7 +28,7 @@ const ChatMessageAssistantResearch = ({
       </Typography>
 
       <Typography variant="bodySm" className="text-text-muted">
-        {body}
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{body}</ReactMarkdown>
       </Typography>
     </div>
   );

@@ -189,7 +189,7 @@ export const POST = async (
           createMultipleAllocations: toolCreateMultipleAllocations(user.id),
           updateMultipleAllocations: toolUpdateMultipleAllocations(user.id),
           deleteAllocation: toolDeleteAllocation(user.id),
-          executeSql: toolExecuteSQL(),
+          executeSql: toolExecuteSQL(writer),
           searchKnowledgeBase: toolSearchKnowledgeBase(
             {
               agentId: chat.agentId
