@@ -31,11 +31,12 @@ const getToolSearchKnowledgeBase = (
       const id = uuidv4();
 
       messageStreamWriter.write({
-        type: 'data-document-search',
+        type: 'data-research',
         id,
         data: {
-          status: 'searching_documents',
-          content: `Searching relevant knowledge base documents for "${userSearchQuery}"`
+          status: 'loading',
+          title: 'Searching documents',
+          body: `Searching relevant knowledge base documents for "${userSearchQuery}"`
         }
       });
 
@@ -111,11 +112,12 @@ const getToolSearchKnowledgeBase = (
       }));
 
       messageStreamWriter.write({
-        type: 'data-document-search',
+        type: 'data-research',
         id,
         data: {
-          status: 'documents_found',
-          content: `Found ${documents.length} relevant knowledge base documents`
+          status: 'loading',
+          title: 'Found relevant documents',
+          body: `Found ${documents.length} relevant knowledge base documents`
         }
       });
 
@@ -138,11 +140,12 @@ const getToolSearchKnowledgeBase = (
             }
 
             messageStreamWriter.write({
-              type: 'data-document-search',
+              type: 'data-research',
               id,
               data: {
-                status: 'researching_document',
-                content: `Researching ${dbDocument.name}: ${relevantInformationObject.reason}`
+                status: 'loading',
+                title: 'Researching document',
+                body: `Researching ${dbDocument.name}: ${relevantInformationObject.reason}`
               }
             });
 
@@ -251,11 +254,12 @@ Return only the relevant information as plain text without commentary. If you do
             relevantInformationObject.relevantInformation = text;
 
             messageStreamWriter.write({
-              type: 'data-document-search',
+              type: 'data-research',
               id,
               data: {
-                status: 'document_research_complete',
-                content: text
+                status: 'complete',
+                title: 'Document research complete',
+                body: text
               }
             });
           })
@@ -263,11 +267,12 @@ Return only the relevant information as plain text without commentary. If you do
       }
 
       messageStreamWriter.write({
-        type: 'data-document-search',
+        type: 'data-research',
         id,
         data: {
-          status: 'document_research_complete',
-          content: relevantInformationObjects
+          status: 'complete',
+          title: 'Document research complete',
+          body: relevantInformationObjects
             .map((d) => d.relevantInformation)
             .join('\n-')
         }
