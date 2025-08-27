@@ -13,6 +13,7 @@ import z from 'zod';
 import internalChartConfigSchema from '@/app/_charts/schemas/internalChartConfigSchema';
 import useTRPC from '@/lib/trpc/browser';
 
+import multipleChoiceSchema from '../schemas/multipleChoiceSchema';
 import researchSchema from '../schemas/researchSchema';
 
 type ChatMessage = UIMessage<
@@ -20,6 +21,7 @@ type ChatMessage = UIMessage<
   {
     chart: z.infer<typeof internalChartConfigSchema>;
     research: z.infer<typeof researchSchema>;
+    'multiple-choice': z.infer<typeof multipleChoiceSchema>;
   }
 >;
 
@@ -61,7 +63,8 @@ const ChatProvider = ({
     },
     dataPartSchemas: {
       chart: internalChartConfigSchema,
-      research: researchSchema
+      research: researchSchema,
+      'multiple-choice': multipleChoiceSchema
     },
     onToolCall: async ({ toolCall }) => {
       if (toolCall.toolName === 'clearChat') {

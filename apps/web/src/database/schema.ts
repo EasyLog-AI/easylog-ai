@@ -1,3 +1,4 @@
+import { UIMessage } from 'ai';
 import {
   boolean,
   integer,
@@ -188,7 +189,7 @@ export const chats = pgTable('chats', {
     onDelete: 'cascade'
   }),
   /** TODO: come on jappie, we can do better than this */
-  messages: jsonb('messages').notNull().default([]),
+  messages: jsonb('messages').notNull().default([]).$type<UIMessage[]>(),
   ...timestamps
 });
 
@@ -200,5 +201,16 @@ export const documentData = pgTable('document_data', {
   partName: text('part_name').notNull(),
   rowId: integer('row_id').notNull(),
   rowData: jsonb('row_data').notNull().default({}),
+  ...timestamps
+});
+
+export const multipleChoiceQuestions = pgTable('multiple_choice_questions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  chatId: uuid('chat_id')
+    .references(() => chats.id, { onDelete: 'cascade' })
+    .notNull(),
+  question: text('question').notNull(),
+  options: text('options').array().notNull().default([]),
+  value: text('value'),
   ...timestamps
 });

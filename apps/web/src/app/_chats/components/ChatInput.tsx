@@ -25,7 +25,7 @@ const ChatInput = () => {
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const { sendMessage } = useChatContext();
+  const { sendMessage, status } = useChatContext();
 
   const {
     reset,
@@ -50,6 +50,9 @@ const ChatInput = () => {
     }
   }, [isSubmitSuccessful, reset]);
 
+  const isLoading =
+    isSubmitting || status === 'submitted' || status === 'streaming';
+
   return (
     <motion.div
       className="sticky bottom-3 left-0 right-0 px-3 md:bottom-5 md:px-5"
@@ -69,13 +72,13 @@ const ChatInput = () => {
       <div className="bg-surface-primary shadow-short mx-auto w-full max-w-2xl overflow-clip rounded-2xl bg-clip-padding contain-inline-size">
         <div
           className="cursor-text px-5 pt-5 data-[disabled=true]:cursor-not-allowed data-[disabled=true]:opacity-50"
-          data-disabled={isSubmitting}
+          data-disabled={isLoading}
           onClick={() => {
             textareaRef.current?.focus();
           }}
         >
           <TextareaAutosize
-            disabled={isSubmitting}
+            disabled={isLoading}
             autoFocus
             className="decoration-none placeholder:text-text-muted text-text-primary w-full resize-none focus:outline-none"
             ref={(e) => {
@@ -99,11 +102,11 @@ const ChatInput = () => {
           <Button
             shape="circle"
             size="lg"
-            isDisabled={isSubmitting || !isValid}
+            isDisabled={isLoading || !isValid}
             onClick={handleSubmit(submitHandler)}
           >
             <ButtonContent>
-              <Icon icon={isSubmitting ? IconSpinner : IconArrowUp} />
+              <Icon icon={isLoading ? IconSpinner : IconArrowUp} />
             </ButtonContent>
           </Button>
         </div>

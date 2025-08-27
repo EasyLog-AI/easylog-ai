@@ -30,6 +30,8 @@ import toolGetResources from '@/app/_chats/tools/easylog-backend/toolGetResource
 import toolUpdateMultipleAllocations from '@/app/_chats/tools/easylog-backend/toolUpdateMultipleAllocations';
 import toolUpdatePlanningPhase from '@/app/_chats/tools/easylog-backend/toolUpdatePlanningPhase';
 import toolUpdatePlanningProject from '@/app/_chats/tools/easylog-backend/toolUpdatePlanningProject';
+import toolAnswerMultipleChoice from '@/app/_chats/tools/multiple-choice/toolAnswerMultipleChoice';
+import toolCreateMultipleChoice from '@/app/_chats/tools/multiple-choice/toolCreateMultipleChoice';
 import toolExecuteSQL from '@/app/_chats/tools/toolExecuteSQL';
 import toolLoadDocument from '@/app/_chats/tools/toolLoadDocument';
 import toolSearchKnowledgeBase from '@/app/_chats/tools/toolSearchKnowledgeBase';
@@ -254,7 +256,19 @@ export const POST = async (
 
               return 'Memory deleted';
             }
-          })
+          }),
+          createMultipleChoice: toolCreateMultipleChoice(
+            {
+              chatId: chat.id
+            },
+            writer
+          ),
+          answerMultipleChoice: toolAnswerMultipleChoice(
+            {
+              chatId: chat.id
+            },
+            writer
+          )
         },
         stopWhen: stepCountIs(5)
       });

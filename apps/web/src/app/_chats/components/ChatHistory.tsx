@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import ChatMessageAssistant from './ChatMessageAssistant';
 import ChatMessageAssistantChart from './ChatMessageAssistantChart';
 import ChatMessageAssistantMarkdownContent from './ChatMessageAssistantMarkdownContent';
+import ChatMessageAssistantMultipleChoice from './ChatMessageAssistantMultipleChoice';
 import ChatMessageAssistantResearch from './ChatMessageAssistantResearch';
 import ChatMessageUser from './ChatMessageUser';
 import ChatMessageUserTextContent from './ChatMessageUserTextContent';
@@ -17,7 +18,7 @@ const ChatHistory = () => {
   const [isPinnedToBottom, setIsPinnedToBottom] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const { messages, status } = useChatContext();
+  const { messages, status, id } = useChatContext();
 
   const isAtBottom = useCallback(() => {
     const el = scrollRef.current;
@@ -85,6 +86,16 @@ const ChatHistory = () => {
                       status={part.data.status}
                       title={part.data.title}
                       body={part.data.body}
+                    />
+                  ) : part.type === 'data-multiple-choice' ? (
+                    <ChatMessageAssistantMultipleChoice
+                      key={`${message.id}-${i}`}
+                      question={part.data.question}
+                      options={part.data.options}
+                      answer={part.data.answer}
+                      multipleChoiceQuestionId={part.data.id}
+                      chatId={id}
+                      messageId={message.id}
                     />
                   ) : null
                 )}

@@ -148,10 +148,10 @@
   --color-surface-primary-active: color-mix(in oklch, var(--color-white) 95%, black);
   --color-surface-primary-selected: color-mix(in oklch, var(--color-white) 95%, black);
 
-  --color-surface-muted: var(--color-stone-100);
-  --color-surface-muted-hover: color-mix(in oklch, var(--color-stone-100) 97%, black);
-  --color-surface-muted-active: color-mix(in oklch, var(--color-stone-100) 95%, black);
-  --color-surface-muted-selected: color-mix(in oklch, var(--color-stone-100) 95%, black);
+  --color-surface-muted: var(--color-stone-50);
+  --color-surface-muted-hover: color-mix(in oklch, var(--color-stone-50) 97%, black);
+  --color-surface-muted-active: color-mix(in oklch, var(--color-stone-50) 95%, black);
+  --color-surface-muted-selected: color-mix(in oklch, var(--color-stone-50) 95%, black);
 
   --color-surface-success: var(--color-green-100);
   --color-surface-success-hover: color-mix(in oklch, var(--color-green-100) 97%, black);
