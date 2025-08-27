@@ -27,8 +27,10 @@ const ChatMessageAssistantResearch = ({
         </ContentWrapper>
       </Typography>
 
-      <Typography variant="bodySm" className="text-text-muted">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{body}</ReactMarkdown>
+      <Typography variant="bodySm" className="text-text-muted" asChild>
+        <div>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{body}</ReactMarkdown>
+        </div>
       </Typography>
     </div>
   );
