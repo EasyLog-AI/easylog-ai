@@ -12,6 +12,7 @@ import splitArrayBatches from '@/utils/split-array-batches';
 
 import { processPdfJob } from './converters/process-pdf-job';
 import { processXlsxJob } from './converters/process-xlsx-job';
+import { processXmlJob } from './converters/process-xml-job';
 import analyzeColumn from './utils/analyzeColumn';
 
 export const ingestDocumentJob = schemaTask({
@@ -47,7 +48,9 @@ export const ingestDocumentJob = schemaTask({
 
     const supportedContentTypes = [
       'application/pdf',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/xml',
+      'text/xml'
     ];
 
     if (!supportedContentTypes.includes(contentType)) {
@@ -66,9 +69,13 @@ export const ingestDocumentJob = schemaTask({
             downloadUrl: headResponse.downloadUrl,
             basePath: dbDocument.path
           })
-        : await processXlsxJob.triggerAndWait({
-            downloadUrl: headResponse.downloadUrl
-          });
+        : contentType === 'application/xml' || contentType === 'text/xml'
+          ? await processXmlJob.triggerAndWait({
+              downloadUrl: headResponse.downloadUrl
+            })
+          : await processXlsxJob.triggerAndWait({
+              downloadUrl: headResponse.downloadUrl
+            });
 
     if (!processingResult.ok) {
       throw new AbortTaskRunError('Failed to process document');
@@ -102,12 +109,14 @@ Analyze the data structure below and provide:
 The data represents either:
 - A spreadsheet with multiple parts, each containing columns with different data types (string, number, date, boolean)
 - A PDF document with multiple pages, each containing markdown text and images
+- An XML document with structured data records containing various field types (string, number, date, boolean)
 
 ## REQUIREMENTS
 - Summary must be in English and under 1000 characters
 - Summary should describe the overall content, structure, and key patterns
 - For spreadsheets: describe data types, columns, and key insights
 - For PDFs: describe the document type, content themes, and key information
+- For XML: describe the data structure, record types, and key fields
 - Tags should identify: companies, people, locations, dates, categories, document types, and themes
 - Tags must be simple strings (no special characters or spaces)
 - Always return exactly 2 fields: "summary" and "tags"
@@ -126,6 +135,12 @@ For PDFs:
   "tags": ["technical-report", "architecture", "performance", "specifications", "diagrams"]
 }
 
+For XML:
+{
+  "summary": "This XML document contains 15 Afwijkingen records with deviation information including IDs, titles, dates, locations, and status fields. Data includes project management deviations with audit numbers and process owners.",
+  "tags": ["afwijkingen", "deviations", "project-management", "audit", "process-owners", "status-tracking"]
+}
+
 ## DATA TO ANALYZE
 ${JSON.stringify(analysis, null, 2)}
 
@@ -141,7 +156,12 @@ Remember: Return ONLY the JSON object with "summary" and "tags" fields. Do not i
     const [document] = await db
       .update(documents)
       .set({
-        type: contentType === 'application/pdf' ? 'pdf' : 'xlsx',
+        type:
+          contentType === 'application/pdf'
+            ? 'pdf'
+            : contentType === 'application/xml' || contentType === 'text/xml'
+              ? 'xml'
+              : 'xlsx',
         summary,
         tags,
         analysis

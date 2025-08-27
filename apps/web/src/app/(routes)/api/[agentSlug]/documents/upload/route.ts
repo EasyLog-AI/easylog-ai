@@ -53,7 +53,9 @@ export async function POST(
         return {
           allowedContentTypes: [
             'application/pdf',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/xml',
+            'text/xml'
           ],
           addRandomSuffix: true,
           tokenPayload: JSON.stringify({
