@@ -1439,6 +1439,20 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
         reminders = await self.get_metadata("reminders", [])
         recurring_tasks = await self.get_metadata("recurring_tasks", [])
 
+        current_time = datetime.now(pytz.timezone("Europe/Amsterdam"))
+        current_hour = current_time.hour
+        current_minute = current_time.minute
+        current_weekday_python = current_time.weekday()  # 0=Monday, 6=Sunday
+        current_weekday_cron = (
+            current_weekday_python + 1
+        ) % 7  # Convert to cron format: 0=Sunday, 1=Monday, ..., 6=Saturday
+        current_day = current_time.day
+        current_month = current_time.month
+
+        # Weekday name mapping for clarity
+        weekday_names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+        current_weekday_name = weekday_names[current_weekday_cron]
+
         prompt = f"""
 # Notification Management System
 
@@ -1446,7 +1460,11 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
 You are the notification management system responsible for delivering timely alerts without duplication. Your task is to analyze pending notifications and determine which ones need to be sent.
 
 ## Current Time
-Current system time: {datetime.now(pytz.timezone("Europe/Amsterdam")).strftime("%Y-%m-%d %H:%M:%S")}
+Current system time: {current_time.strftime("%Y-%m-%d %H:%M:%S")} 
+- Hour: {current_hour}, Minute: {current_minute}
+- Weekday: {current_weekday_cron} ({current_weekday_name}) in cron format (0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday)
+- Python weekday: {current_weekday_python} (0=Monday, 6=Sunday)
+- Day of month: {current_day}, Month: {current_month}
 
 ## Previously Sent Notifications
 The following notifications have already been sent and MUST NOT be resent:
@@ -1461,13 +1479,42 @@ Please evaluate these items for notification eligibility:
 2. Recurring Tasks:
 {json.dumps(recurring_tasks, indent=2)}
 
+## Critical Cron Expression Rules
+A cron expression format is: "minute hour day_of_month month day_of_week"
+- minute: 0-59
+- hour: 0-23 
+- day_of_month: 1-31
+- month: 1-12
+- day_of_week: 0-6 (0=Sunday, 1=Monday, ..., 6=Saturday) OR 1-7 (1=Monday, ..., 7=Sunday)
+
+**IMPORTANT TIMING RULE**: A recurring task should ONLY be triggered when ALL time components match EXACTLY:
+- "0 9 * * *" means ONLY at 9:00 (hour=9 AND minute=0)
+- "0 9,10,11 * * *" means ONLY at 9:00, 10:00, or 11:00 (hour in [9,10,11] AND minute=0)
+- "0 9,10,11 * * 1,2,4,5" means ONLY at 9:00, 10:00, or 11:00 AND ONLY on Monday(1), Tuesday(2), Thursday(4), Friday(5)
+
+**Current time matching logic**:
+- Current hour is {current_hour}, current minute is {current_minute}
+- Current weekday is {current_weekday_cron} ({current_weekday_name}) in cron format
+- CRITICAL: For day_of_week matching in cron expressions:
+  * 0 = Sunday
+  * 1 = Monday  
+  * 2 = Tuesday
+  * 3 = Wednesday
+  * 4 = Thursday
+  * 5 = Friday
+  * 6 = Saturday
+  
+**Workday Examples**:
+- "1,2,4,5" in cron means Monday(1), Tuesday(2), Thursday(4), Friday(5) - typical workdays excluding Wednesday
+- "1,2,3,4,5" in cron means Monday through Friday - full workweek
+
 ## Decision Rules
-- A notification should be sent for any reminder that is currently due
-- For recurring tasks, evaluate the cron expression to determine if it should be triggered at the current time
-- If a cron expression indicates the task is due now and hasn't already been sent today, send a notification
-- If an item appears in the previously sent notifications list, it MUST be skipped
-- Parse cron expressions carefully to determine exact scheduling (minute, hour, day of month, month, day of week)
-- The date attribute of the reminders in the reminders list is the due date. If that date is before the current date, the reminder is due.
+- A notification should be sent for any reminder that is currently due (date/time has passed)
+- For recurring tasks: ONLY send if the cron expression matches the EXACT current time
+- A task with "0 9 * * *" should ONLY trigger when current hour=9 AND current minute=0
+- A task with "0 9,10,11 * * 1,2,4,5" should ONLY trigger when (hour in [9,10,11] AND minute=0 AND current weekday {current_weekday_cron} is in [1,2,4,5] which are Monday,Tuesday,Thursday,Friday)
+- If an item appears in the previously sent notifications list with today's date, it MUST be skipped
+- Check if a notification for the same task was already sent in the current hour to prevent duplicates
 
 ## Required Action
 After analysis, you must take exactly ONE of these actions:
