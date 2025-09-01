@@ -1475,11 +1475,12 @@ A cron expression format is: "minute hour day_of_month month day_of_week"
 - day_of_month: 1-31
 - month: 1-12
 - day_of_week: 0-6 (0=Sunday, 1=Monday, ..., 6=Saturday) OR 1-7 (1=Monday, ..., 7=Sunday)
+- Workdays ("werkdagen"): 1-5 (Monday=1, Tuesday=2, Wednesday=3, Thursday=4, Friday=5)
 
 **IMPORTANT TIMING RULE**: A recurring task should ONLY be triggered when ALL time components match EXACTLY:
 - "0 9 * * *" means ONLY at 9:00 (hour=9 AND minute=0)
 - "0 9,10,11 * * *" means ONLY at 9:00, 10:00, or 11:00 (hour in [9,10,11] AND minute=0)
-- "0 9,10,11 * * 1,2,4,5" means ONLY at 9:00, 10:00, or 11:00 AND ONLY on Monday(1), Tuesday(2), Thursday(4), Friday(5)
+- "0 9,10,11 * * 1-5" means ONLY at 9:00, 10:00, or 11:00 AND ONLY on workdays Monday(1) through Friday(5)
 
 **Current time matching logic**:
 - Current hour is {current_hour}, current minute is {current_minute}
@@ -1490,7 +1491,7 @@ A cron expression format is: "minute hour day_of_month month day_of_week"
 - A notification should be sent for any reminder that is currently due (date/time has passed)
 - For recurring tasks: ONLY send if the cron expression matches the EXACT current time
 - A task with "0 9 * * *" should ONLY trigger when current hour=9 AND current minute=0
-- A task with "0 9,10,11 * * 1,2,4,5" should ONLY trigger when (hour in [9,10,11] AND minute=0 AND weekday in [Monday,Tuesday,Thursday,Friday])
+- A task with "0 9,10,11 * * 1-5" should ONLY trigger when (hour in [9,10,11] AND minute=0 AND weekday is Monday–Friday)
 - If an item appears in the previously sent notifications list with today's date, it MUST be skipped
 - Check if a notification for the same task was already sent in the current hour to prevent duplicates
 
