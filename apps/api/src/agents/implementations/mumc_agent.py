@@ -1488,17 +1488,18 @@ A cron expression format is: "minute hour day_of_month month day_of_week"
 - For cron day_of_week matching, convert Python weekday to cron format: Sunday=0, Monday=1, ..., Saturday=6
 
 ## Decision Rules
-- A notification should be sent for any reminder that is currently due (date/time has passed)
-- For recurring tasks: ONLY send if the cron expression matches the EXACT current time
-- A task with "0 9 * * *" should ONLY trigger when current hour=9 AND current minute=0
-- A task with "0 9,10,11 * * 1-5" should ONLY trigger when (hour in [9,10,11] AND minute=0 AND weekday is Monday–Friday)
-- If an item appears in the previously sent notifications list with today's date, it MUST be skipped
-- Check if a notification for the same task was already sent in the current hour to prevent duplicates
+- Reminders are due when their scheduled date/time is <= current time.
+- Apply a 2-minute grace window for reminders: if scheduled within the last 2 minutes, treat as due.
+- For recurring tasks: ONLY send if the cron expression matches the EXACT current time.
+- A task with "0 9 * * *" should ONLY trigger when current hour=9 AND current minute=0.
+- A task with "0 9,10,11 * * 1-5" should ONLY trigger when (hour in [9,10,11] AND minute=0 AND weekday is Monday–Friday).
+- Do not skip a due recurring task because a reminder is also due; handle both if applicable.
+- De-duplicate using the previously sent notifications list: skip items already sent today (or within the current hour for the same title/task).
 
 ## Required Action
-After analysis, you must take exactly ONE of these actions:
-- If any eligible notifications are found: invoke the send_notification tool with details
-- If no eligible notifications exist: invoke the noop tool
+After analysis:
+- For EACH due reminder and EACH due recurring task that is not a duplicate, invoke the send_notification tool with appropriate title and contents.
+- If no eligible notifications exist: invoke the noop tool.
 """
 
         self.logger.info(f"Calling super agent with prompt: {prompt}")
