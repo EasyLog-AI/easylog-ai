@@ -1442,16 +1442,9 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
         current_time = datetime.now(pytz.timezone("Europe/Amsterdam"))
         current_hour = current_time.hour
         current_minute = current_time.minute
-        current_weekday_python = current_time.weekday()  # 0=Monday, 6=Sunday
-        current_weekday_cron = (
-            current_weekday_python + 1
-        ) % 7  # Convert to cron format: 0=Sunday, 1=Monday, ..., 6=Saturday
+        current_weekday = current_time.weekday()  # 0=Monday, 6=Sunday
         current_day = current_time.day
         current_month = current_time.month
-
-        # Weekday name mapping for clarity
-        weekday_names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-        current_weekday_name = weekday_names[current_weekday_cron]
 
         prompt = f"""
 # Notification Management System
@@ -1460,11 +1453,7 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
 You are the notification management system responsible for delivering timely alerts without duplication. Your task is to analyze pending notifications and determine which ones need to be sent.
 
 ## Current Time
-Current system time: {current_time.strftime("%Y-%m-%d %H:%M:%S")} 
-- Hour: {current_hour}, Minute: {current_minute}
-- Weekday: {current_weekday_cron} ({current_weekday_name}) in cron format (0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday)
-- Python weekday: {current_weekday_python} (0=Monday, 6=Sunday)
-- Day of month: {current_day}, Month: {current_month}
+Current system time: {current_time.strftime("%Y-%m-%d %H:%M:%S")} (Hour: {current_hour}, Minute: {current_minute}, Weekday: {current_weekday} where 0=Monday, Day: {current_day}, Month: {current_month})
 
 ## Previously Sent Notifications
 The following notifications have already been sent and MUST NOT be resent:
@@ -1494,25 +1483,14 @@ A cron expression format is: "minute hour day_of_month month day_of_week"
 
 **Current time matching logic**:
 - Current hour is {current_hour}, current minute is {current_minute}
-- Current weekday is {current_weekday_cron} ({current_weekday_name}) in cron format
-- CRITICAL: For day_of_week matching in cron expressions:
-  * 0 = Sunday
-  * 1 = Monday  
-  * 2 = Tuesday
-  * 3 = Wednesday
-  * 4 = Thursday
-  * 5 = Friday
-  * 6 = Saturday
-  
-**Workday Examples**:
-- "1,2,4,5" in cron means Monday(1), Tuesday(2), Thursday(4), Friday(5) - typical workdays excluding Wednesday
-- "1,2,3,4,5" in cron means Monday through Friday - full workweek
+- Current weekday is {current_weekday} (Python format: 0=Monday, 6=Sunday)
+- For cron day_of_week matching, convert Python weekday to cron format: Sunday=0, Monday=1, ..., Saturday=6
 
 ## Decision Rules
 - A notification should be sent for any reminder that is currently due (date/time has passed)
 - For recurring tasks: ONLY send if the cron expression matches the EXACT current time
 - A task with "0 9 * * *" should ONLY trigger when current hour=9 AND current minute=0
-- A task with "0 9,10,11 * * 1,2,4,5" should ONLY trigger when (hour in [9,10,11] AND minute=0 AND current weekday {current_weekday_cron} is in [1,2,4,5] which are Monday,Tuesday,Thursday,Friday)
+- A task with "0 9,10,11 * * 1,2,4,5" should ONLY trigger when (hour in [9,10,11] AND minute=0 AND weekday in [Monday,Tuesday,Thursday,Friday])
 - If an item appears in the previously sent notifications list with today's date, it MUST be skipped
 - Check if a notification for the same task was already sent in the current hour to prevent duplicates
 
