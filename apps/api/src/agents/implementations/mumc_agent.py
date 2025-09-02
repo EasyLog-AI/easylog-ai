@@ -1501,7 +1501,8 @@ A cron expression format is: "minute hour day_of_month month day_of_week"
 After analysis:
 - For EACH due reminder and EACH due recurring task that is not a duplicate, invoke the send_notification tool with appropriate title and contents.
 - For reminders: Use "Reminder" as title and the reminder message as contents.
-- For recurring tasks: Create a meaningful title based on the task description and generate appropriate contents that convey the intended message to the user.
+- For recurring tasks: Extract the actual message from the task description and use "Dagelijkse herinnering" as title. 
+  Example: task "Stuur bericht 'Ga lopen' naar de gebruiker" → title: "Dagelijkse herinnering", contents: "Ga lopen"
 - If no eligible notifications exist: invoke the noop tool.
 """
 
