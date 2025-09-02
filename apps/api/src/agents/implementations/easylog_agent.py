@@ -772,7 +772,7 @@ class EasyLogAgent(BaseAgent[EasyLogAgentConfig]):
             response = await self.one_signal.send_notification(notification)
             self.logger.info(f"Notification response: {response}")
 
-                        notifications = await self.get_metadata("notifications", [])
+            notifications = await self.get_metadata("notifications", [])
             notifications.append(
                 {
                     "id": response["id"],
