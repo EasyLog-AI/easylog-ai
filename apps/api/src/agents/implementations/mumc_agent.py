@@ -996,7 +996,21 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
             self.logger.info(f"Notification response: {response}")
 
             notifications = await self.get_metadata("notifications", [])
-            notifications.append(
+
+            # Keep only today's notifications
+            today = datetime.now(pytz.timezone("Europe/Amsterdam")).date()
+            filtered_notifications = []
+            for notification in notifications:
+                try:
+                    sent_date = datetime.fromisoformat(notification["sent_at"]).date()
+                    if sent_date == today:
+                        filtered_notifications.append(notification)
+                except (ValueError, KeyError):
+                    # Keep notification if we can't parse the date
+                    filtered_notifications.append(notification)
+
+            # Add new notification
+            filtered_notifications.append(
                 {
                     "id": response["id"],
                     "title": title,
@@ -1005,7 +1019,7 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                 }
             )
 
-            await self.set_metadata("notifications", notifications)
+            await self.set_metadata("notifications", filtered_notifications)
 
             return "Notification sent"
 
