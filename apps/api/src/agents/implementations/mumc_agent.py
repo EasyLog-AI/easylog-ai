@@ -1491,7 +1491,7 @@ A cron expression format is: "minute hour day_of_month month day_of_week"
 - Reminders are due when their scheduled date/time is <= current time.
 - Apply a 2-minute grace window for reminders: if scheduled within the last 2 minutes, treat as due.
 - For recurring tasks: send if the cron expression matches the EXACT current time
-  OR falls within a 2-minute grace window after the scheduled minute.
+  OR falls within a 5-minute grace window after the scheduled minute.
 - A task with "0 9 * * *" should ONLY trigger when current hour=9 AND current minute=0.
 - A task with "0 9,10,11 * * 1-5" should ONLY trigger when (hour in [9,10,11] AND minute=0 AND weekday is Monday–Friday).
 - Do not skip a due recurring task because a reminder is also due; handle both if applicable.
