@@ -1426,10 +1426,6 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
             self.logger.info("No last thread found, skipping super agent call")
             return
 
-        if last_thread.id != self.thread_id:
-            self.logger.info("Last thread id does not match current thread id, skipping super agent call")
-            return
-
         tools = [
             BaseTools.tool_noop,
             self.get_tools()["tool_send_notification"],

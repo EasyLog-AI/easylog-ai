@@ -12,6 +12,7 @@ from openai.types.chat.chat_completion import ChatCompletion
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 from pydantic import BaseModel, Field
+
 from src.agents.base_agent import BaseAgent, SuperAgentConfig
 from src.agents.tools.base_tools import BaseTools
 from src.lib.prisma import prisma
@@ -20,6 +21,8 @@ from src.settings import settings
 from src.utils.function_to_openai_tool import function_to_openai_tool
 
 onesignal_api_key = settings.ONESIGNAL_APPERTO_API_KEY
+
+
 class QuestionaireQuestionConfig(BaseModel):
     question: str = Field(
         default="",
@@ -97,9 +100,7 @@ class DebugAgent(BaseAgent[DebugAgentConfig]):
             settings.ONESIGNAL_APPERTO_APP_ID,
         )
 
-    def _substitute_double_curly_placeholders(
-        self, template_string: str, data_dict: dict[str, Any]
-    ) -> str:
+    def _substitute_double_curly_placeholders(self, template_string: str, data_dict: dict[str, Any]) -> str:
         """Substitutes {{placeholder}} style placeholders in a string with values from data_dict."""
 
         # First, replace all known placeholders
@@ -115,9 +116,7 @@ class DebugAgent(BaseAgent[DebugAgentConfig]):
             var_name = match.group(1)  # Content inside {{...}}
             return f"[missing:{var_name}]"
 
-        output_string = re.sub(
-            r"\{\{([^}]+)\}\}", replace_missing_with_indicator, output_string
-        )
+        output_string = re.sub(r"\{\{([^}]+)\}\}", replace_missing_with_indicator, output_string)
         return output_string
 
     async def get_current_role(self) -> RoleConfig:
@@ -125,9 +124,7 @@ class DebugAgent(BaseAgent[DebugAgentConfig]):
         if role not in [role.name for role in self.config.roles]:
             role = self.config.roles[0].name
 
-        return next(
-            role_config for role_config in self.config.roles if role_config.name == role
-        )
+        return next(role_config for role_config in self.config.roles if role_config.name == role)
 
     def get_tools(self) -> dict[str, Callable]:
         async def tool_set_current_role(role: str) -> str:
@@ -169,12 +166,7 @@ class DebugAgent(BaseAgent[DebugAgentConfig]):
                 search_query, subjects=(await self.get_current_role()).allowed_subjects
             )
 
-            return "\n-".join(
-                [
-                    f"Path: {document.path} - Summary: {document.summary}"
-                    for document in result
-                ]
-            )
+            return "\n-".join([f"Path: {document.path} - Summary: {document.summary}" for document in result])
 
         async def tool_get_document_contents(path: str) -> str:
             """Retrieve the complete contents of a specific document from the knowledge database.
@@ -193,9 +185,7 @@ class DebugAgent(BaseAgent[DebugAgentConfig]):
             """
             return json.dumps(await self.get_document(path), default=str)
 
-        async def tool_answer_questionaire_question(
-            question_name: str, answer: str
-        ) -> str:
+        async def tool_answer_questionaire_question(question_name: str, answer: str) -> str:
             """Answer a question from the questionaire.
 
             Args:
@@ -218,9 +208,7 @@ class DebugAgent(BaseAgent[DebugAgentConfig]):
             """
             return await self.get_metadata(question_name, "[not answered]")
 
-        def tool_ask_multiple_choice(
-            question: str, choices: list[dict[str, str]]
-        ) -> MultipleChoiceWidget:
+        def tool_ask_multiple_choice(question: str, choices: list[dict[str, str]]) -> MultipleChoiceWidget:
             """Asks the user a multiple-choice question with distinct labels and values.
                 When using this tool, you must not repeat the same question or answers in text unless asked to do so by the user.
                 This widget already presents the question and choices to the user.
@@ -240,12 +228,8 @@ class DebugAgent(BaseAgent[DebugAgentConfig]):
             parsed_choices = []
             for choice_dict in choices:
                 if "label" not in choice_dict or "value" not in choice_dict:
-                    raise ValueError(
-                        "Each choice dictionary must contain 'label' and 'value' keys."
-                    )
-                parsed_choices.append(
-                    Choice(label=choice_dict["label"], value=choice_dict["value"])
-                )
+                    raise ValueError("Each choice dictionary must contain 'label' and 'value' keys.")
+                parsed_choices.append(Choice(label=choice_dict["label"], value=choice_dict["value"]))
 
             return MultipleChoiceWidget(
                 question=question,
@@ -261,9 +245,7 @@ class DebugAgent(BaseAgent[DebugAgentConfig]):
                 task (str): The task to set the schedule for.
             """
 
-            existing_tasks: list[dict[str, str]] = await self.get_metadata(
-                "recurring_tasks", []
-            )
+            existing_tasks: list[dict[str, str]] = await self.get_metadata("recurring_tasks", [])
 
             existing_tasks.append(
                 {
@@ -285,9 +267,7 @@ class DebugAgent(BaseAgent[DebugAgentConfig]):
                 message (str): The message to remind the user about.
             """
 
-            existing_reminders: list[dict[str, str]] = await self.get_metadata(
-                "reminders", []
-            )
+            existing_reminders: list[dict[str, str]] = await self.get_metadata("reminders", [])
 
             existing_reminders.append(
                 {
@@ -307,9 +287,7 @@ class DebugAgent(BaseAgent[DebugAgentConfig]):
             Args:
                 id (str): The ID of the task to remove.
             """
-            existing_tasks: list[dict[str, str]] = await self.get_metadata(
-                "recurring_tasks", []
-            )
+            existing_tasks: list[dict[str, str]] = await self.get_metadata("recurring_tasks", [])
 
             existing_tasks = [task for task in existing_tasks if task["id"] != id]
 
@@ -323,13 +301,9 @@ class DebugAgent(BaseAgent[DebugAgentConfig]):
             Args:
                 id (str): The ID of the reminder to remove.
             """
-            existing_reminders: list[dict[str, str]] = await self.get_metadata(
-                "reminders", []
-            )
+            existing_reminders: list[dict[str, str]] = await self.get_metadata("reminders", [])
 
-            existing_reminders = [
-                reminder for reminder in existing_reminders if reminder["id"] != id
-            ]
+            existing_reminders = [reminder for reminder in existing_reminders if reminder["id"] != id]
 
             await self.set_metadata("reminders", existing_reminders)
 
@@ -367,13 +341,13 @@ class DebugAgent(BaseAgent[DebugAgentConfig]):
             Args:
                 contents (str): The text to send in the notification.
             """
-            onesignal_id = self.request_headers.get(
-                "x-onesignal-external-user-id"
-            ) or await self.get_metadata("onesignal_id", None)
+            onesignal_id = self.request_headers.get("x-onesignal-external-user-id") or await self.get_metadata(
+                "onesignal_id", None
+            )
 
-            assistant_field_name = self.request_headers.get(
-                "x-assistant-field-name"
-            ) or await self.get_metadata("assistant_field_name", None)
+            assistant_field_name = self.request_headers.get("x-assistant-field-name") or await self.get_metadata(
+                "assistant_field_name", None
+            )
 
             self.logger.info(f"Sending notification to {onesignal_id}")
 
@@ -457,15 +431,9 @@ class DebugAgent(BaseAgent[DebugAgentConfig]):
         questionnaire_format_kwargs: dict[str, str] = {}
         for q_item in role_config.questionaire:
             answer = await self.get_metadata(q_item.name, "[not answered]")
-            questionnaire_format_kwargs[f"questionaire_{q_item.name}_question"] = (
-                q_item.question
-            )
-            questionnaire_format_kwargs[f"questionaire_{q_item.name}_instructions"] = (
-                q_item.instructions
-            )
-            questionnaire_format_kwargs[f"questionaire_{q_item.name}_name"] = (
-                q_item.name
-            )
+            questionnaire_format_kwargs[f"questionaire_{q_item.name}_question"] = q_item.question
+            questionnaire_format_kwargs[f"questionaire_{q_item.name}_instructions"] = q_item.instructions
+            questionnaire_format_kwargs[f"questionaire_{q_item.name}_name"] = q_item.name
             questionnaire_format_kwargs[f"questionaire_{q_item.name}_answer"] = answer
 
         formatted_current_role_prompt = self._substitute_double_curly_placeholders(
@@ -481,47 +449,30 @@ class DebugAgent(BaseAgent[DebugAgentConfig]):
         main_prompt_format_args = {
             "current_role": role_config.name,
             "current_role_prompt": formatted_current_role_prompt,
-            "available_roles": "\n".join(
-                [f"- {role.name}" for role in self.config.roles]
-            ),
-            "current_time": datetime.now(pytz.timezone("Europe/Amsterdam")).strftime(
-                "%Y-%m-%d %H:%M:%S"
-            ),
+            "available_roles": "\n".join([f"- {role.name}" for role in self.config.roles]),
+            "current_time": datetime.now(pytz.timezone("Europe/Amsterdam")).strftime("%Y-%m-%d %H:%M:%S"),
             "reminders": "\n".join(
-                [
-                    f"{reminder.get('id')}: {reminder.get('message')} at {reminder.get('date')}"
-                    for reminder in reminders
-                ]
+                [f"{reminder.get('id')}: {reminder.get('message')} at {reminder.get('date')}" for reminder in reminders]
             )
             if reminders
             else "<no reminders>",
             "recurring_tasks": "\n".join(
-                [
-                    f"{task.get('id')}: {task.get('task')} at {task.get('cron_expression')}"
-                    for task in recurring_tasks
-                ]
+                [f"{task.get('id')}: {task.get('task')} at {task.get('cron_expression')}" for task in recurring_tasks]
             )
             if recurring_tasks
             else "<no recurring tasks>",
-            "memories": "\n".join(
-                [f"{memory.get('id')}: {memory.get('memory')}" for memory in memories]
-            )
+            "memories": "\n".join([f"{memory.get('id')}: {memory.get('memory')}" for memory in memories])
             if memories
             else "<no memories>",
             "notifications": "\n".join(
-                [
-                    f"{notification.get('response')} at {notification.get('sent_at')}"
-                    for notification in notifications
-                ]
+                [f"{notification.get('response')} at {notification.get('sent_at')}" for notification in notifications]
             )
             if notifications
             else "<no notifications>",
             "metadata": json.dumps((await self._get_thread()).metadata),
         }
 
-        formatted_prompt = self._substitute_double_curly_placeholders(
-            self.config.prompt, main_prompt_format_args
-        )
+        formatted_prompt = self._substitute_double_curly_placeholders(self.config.prompt, main_prompt_format_args)
 
         self.logger.debug(f"formatted_prompt: {formatted_prompt}")
 
@@ -544,15 +495,13 @@ class DebugAgent(BaseAgent[DebugAgentConfig]):
     @staticmethod
     def super_agent_config() -> SuperAgentConfig[DebugAgentConfig] | None:
         return SuperAgentConfig(
-            cron_expression="30 * * * *",  # every hour at 30 minutes past
+            cron_expression="0 */2 * * *",  # every 2 hours at 0 minutes past
             agent_config=DebugAgentConfig(),
         )
 
     async def on_super_agent_call(
         self, messages: Iterable[ChatCompletionMessageParam]
-    ) -> (
-        tuple[AsyncStream[ChatCompletionChunk] | ChatCompletion, list[Callable]] | None
-    ):
+    ) -> tuple[AsyncStream[ChatCompletionChunk] | ChatCompletion, list[Callable]] | None:
         onesignal_id = await self.get_metadata("onesignal_id")
 
         if onesignal_id is None:
@@ -574,9 +523,7 @@ class DebugAgent(BaseAgent[DebugAgentConfig]):
             return
 
         if last_thread.id != self.thread_id:
-            self.logger.info(
-                "Last thread id does not match current thread id, skipping super agent call"
-            )
+            self.logger.info("Last thread id does not match current thread id, skipping super agent call")
             return
 
         tools = [
