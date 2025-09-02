@@ -54,23 +54,30 @@ class SuperAgentService:
         headers: dict,
         max_recursion_depth: int,
     ) -> None:
-        threads = await prisma.threads.find_many(
-            where={
-                "messages": {
-                    "some": {
-                        "agent_class": agent_class,
-                    },
-                },
-            },
-        )
+        # Get the latest thread per unique onesignal_id for users that have
+        # interacted with this agent at least once
+        try:
+            rows = await prisma.query_raw(
+                """
+                SELECT DISTINCT ON (t.metadata->>'onesignal_id') t.id
+                FROM threads t
+                WHERE t.metadata->>'onesignal_id' IS NOT NULL
+                ORDER BY t.metadata->>'onesignal_id', t.created_at DESC
+                """,
+            )
+        except Exception as e:
+            logger.error(f"Error querying latest threads per user for {agent_class}: {e}")
+            return
 
-        logger.info(f"Running super agent {agent_class} for {len(threads)} threads")
+        thread_ids = [row["id"] for row in rows] if rows else []
 
-        for thread in threads:
-            logger.info(f"Running super agent {agent_class} for thread {thread.id}")
+        logger.info(f"Running super agent {agent_class} for {len(thread_ids)} users (latest thread per onesignal_id)")
+
+        for thread_id in thread_ids:
+            logger.info(f"Running super agent {agent_class} for thread {thread_id}")
 
             async for chunk in SuperAgentService.call_super_agent(
-                thread.id,
+                thread_id,
                 agent_class,
                 agent_config,
                 headers,
