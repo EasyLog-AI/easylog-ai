@@ -1399,7 +1399,7 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
     @staticmethod
     def super_agent_config() -> SuperAgentConfig[MUMCAgentConfig] | None:
         return SuperAgentConfig(
-            cron_expression="*/5 * * * *",  # every 5 minutes
+            cron_expression="*/15 * * * *",  # every 15 minutes
             agent_config=MUMCAgentConfig(),
         )
 
@@ -1500,6 +1500,8 @@ A cron expression format is: "minute hour day_of_month month day_of_week"
 ## Required Action
 After analysis:
 - For EACH due reminder and EACH due recurring task that is not a duplicate, invoke the send_notification tool with appropriate title and contents.
+- For reminders: Use "Reminder" as title and the reminder message as contents.
+- For recurring tasks: Create a meaningful title based on the task description and generate appropriate contents that convey the intended message to the user.
 - If no eligible notifications exist: invoke the noop tool.
 """
 
