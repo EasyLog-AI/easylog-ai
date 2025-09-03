@@ -162,7 +162,7 @@ const ChatMessageAssistantMultipleChoice = ({
                     });
                     if (isLastMessage) {
                       void sendMessage({
-                        text: option
+                        text: `[${option}]`
                       });
                     }
                   }}
