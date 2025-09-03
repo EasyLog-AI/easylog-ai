@@ -256,7 +256,7 @@ export const POST = async (
             chatId: chat.id
           })
         },
-        stopWhen: [stepCountIs(5), hasToolCall('createMultipleChoice')]
+        stopWhen: [stepCountIs(20), hasToolCall('createMultipleChoice')]
       });
 
       writer.merge(result.toUIMessageStream());

@@ -2,7 +2,7 @@
 
 import { UseChatHelpers, useChat } from '@ai-sdk/react';
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { DefaultChatTransport, UIMessage } from 'ai';
+import { DefaultChatTransport, UIMessage, isToolOrDynamicToolUIPart } from 'ai';
 import { createContext, useEffect, useState } from 'react';
 import z from 'zod';
 
@@ -26,6 +26,53 @@ interface ChatContextType extends UseChatHelpers<ChatMessage> {}
 export const ChatContext = createContext<ChatContextType | undefined>(
   undefined
 );
+
+/**
+ * Check if the message is an assistant message with completed tool calls. The
+ * last step of the message must have at least one tool invocation and all tool
+ * invocations must have a result.
+ *
+ * This function skips automatic sending if the tool call includes a create
+ * multiple choice tool call.
+ */
+function lastAssistantMessageIsCompleteWithToolCalls({
+  messages
+}: {
+  messages: UIMessage[];
+}): boolean {
+  const message = messages[messages.length - 1];
+
+  if (!message) {
+    return false;
+  }
+
+  if (message.role !== 'assistant') {
+    return false;
+  }
+
+  const lastStepStartIndex = message.parts.reduce((lastIndex, part, index) => {
+    return part.type === 'step-start' ? index : lastIndex;
+  }, -1);
+
+  const lastStepToolInvocations = message.parts
+    .slice(lastStepStartIndex + 1)
+    .filter(isToolOrDynamicToolUIPart);
+
+  // Alternative approach: Check if there are any multiple choice data parts in the message
+  const hasMultipleChoiceData = message.parts.some(
+    (part) => part.type === 'data-multiple-choice'
+  );
+
+  // If there's a multiple choice data part, don't auto-send
+  if (hasMultipleChoiceData) {
+    return false;
+  }
+
+  return (
+    lastStepToolInvocations.length > 0 &&
+    lastStepToolInvocations.every((part) => part.state === 'output-available')
+  );
+}
 
 interface ChatProviderProps {
   agentSlug: string;
@@ -60,6 +107,9 @@ const ChatProvider = ({
       chart: internalChartConfigSchema,
       research: researchSchema,
       'multiple-choice': multipleChoiceSchema
+    },
+    sendAutomaticallyWhen: (args) => {
+      return lastAssistantMessageIsCompleteWithToolCalls(args);
     },
     onToolCall: async ({ toolCall }) => {
       if (toolCall.toolName === 'clearChat') {
