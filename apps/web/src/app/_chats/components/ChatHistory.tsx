@@ -7,6 +7,7 @@ import ChatMessageAssistant from './ChatMessageAssistant';
 import ChatMessageAssistantChart from './ChatMessageAssistantChart';
 import ChatMessageAssistantMarkdownContent from './ChatMessageAssistantMarkdownContent';
 import ChatMessageAssistantMultipleChoice from './ChatMessageAssistantMultipleChoice';
+import ChatMessageAssistantReasoning from './ChatMessageAssistantReasoning';
 import ChatMessageAssistantResearch from './ChatMessageAssistantResearch';
 import ChatMessageUser from './ChatMessageUser';
 import ChatMessageUserTextContent from './ChatMessageUserTextContent';
@@ -86,6 +87,11 @@ const ChatHistory = () => {
                       status={part.data.status}
                       title={part.data.title}
                       body={part.data.body}
+                    />
+                  ) : part.type === 'reasoning' ? (
+                    <ChatMessageAssistantReasoning
+                      key={`${message.id}-${i}`}
+                      text={part.text}
                     />
                   ) : part.type === 'data-multiple-choice' ? (
                     <ChatMessageAssistantMultipleChoice
