@@ -11,10 +11,9 @@ export const chartTooltipContentStyles = tv({
     label: 'font-medium',
     indicator:
       '[&>svg]:text-text-muted flex w-full flex-wrap items-stretch gap-2 [&>svg]:h-2.5 [&>svg]:w-2.5',
-    indicatorDot:
-      'shrink-0 rounded-[2px] border-[--color-border] bg-[--color-bg]',
-    row: 'flex flex-1 justify-between leading-none',
-    labelContainer: 'grid gap-1.5',
+    indicatorDot: 'shrink-0 rounded-full',
+    row: 'flex flex-1 justify-between gap-2.5 leading-none',
+    labelContainer: 'grid gap-0.5',
     valueText: 'text-text-primary font-mono font-medium tabular-nums'
   },
   variants: {
@@ -158,12 +157,9 @@ const ChartTooltipContent = ({
                     !hideIndicator && (
                       <div
                         className={indicatorDotStyles({ indicator, nestLabel })}
-                        style={
-                          {
-                            '--color-bg': indicatorColor,
-                            '--color-border': indicatorColor
-                          } as React.CSSProperties
-                        }
+                        style={{
+                          backgroundColor: indicatorColor
+                        }}
                       />
                     )
                   )}
