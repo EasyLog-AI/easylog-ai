@@ -14,23 +14,26 @@ export interface PieChartProps {
 }
 
 const PieChart = ({ config }: PieChartProps) => {
-  const { series, xAxisKey, data } = config;
+  const { values, xAxisKey, data } = config;
 
   // For pie charts, if we only have one series, we need to generate colors for each data point
   const availableColors = [
     'var(--color-chart-1)',
-    'var(--color-chart-2)', 
+    'var(--color-chart-2)',
     'var(--color-chart-3)',
     'var(--color-chart-4)',
     'var(--color-chart-5)'
   ];
 
-  // Generate colors for each data point if only one series is provided
-  const colors = series.length === 1 && data.length > 1 
-    ? data.map((_, index) => availableColors[index % availableColors.length])
-    : series.map((s) => s.color);
+  // Generate colors for each data point - for pie charts, use colors from values array
+  const colors = values.length >= data.length
+    ? data.map((_, index) => values[index]?.color || availableColors[index % availableColors.length])
+    : values.map((s) => s.color);
 
-  /** Build legend config per category to ensure correct label-color mapping per segment */
+  /**
+   * Build legend config per category to ensure correct label-color mapping per
+   * segment
+   */
   const chartConfig = data.reduce((acc, row, index) => {
     const record = row as Record<string, string | number>;
     const categoryKey = String(record[xAxisKey]);
@@ -41,16 +44,16 @@ const PieChart = ({ config }: PieChartProps) => {
     return acc;
   }, {} as ChartConfig);
 
-  /** Assuming the first series is the one to display in the pie chart */
-  const pieSeries = series[0];
+  /** Assuming the first value entry is the one to display in the pie chart */
+  const pieValue = values[0];
 
   return (
-    <ChartContainer config={chartConfig} className="aspect-[4/3] my-4">
+    <ChartContainer config={chartConfig} className="my-4 aspect-[4/3]">
       <RechartsPieChart>
         <ChartTooltip content={<ChartTooltipContent hideLabel />} />
         <Pie
           data={data}
-          dataKey={pieSeries.dataKey}
+          dataKey={pieValue.dataKey}
           nameKey={xAxisKey}
           innerRadius="35%"
           outerRadius="75%"

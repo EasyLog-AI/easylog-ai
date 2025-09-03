@@ -14,9 +14,9 @@ export interface StackedBarChartProps {
 }
 
 const StackedBarChart = ({ config }: StackedBarChartProps) => {
-  const { series, xAxisKey, data } = config;
+  const { values, xAxisKey, data } = config;
 
-  const chartConfig = series.reduce((acc, item) => {
+  const chartConfig = values.reduce((acc, item) => {
     acc[item.dataKey] = {
       label: item.label,
       color: item.color
@@ -42,7 +42,7 @@ const StackedBarChart = ({ config }: StackedBarChartProps) => {
         />
         <ChartTooltip content={<ChartTooltipContent hideLabel />} />
         <ChartLegend content={<ChartLegendContent />} />
-        {series.map((s, idx, arr) => (
+        {values.map((s, idx, arr) => (
           <Bar
             key={s.dataKey}
             dataKey={s.dataKey}

@@ -20,9 +20,9 @@ export interface LineChartProps {
 }
 
 const LineChart = ({ config }: LineChartProps) => {
-  const { series, xAxisKey, data } = config;
+  const { values, xAxisKey, data } = config;
 
-  const chartConfig = series.reduce((acc, item) => {
+  const chartConfig = values.reduce((acc, item) => {
     acc[item.dataKey] = {
       label: item.label,
       color: item.color
@@ -48,7 +48,7 @@ const LineChart = ({ config }: LineChartProps) => {
         />
         <ChartTooltip content={<ChartTooltipContent hideLabel />} />
         <ChartLegend content={<ChartLegendContent />} />
-        {series.map((s) => (
+        {values.map((s) => (
           <Line
             key={s.dataKey}
             dataKey={s.dataKey}

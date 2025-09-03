@@ -15,7 +15,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import z from 'zod';
 
 import getCurrentUser from '@/app/_auth/data/getCurrentUser';
-import internalChartConfigSchema from '@/app/_charts/schemas/internalChartConfigSchema';
 import toolCreateMultipleAllocations from '@/app/_chats/tools/easylog-backend/toolCreateMultipleAllocations';
 import toolCreatePlanningPhase from '@/app/_chats/tools/easylog-backend/toolCreatePlanningPhase';
 import toolCreatePlanningProject from '@/app/_chats/tools/easylog-backend/toolCreatePlanningProject';
@@ -33,6 +32,7 @@ import toolUpdatePlanningPhase from '@/app/_chats/tools/easylog-backend/toolUpda
 import toolUpdatePlanningProject from '@/app/_chats/tools/easylog-backend/toolUpdatePlanningProject';
 import toolAnswerMultipleChoice from '@/app/_chats/tools/multiple-choice/toolAnswerMultipleChoice';
 import toolCreateMultipleChoice from '@/app/_chats/tools/multiple-choice/toolCreateMultipleChoice';
+import toolCreateChart from '@/app/_chats/tools/toolCreateChart';
 import toolExecuteSQL from '@/app/_chats/tools/toolExecuteSQL';
 import toolLoadDocument from '@/app/_chats/tools/toolLoadDocument';
 import toolSearchKnowledgeBase from '@/app/_chats/tools/toolSearchKnowledgeBase';
@@ -164,19 +164,7 @@ export const POST = async (
         system: promptWithContext,
         messages: convertToModelMessages(messages),
         tools: {
-          createChart: tool({
-            description: 'Create a chart',
-            inputSchema: internalChartConfigSchema,
-            execute: async (config, opts) => {
-              writer.write({
-                type: 'data-chart',
-                id: opts.toolCallId,
-                data: config
-              });
-
-              return 'Chart created';
-            }
-          }),
+          createChart: toolCreateChart(writer),
           getDatasources: toolGetDataSources(user.id),
           getPlanningProjects: toolGetPlanningProjects(user.id),
           getPlanningProject: toolGetPlanningProject(user.id),

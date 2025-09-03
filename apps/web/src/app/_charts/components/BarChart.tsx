@@ -20,10 +20,10 @@ export interface BarChartProps {
 }
 
 const BarChart = ({ config }: BarChartProps) => {
-  const { series, xAxisKey, data } = config;
+  const { values, xAxisKey, data } = config;
 
 
-  const chartConfig = series.reduce((acc, item) => {
+  const chartConfig = values.reduce((acc, item) => {
     acc[item.dataKey] = {
       label: item.label,
       color: item.color
@@ -51,7 +51,7 @@ const BarChart = ({ config }: BarChartProps) => {
         />
         <ChartTooltip content={<ChartTooltipContent hideLabel />} />
         <ChartLegend content={<ChartLegendContent />} />
-        {series.map((s) => (
+        {values.map((s) => (
           <Bar
             key={s.dataKey}
             dataKey={s.dataKey}

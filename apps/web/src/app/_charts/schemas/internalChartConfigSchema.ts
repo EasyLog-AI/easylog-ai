@@ -9,14 +9,14 @@ const internalChartConfigSchema = z.object({
       .strict()
   ),
   xAxisKey: z.string(),
-  series: z.array(
+  values: z.array(
     z.object({
       dataKey: z.string(),
       label: z.string(),
       color: z
         .string()
         .describe(
-          'The color of the series, can either be a valid hex or RGB color, e.g. #000000 or rgb(0, 0, 0), or a CSS variable, e.g. var(--color-chart-1). We have 5 colors available: var(--color-chart-1), var(--color-chart-2), var(--color-chart-3), var(--color-chart-4), var(--color-chart-5).'
+          'The color of the value, can either be a valid hex or RGB color, e.g. #000000 or rgb(0, 0, 0), or a CSS variable, e.g. var(--color-chart-1). We have 5 colors available: var(--color-chart-1), var(--color-chart-2), var(--color-chart-3), var(--color-chart-4), var(--color-chart-5). For pie charts, provide one entry per segment. For other charts, provide one entry per data series.'
         )
     })
   )
