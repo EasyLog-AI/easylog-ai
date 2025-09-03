@@ -1,4 +1,4 @@
-import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 
 import ChartContainer from '@/app/_ui/components/Chart/ChartContainer';
 import ChartLegend from '@/app/_ui/components/Chart/ChartLegend';
@@ -25,7 +25,7 @@ const StackedBarChart = ({ config }: StackedBarChartProps) => {
   }, {} as ChartConfig);
 
   return (
-    <ChartContainer config={chartConfig}>
+    <ChartContainer config={chartConfig} className="aspect-[4/3] my-4">
       <BarChart accessibilityLayer data={data}>
         <CartesianGrid vertical={false} />
         <XAxis
@@ -34,6 +34,11 @@ const StackedBarChart = ({ config }: StackedBarChartProps) => {
           tickMargin={10}
           axisLine={false}
           tickFormatter={(value) => String(value).slice(0, 10)}
+        />
+        <YAxis
+          tickLine={false}
+          axisLine={false}
+          tickMargin={8}
         />
         <ChartTooltip content={<ChartTooltipContent hideLabel />} />
         <ChartLegend content={<ChartLegendContent />} />

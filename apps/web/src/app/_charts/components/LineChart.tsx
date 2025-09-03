@@ -2,7 +2,8 @@ import {
   CartesianGrid,
   Line,
   LineChart as RechartsLineChart,
-  XAxis
+  XAxis,
+  YAxis
 } from 'recharts';
 
 import ChartContainer from '@/app/_ui/components/Chart/ChartContainer';
@@ -30,7 +31,7 @@ const LineChart = ({ config }: LineChartProps) => {
   }, {} as ChartConfig);
 
   return (
-    <ChartContainer config={chartConfig}>
+    <ChartContainer config={chartConfig} className="aspect-[4/3] my-4">
       <RechartsLineChart accessibilityLayer data={data}>
         <CartesianGrid vertical={false} />
         <XAxis
@@ -39,6 +40,11 @@ const LineChart = ({ config }: LineChartProps) => {
           tickMargin={10}
           axisLine={false}
           tickFormatter={(value) => value.slice(0, 3)}
+        />
+        <YAxis
+          tickLine={false}
+          axisLine={false}
+          tickMargin={8}
         />
         <ChartTooltip content={<ChartTooltipContent hideLabel />} />
         <ChartLegend content={<ChartLegendContent />} />

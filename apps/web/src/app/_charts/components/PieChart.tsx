@@ -16,31 +16,44 @@ export interface PieChartProps {
 const PieChart = ({ config }: PieChartProps) => {
   const { series, xAxisKey, data } = config;
 
+  // For pie charts, if we only have one series, we need to generate colors for each data point
+  const availableColors = [
+    'var(--color-chart-1)',
+    'var(--color-chart-2)', 
+    'var(--color-chart-3)',
+    'var(--color-chart-4)',
+    'var(--color-chart-5)'
+  ];
+
+  // Generate colors for each data point if only one series is provided
+  const colors = series.length === 1 && data.length > 1 
+    ? data.map((_, index) => availableColors[index % availableColors.length])
+    : series.map((s) => s.color);
+
   /** Build legend config per category to ensure correct label-color mapping per segment */
   const chartConfig = data.reduce((acc, row, index) => {
     const record = row as Record<string, string | number>;
     const categoryKey = String(record[xAxisKey]);
-    const seriesForIndex = series[index] ?? series[index % series.length] ?? series[0];
     acc[categoryKey] = {
-      label: seriesForIndex?.label ?? categoryKey,
-      color: seriesForIndex?.color
+      label: categoryKey,
+      color: colors[index % colors.length]
     };
     return acc;
   }, {} as ChartConfig);
 
   /** Assuming the first series is the one to display in the pie chart */
   const pieSeries = series[0];
-  const colors = series.map((s) => s.color);
 
   return (
-    <ChartContainer config={chartConfig}>
+    <ChartContainer config={chartConfig} className="aspect-[4/3] my-4">
       <RechartsPieChart>
         <ChartTooltip content={<ChartTooltipContent hideLabel />} />
         <Pie
           data={data}
           dataKey={pieSeries.dataKey}
           nameKey={xAxisKey}
-          innerRadius={60}
+          innerRadius="35%"
+          outerRadius="75%"
           strokeWidth={5}
           stroke="var(--card)"
         >

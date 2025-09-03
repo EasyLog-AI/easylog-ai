@@ -2,7 +2,8 @@ import {
   Bar,
   CartesianGrid,
   BarChart as RechartsBarChart,
-  XAxis
+  XAxis,
+  YAxis
 } from 'recharts';
 
 import ChartContainer from '@/app/_ui/components/Chart/ChartContainer';
@@ -32,7 +33,7 @@ const BarChart = ({ config }: BarChartProps) => {
   }, {} as ChartConfig);
 
   return (
-    <ChartContainer config={chartConfig}>
+    <ChartContainer config={chartConfig} className="aspect-[4/3] my-4">
       <RechartsBarChart accessibilityLayer data={data}>
         <CartesianGrid vertical={false} />
         <XAxis
@@ -42,6 +43,11 @@ const BarChart = ({ config }: BarChartProps) => {
           axisLine={false}
           tickFormatter={(value) => String(value).slice(0, 10)}
           interval={0}
+        />
+        <YAxis
+          tickLine={false}
+          axisLine={false}
+          tickMargin={8}
         />
         <ChartTooltip content={<ChartTooltipContent hideLabel />} />
         <ChartLegend content={<ChartLegendContent />} />
