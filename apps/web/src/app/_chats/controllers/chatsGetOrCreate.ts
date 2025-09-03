@@ -1,3 +1,5 @@
+import { UIMessage } from 'ai';
+
 import agentMiddleware from '@/app/_agents/middleware/agentMiddleware';
 import db from '@/database/client';
 import { chats } from '@/database/schema';
@@ -14,18 +16,25 @@ const chatGetOrCreate = agentMiddleware.query(async ({ ctx }) => {
   });
 
   if (chat) {
-    return chat;
+    return {
+      ...chat,
+      agent: ctx.agent
+    };
   }
 
   const [newChat] = await db
     .insert(chats)
     .values({
       agentId: ctx.agent.id,
-      userId: ctx.user.id
+      userId: ctx.user.id,
+      messages: [] satisfies UIMessage[]
     })
     .returning();
 
-  return newChat;
+  return {
+    ...newChat,
+    agent: ctx.agent
+  };
 });
 
 export default chatGetOrCreate;

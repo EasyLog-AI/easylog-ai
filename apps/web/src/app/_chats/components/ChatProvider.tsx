@@ -3,7 +3,7 @@
 import { UseChatHelpers, useChat } from '@ai-sdk/react';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { DefaultChatTransport, UIMessage } from 'ai';
-import { createContext } from 'react';
+import { createContext, useEffect, useState } from 'react';
 import z from 'zod';
 
 import internalChartConfigSchema from '@/app/_charts/schemas/internalChartConfigSchema';
@@ -37,6 +37,8 @@ const ChatProvider = ({
 }: React.PropsWithChildren<ChatProviderProps>) => {
   const api = useTRPC();
 
+  const [didStartChat, setDidStartChat] = useState(false);
+
   const { data: dbChat, refetch } = useSuspenseQuery(
     api.chats.getOrCreate.queryOptions({
       agentId: agentSlug
@@ -61,11 +63,24 @@ const ChatProvider = ({
     },
     onToolCall: async ({ toolCall }) => {
       if (toolCall.toolName === 'clearChat') {
+        setDidStartChat(false);
         await refetch();
       }
     },
     experimental_throttle: 50
   });
+
+  useEffect(() => {
+    if (
+      chat.messages.length === 0 &&
+      chat.status === 'ready' &&
+      !didStartChat &&
+      dbChat.agent?.autoStartMessage
+    ) {
+      setDidStartChat(true);
+      void chat.sendMessage({ text: dbChat.agent.autoStartMessage });
+    }
+  }, [chat, didStartChat, dbChat.agent?.autoStartMessage]);
 
   return <ChatContext.Provider value={chat}>{children}</ChatContext.Provider>;
 };

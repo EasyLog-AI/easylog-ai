@@ -155,6 +155,7 @@ export const agents = pgTable('agents', {
   defaultReasoningEffort: reasoningEffortEnum(
     'default_reasoning_effort'
   ).notNull(),
+  autoStartMessage: text('auto_start_message').default('[hello]'),
   ...timestamps
 });
 
