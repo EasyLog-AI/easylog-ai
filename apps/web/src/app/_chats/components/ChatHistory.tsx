@@ -18,7 +18,6 @@ const BOTTOM_THRESHOLD_PX = 56;
 const ChatHistory = () => {
   const [isPinnedToBottom, setIsPinnedToBottom] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const isScrollingProgrammatically = useRef(false);
 
   const { messages, status, id } = useChatContext();
 
@@ -32,12 +31,7 @@ const ChatHistory = () => {
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
     const el = scrollRef.current;
     if (!el) return;
-    isScrollingProgrammatically.current = true;
     el.scrollTo({ top: el.scrollHeight, behavior });
-    // Reset the flag after scroll completes
-    setTimeout(() => {
-      isScrollingProgrammatically.current = false;
-    }, behavior === 'auto' ? 0 : 500);
   }, []);
 
   useEffect(() => {
@@ -50,14 +44,7 @@ const ChatHistory = () => {
   }, [messages, status, isPinnedToBottom, scrollToBottom]);
 
   const handleScroll = () => {
-    // If this is programmatic scrolling, don't change pin state
-    if (isScrollingProgrammatically.current) {
-      return;
-    }
-    
-    // User is scrolling manually - check if they're at bottom
-    const atBottom = isAtBottom();
-    setIsPinnedToBottom(atBottom);
+    setIsPinnedToBottom(isAtBottom());
   };
 
   return (
