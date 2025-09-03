@@ -6,8 +6,8 @@ import {
 } from '@tanstack/react-query';
 
 import useAgentSlug from '@/app/_agents/hooks/useAgentSlug';
-import Checkbox from '@/app/_ui/components/Checkbox/Checkbox';
-import ContentWrapper from '@/app/_ui/components/ContentWrapper/ContentWrapper';
+import Button from '@/app/_ui/components/Button/Button';
+import ButtonContent from '@/app/_ui/components/Button/ButtonContent';
 import Typography from '@/app/_ui/components/Typography/Typography';
 import useTRPC from '@/lib/trpc/browser';
 
@@ -36,7 +36,6 @@ const ChatMessageAssistantMultipleChoice = ({
   const { mutate: updateMultipleChoiceAnswer, isPending } = useMutation(
     api.multipleChoice.update.mutationOptions({
       onMutate: async (newValue) => {
-        // Cancel any outgoing refetches
         await queryClient.cancelQueries({
           queryKey: api.chats.getOrCreate.queryKey({ agentId: agentSlug })
         });
@@ -47,10 +46,8 @@ const ChatMessageAssistantMultipleChoice = ({
           })
         });
 
-        // Snapshot the previous value
         const previousValue = multipleChoiceQuestion?.value;
 
-        // Optimistically update to the new value
         queryClient.setQueryData(
           api.multipleChoice.get.queryKey({
             chatId,
@@ -65,8 +62,35 @@ const ChatMessageAssistantMultipleChoice = ({
           }
         );
 
-        // Return a context object with the snapshotted value
         return { previousValue };
+      },
+      onSuccess: () => {
+        void queryClient.invalidateQueries({
+          queryKey: api.chats.getOrCreate.queryKey({ agentId: agentSlug })
+        });
+        void queryClient.invalidateQueries({
+          queryKey: api.multipleChoice.get.queryKey({
+            chatId,
+            multipleChoiceQuestionId
+          })
+        });
+      },
+      onError: (_err, _newValue, context) => {
+        if (context?.previousValue !== undefined) {
+          queryClient.setQueryData(
+            api.multipleChoice.get.queryKey({
+              chatId,
+              multipleChoiceQuestionId
+            }),
+            (old: typeof multipleChoiceQuestion) => {
+              if (!old) return old;
+              return {
+                ...old,
+                value: context.previousValue ?? null
+              };
+            }
+          );
+        }
       },
       onSettled: () => {
         void refetchChat();
@@ -86,52 +110,47 @@ const ChatMessageAssistantMultipleChoice = ({
   const {
     data: multipleChoiceQuestion,
     refetch: refetchMultipleChoiceQuestion
-  } = useQuery({
-    ...api.multipleChoice.get.queryOptions({
+  } = useQuery(
+    api.multipleChoice.get.queryOptions({
       chatId,
       multipleChoiceQuestionId
     })
-  });
+  );
 
   const { sendMessage, messages } = useChatContext();
 
   const isLastMessage = messages[messages.length - 1].id === messageId;
 
+  const currentValue = multipleChoiceQuestion?.value || answer;
+
   return (
-    <div className="bg-surface-muted shadow-short max-w-lg space-y-2 overflow-auto rounded-xl p-3">
-      <Typography variant="labelSm">{question}</Typography>
+    <div className="bg-surface-muted shadow-short my-2 max-w-lg space-y-4 overflow-auto rounded-xl p-3">
+      <Typography variant="labelMd">{question}</Typography>
 
-      <div className="flex flex-col gap-2">
+      <div className="grid gap-2">
         {options.map((option) => (
-          <label key={option} htmlFor={option}>
-            <ContentWrapper
-              contentLeft={
-                <Checkbox
-                  id={`${messageId}-${option}-${multipleChoiceQuestionId}`}
-                  checked={
-                    multipleChoiceQuestion?.value === option ||
-                    answer === option
-                  }
-                  onCheckedChange={() => {
-                    updateMultipleChoiceAnswer({
-                      value: option,
-                      chatId: chatId,
-                      multipleChoiceQuestionId: multipleChoiceQuestionId
-                    });
-
-                    if (isLastMessage) {
-                      void sendMessage({
-                        text: option
-                      });
-                    }
-                  }}
-                  disabled={isPending}
-                />
+          <Button
+            key={option}
+            isToggled={currentValue === option}
+            isDisabled={Boolean(currentValue && currentValue !== option)}
+            disabled={isPending}
+            size="lg"
+            colorRole="brand"
+            onClick={() => {
+              updateMultipleChoiceAnswer({
+                value: option,
+                chatId: chatId,
+                multipleChoiceQuestionId: multipleChoiceQuestionId
+              });
+              if (isLastMessage) {
+                void sendMessage({
+                  text: `[${option}]`
+                });
               }
-            >
-              {option}
-            </ContentWrapper>
-          </label>
+            }}
+          >
+            <ButtonContent>{option}</ButtonContent>
+          </Button>
         ))}
       </div>
     </div>

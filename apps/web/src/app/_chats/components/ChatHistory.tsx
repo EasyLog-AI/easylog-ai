@@ -7,6 +7,7 @@ import ChatMessageAssistant from './ChatMessageAssistant';
 import ChatMessageAssistantChart from './ChatMessageAssistantChart';
 import ChatMessageAssistantMarkdownContent from './ChatMessageAssistantMarkdownContent';
 import ChatMessageAssistantMultipleChoice from './ChatMessageAssistantMultipleChoice';
+import ChatMessageAssistantReasoning from './ChatMessageAssistantReasoning';
 import ChatMessageAssistantResearch from './ChatMessageAssistantResearch';
 import ChatMessageUser from './ChatMessageUser';
 import ChatMessageUserTextContent from './ChatMessageUserTextContent';
@@ -87,6 +88,12 @@ const ChatHistory = () => {
                       title={part.data.title}
                       body={part.data.body}
                     />
+                  ) : part.type === 'reasoning' ? (
+                    <ChatMessageAssistantReasoning
+                      key={`${message.id}-${i}`}
+                      text={part.text}
+                      isStreaming={part.state === 'streaming'}
+                    />
                   ) : part.type === 'data-multiple-choice' ? (
                     <ChatMessageAssistantMultipleChoice
                       key={`${message.id}-${i}`}
@@ -103,14 +110,15 @@ const ChatHistory = () => {
             ) : null
           )}
 
-          {status === 'submitted' && (
-            <motion.div
-              className="bg-fill-brand animate-scale-in size-3 rounded-full"
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.2 }}
-            />
-          )}
+          {status === 'submitted' ||
+            (status === 'streaming' ? (
+              <motion.div
+                className="bg-fill-brand animate-scale-in size-3 rounded-full"
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.2 }}
+              />
+            ) : null)}
         </AnimatePresence>
       </div>
     </div>
