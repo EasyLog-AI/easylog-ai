@@ -37,8 +37,6 @@ const multipleChoiceQuestionUpdate = multipleChoiceQuestionMiddleware
         if (part.type === 'data-multiple-choice') {
           (part.data as MultipleChoiceSchema).answer = input.value;
 
-          console.log(messageIndex, messages.length);
-
           if (messageIndex + 1 < messages.length) {
             messages[messageIndex + 1].parts = [
               {

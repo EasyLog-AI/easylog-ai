@@ -5,6 +5,7 @@ import {
   createIdGenerator,
   createUIMessageStream,
   createUIMessageStreamResponse,
+  hasToolCall,
   stepCountIs,
   streamText,
   tool
@@ -270,7 +271,7 @@ export const POST = async (
             writer
           )
         },
-        stopWhen: stepCountIs(5)
+        stopWhen: [stepCountIs(5), hasToolCall('createMultipleChoice')]
       });
 
       writer.merge(result.toUIMessageStream());
