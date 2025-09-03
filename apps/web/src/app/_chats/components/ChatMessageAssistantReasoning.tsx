@@ -21,6 +21,12 @@ const ChatMessageAssistantReasoning = ({
   text,
   isStreaming = false
 }: ChatMessageAssistantReasoningProps) => {
+  const formattedText = text.replaceAll('[REDACTED]', '').trim();
+
+  if (formattedText.length === 0) {
+    return null;
+  }
+
   return (
     <div className="bg-surface-muted shadow-short relative my-2 max-w-lg space-y-2 rounded-xl p-3">
       <Typography variant="labelSm" className="w-full">
@@ -41,7 +47,9 @@ const ChatMessageAssistantReasoning = ({
       </Typography>
       <Expandable>
         <ExpandableContent className="prose-sm line-clamp-3 data-[expanded=true]:line-clamp-none">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {text.replaceAll('[REDACTED]', '')}
+          </ReactMarkdown>
         </ExpandableContent>
 
         <ExpandableToggle className="mt-2 data-[expanded=true]:hidden" asChild>
