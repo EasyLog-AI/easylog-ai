@@ -46,11 +46,13 @@ const ChatMessageAssistantReasoning = ({
         </ContentWrapper>
       </Typography>
       <Expandable>
-        <ExpandableContent className="prose-sm line-clamp-3 data-[expanded=true]:line-clamp-none">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {text.replaceAll('[REDACTED]', '')}
-          </ReactMarkdown>
-        </ExpandableContent>
+        <div>
+          <ExpandableContent className="prose-sm data-[expanded=false]:line-clamp-3 data-[expanded=true]:line-clamp-none">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {text.replaceAll('[REDACTED]', '')}
+            </ReactMarkdown>
+          </ExpandableContent>
+        </div>
 
         <ExpandableToggle className="mt-2 data-[expanded=true]:hidden" asChild>
           <Button size="sm" variant="ghost">

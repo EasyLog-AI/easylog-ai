@@ -25,10 +25,13 @@ const ExpandableContent = ({
       </div>
       <div
         ref={totalContentRef}
-        className="pointer-events-none absolute top-0 opacity-0"
+        className={twMerge(
+          'pointer-events-none absolute top-0 opacity-0',
+          className
+        )}
         aria-hidden
         tabIndex={-1}
-        data-expanded={isExpanded}
+        data-expanded={true}
       >
         {children}
       </div>

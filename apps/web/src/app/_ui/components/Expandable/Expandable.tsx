@@ -35,13 +35,35 @@ const Expandable = ({
   const [isExpandable, setIsExpandable] = useState(false);
 
   useEffect(() => {
+    const checkExpandable = () => {
+      if (!totalContentRef.current) return;
+      if (!contentRef.current) return;
+
+      const shouldShowExpandButton =
+        totalContentRef.current.clientHeight > contentRef.current.clientHeight;
+
+      setIsExpandable(shouldShowExpandButton);
+    };
+
+    checkExpandable();
+
     if (!totalContentRef.current) return;
-    if (!contentRef.current) return;
 
-    const shouldShowExpandButton =
-      totalContentRef.current.clientHeight > contentRef.current.clientHeight;
+    const observer = new MutationObserver(checkExpandable);
+    const resizeObserver = new ResizeObserver(checkExpandable);
 
-    setIsExpandable(shouldShowExpandButton);
+    observer.observe(totalContentRef.current, {
+      childList: true,
+      subtree: true,
+      characterData: true
+    });
+
+    resizeObserver.observe(totalContentRef.current);
+
+    return () => {
+      observer.disconnect();
+      resizeObserver.disconnect();
+    };
   }, [children]);
 
   const toggleExpanded = () => setIsExpanded(!isExpanded);
