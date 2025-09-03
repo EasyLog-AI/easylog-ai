@@ -92,6 +92,7 @@ const ChatHistory = () => {
                     <ChatMessageAssistantReasoning
                       key={`${message.id}-${i}`}
                       text={part.text}
+                      isStreaming={part.state === 'streaming'}
                     />
                   ) : part.type === 'data-multiple-choice' ? (
                     <ChatMessageAssistantMultipleChoice
@@ -109,14 +110,15 @@ const ChatHistory = () => {
             ) : null
           )}
 
-          {status === 'submitted' && (
-            <motion.div
-              className="bg-fill-brand animate-scale-in size-3 rounded-full"
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.2 }}
-            />
-          )}
+          {status === 'submitted' ||
+            (status === 'streaming' ? (
+              <motion.div
+                className="bg-fill-brand animate-scale-in size-3 rounded-full"
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.2 }}
+              />
+            ) : null)}
         </AnimatePresence>
       </div>
     </div>

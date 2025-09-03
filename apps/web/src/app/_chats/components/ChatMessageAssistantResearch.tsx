@@ -17,8 +17,11 @@ const ChatMessageAssistantResearch = ({
   title,
   body
 }: ChatMessageAssistantResearchProps) => {
+  // eslint-disable-next-line react-compiler/react-compiler
+  'use no memo';
+
   return (
-    <div className="bg-surface-muted shadow-short max-w-lg overflow-auto rounded-xl p-3">
+    <div className="bg-surface-muted shadow-short my-2 max-w-lg overflow-auto rounded-xl p-3">
       <Typography variant="bodySm">
         <ContentWrapper
           iconLeft={status === 'loading' ? IconSpinner : IconCheck}

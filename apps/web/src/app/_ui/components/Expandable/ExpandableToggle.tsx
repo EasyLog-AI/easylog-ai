@@ -2,7 +2,6 @@
 
 import { Slot } from '@radix-ui/react-slot';
 
-import { linkStyles } from '../Link/Link';
 import Typography from '../Typography/Typography';
 import { useExpandable } from './hooks/useExpandable';
 
@@ -26,7 +25,7 @@ const ExpandableToggle = ({
     <Typography asChild variant="labelSm">
       <Comp
         onClick={toggleExpanded}
-        className={linkStyles({ showUnderline: true, className })}
+        className={className}
         data-expandable={isExpandable}
         data-expanded={isExpanded}
       >
