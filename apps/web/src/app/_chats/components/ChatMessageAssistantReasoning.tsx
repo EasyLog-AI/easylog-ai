@@ -57,12 +57,11 @@ const ChatMessageAssistantReasoning = ({
             <ButtonContent iconRight={IconChevronDown}>Show more</ButtonContent>
           </Button>
         </ExpandableToggle>
-        <ExpandableToggle className="mt-2 data-[expanded=false]:hidden" asChild>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="hidden group-data-[expanded=true]:inline-flex"
-          >
+        <ExpandableToggle
+          className="mt-2 hidden group-data-[expanded=true]:inline-flex"
+          asChild
+        >
+          <Button size="sm" variant="ghost">
             <ButtonContent iconRight={IconChevronUp}>Show less</ButtonContent>
           </Button>
         </ExpandableToggle>
