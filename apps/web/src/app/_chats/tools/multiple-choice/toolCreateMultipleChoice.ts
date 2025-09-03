@@ -42,7 +42,11 @@ const getToolCreateMultipleChoice = (
         })
         .returning();
 
-      return multipleChoiceQuestion;
+      // Signal that generation should stop here
+      return {
+        ...multipleChoiceQuestion,
+        _shouldStop: true
+      };
     }
   });
 };

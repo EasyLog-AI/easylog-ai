@@ -58,9 +58,9 @@ const ChatProvider = ({
       }
     }),
     messages: dbChat.messages as ChatMessage[],
-    sendAutomaticallyWhen: (args) => {
-      return lastAssistantMessageIsCompleteWithToolCalls(args);
-    },
+    // sendAutomaticallyWhen: (args) => {
+    //   return lastAssistantMessageIsCompleteWithToolCalls(args);
+    // },
     dataPartSchemas: {
       chart: internalChartConfigSchema,
       research: researchSchema,
