@@ -1,6 +1,6 @@
 'use client';
 
-import { IconArrowUp } from '@tabler/icons-react';
+import { IconArrowUp, IconPlayerStop } from '@tabler/icons-react';
 import { motion } from 'motion/react';
 import { useEffect, useRef } from 'react';
 import { SubmitHandler } from 'react-hook-form';
@@ -25,7 +25,7 @@ const ChatInput = () => {
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const { sendMessage, status } = useChatContext();
+  const { sendMessage, status, stop } = useChatContext();
 
   const {
     reset,
@@ -52,6 +52,8 @@ const ChatInput = () => {
 
   const isLoading =
     isSubmitting || status === 'submitted' || status === 'streaming';
+  
+  const isStreaming = status === 'streaming';
 
   return (
     <motion.div
@@ -102,11 +104,11 @@ const ChatInput = () => {
           <Button
             shape="circle"
             size="lg"
-            isDisabled={isLoading || !isValid}
-            onClick={handleSubmit(submitHandler)}
+            isDisabled={(!isStreaming && (!isValid || isSubmitting)) || status === 'submitted'}
+            onClick={isStreaming ? stop : handleSubmit(submitHandler)}
           >
             <ButtonContent>
-              <Icon icon={isLoading ? IconSpinner : IconArrowUp} />
+              <Icon icon={isLoading && !isStreaming ? IconSpinner : isStreaming ? IconPlayerStop : IconArrowUp} />
             </ButtonContent>
           </Button>
         </div>
