@@ -2,11 +2,7 @@
 
 import { UseChatHelpers, useChat } from '@ai-sdk/react';
 import { useSuspenseQuery } from '@tanstack/react-query';
-import {
-  DefaultChatTransport,
-  UIMessage,
-  lastAssistantMessageIsCompleteWithToolCalls
-} from 'ai';
+import { DefaultChatTransport, UIMessage } from 'ai';
 import { createContext } from 'react';
 import z from 'zod';
 
@@ -58,9 +54,6 @@ const ChatProvider = ({
       }
     }),
     messages: dbChat.messages as ChatMessage[],
-    // sendAutomaticallyWhen: (args) => {
-    //   return lastAssistantMessageIsCompleteWithToolCalls(args);
-    // },
     dataPartSchemas: {
       chart: internalChartConfigSchema,
       research: researchSchema,

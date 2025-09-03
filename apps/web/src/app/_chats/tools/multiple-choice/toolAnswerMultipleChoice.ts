@@ -1,4 +1,4 @@
-import { UIMessageStreamWriter, tool } from 'ai';
+import { tool } from 'ai';
 import { z } from 'zod';
 
 import createTRPCContext from '@/lib/trpc/context';
@@ -9,10 +9,9 @@ export interface ToolAnswerMultipleChoiceProps {
   chatId: string;
 }
 
-const toolAnswerMultipleChoice = (
-  { chatId }: ToolAnswerMultipleChoiceProps,
-  messageStreamWriter: UIMessageStreamWriter
-) => {
+const toolAnswerMultipleChoice = ({
+  chatId
+}: ToolAnswerMultipleChoiceProps) => {
   return tool({
     description: 'Answer a multiple choice question',
     inputSchema: z.object({
@@ -25,20 +24,10 @@ const toolAnswerMultipleChoice = (
       const ctx = await createTRPCContext();
       const caller = createCallerFactory(appRouter)(ctx);
 
-      const result = await caller.multipleChoice.update({
+      await caller.multipleChoice.update({
         chatId,
         multipleChoiceQuestionId: multipleChoiceId,
         value: answer
-      });
-
-      messageStreamWriter.write({
-        type: 'data-multiple-choice',
-        id: result.id,
-        data: {
-          id: result.id,
-          question: result.question,
-          options: result.options
-        }
       });
 
       return {
