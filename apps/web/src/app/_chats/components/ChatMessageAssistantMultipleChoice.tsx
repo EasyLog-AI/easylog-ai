@@ -132,11 +132,9 @@ const ChatMessageAssistantMultipleChoice = ({
           <Button
             key={option}
             isToggled={currentValue === option}
-            isDisabled={
-              currentValue && currentValue !== option ? true : isPending
-            }
-            disabled={(currentValue && currentValue !== null) || isPending}
-            size="md"
+            isDisabled={Boolean(currentValue && currentValue !== option)}
+            disabled={isPending}
+            size="lg"
             colorRole="brand"
             onClick={() => {
               updateMultipleChoiceAnswer({
