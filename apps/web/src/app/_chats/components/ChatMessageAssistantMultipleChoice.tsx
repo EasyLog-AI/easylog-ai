@@ -6,8 +6,8 @@ import {
 } from '@tanstack/react-query';
 
 import useAgentSlug from '@/app/_agents/hooks/useAgentSlug';
-import Checkbox from '@/app/_ui/components/Checkbox/Checkbox';
-import ContentWrapper from '@/app/_ui/components/ContentWrapper/ContentWrapper';
+import Button from '@/app/_ui/components/Button/Button';
+import ButtonContent from '@/app/_ui/components/Button/ButtonContent';
 import Typography from '@/app/_ui/components/Typography/Typography';
 import useTRPC from '@/lib/trpc/browser';
 
@@ -65,7 +65,6 @@ const ChatMessageAssistantMultipleChoice = ({
         return { previousValue };
       },
       onSuccess: () => {
-        // Invalidate and refetch on success to ensure fresh data
         void queryClient.invalidateQueries({
           queryKey: api.chats.getOrCreate.queryKey({ agentId: agentSlug })
         });
@@ -122,57 +121,38 @@ const ChatMessageAssistantMultipleChoice = ({
 
   const isLastMessage = messages[messages.length - 1].id === messageId;
 
-  const hasAnswer = multipleChoiceQuestion?.value || answer;
-
-  if (hasAnswer) {
-    return (
-      <div className="bg-surface-muted shadow-short my-2 max-w-lg space-y-2 overflow-auto rounded-xl p-3">
-        <Typography variant="labelSm">{question}</Typography>
-        <div className="flex flex-col gap-2">
-          <ContentWrapper
-            contentLeft={<Checkbox checked={true} disabled={true} />}
-          >
-            {multipleChoiceQuestion?.value || answer}
-          </ContentWrapper>
-        </div>
-      </div>
-    );
-  }
+  const currentValue = multipleChoiceQuestion?.value || answer;
 
   return (
-    <div className="bg-surface-muted shadow-short my-2 max-w-lg space-y-2 overflow-auto rounded-xl p-3">
-      <Typography variant="labelSm">{question}</Typography>
+    <div className="bg-surface-muted shadow-short my-2 max-w-lg space-y-4 overflow-auto rounded-xl p-3">
+      <Typography variant="labelMd">{question}</Typography>
 
-      <div className="flex flex-col gap-2">
+      <div className="grid gap-2">
         {options.map((option) => (
-          <label key={option} htmlFor={option}>
-            <ContentWrapper
-              contentLeft={
-                <Checkbox
-                  id={`${messageId}-${option}-${multipleChoiceQuestionId}`}
-                  checked={
-                    multipleChoiceQuestion?.value === option ||
-                    answer === option
-                  }
-                  onCheckedChange={() => {
-                    updateMultipleChoiceAnswer({
-                      value: option,
-                      chatId: chatId,
-                      multipleChoiceQuestionId: multipleChoiceQuestionId
-                    });
-                    if (isLastMessage) {
-                      void sendMessage({
-                        text: `[${option}]`
-                      });
-                    }
-                  }}
-                  disabled={isPending}
-                />
+          <Button
+            key={option}
+            isToggled={currentValue === option}
+            isDisabled={
+              currentValue && currentValue !== option ? true : isPending
+            }
+            disabled={(currentValue && currentValue !== null) || isPending}
+            size="md"
+            colorRole="brand"
+            onClick={() => {
+              updateMultipleChoiceAnswer({
+                value: option,
+                chatId: chatId,
+                multipleChoiceQuestionId: multipleChoiceQuestionId
+              });
+              if (isLastMessage) {
+                void sendMessage({
+                  text: `[${option}]`
+                });
               }
-            >
-              {option}
-            </ContentWrapper>
-          </label>
+            }}
+          >
+            <ButtonContent>{option}</ButtonContent>
+          </Button>
         ))}
       </div>
     </div>

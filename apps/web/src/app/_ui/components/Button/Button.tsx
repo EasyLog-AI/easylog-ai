@@ -97,6 +97,7 @@ const Button = ({
   return (
     <ButtonWrapper
       aria-disabled={isDisabled}
+      disabled={isDisabled}
       data-state={isToggled ? 'open' : undefined}
       className={buttonStyles({
         colorRole,
