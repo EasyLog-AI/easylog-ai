@@ -40,7 +40,7 @@ const Expandable = ({
       if (!contentRef.current) return;
 
       const shouldShowExpandButton =
-        totalContentRef.current.clientHeight > contentRef.current.clientHeight;
+        totalContentRef.current.clientHeight >= contentRef.current.clientHeight;
 
       setIsExpandable(shouldShowExpandButton);
     };

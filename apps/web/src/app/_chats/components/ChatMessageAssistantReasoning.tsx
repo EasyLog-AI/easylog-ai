@@ -46,13 +46,11 @@ const ChatMessageAssistantReasoning = ({
         </ContentWrapper>
       </Typography>
       <Expandable>
-        <div>
-          <ExpandableContent className="prose-sm data-[expanded=false]:line-clamp-3 data-[expanded=true]:line-clamp-none">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {text.replaceAll('[REDACTED]', '')}
-            </ReactMarkdown>
-          </ExpandableContent>
-        </div>
+        <ExpandableContent className="prose-sm data-[expanded=false]:line-clamp-3 data-[expanded=true]:line-clamp-none">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {text.replaceAll('[REDACTED]', '')}
+          </ReactMarkdown>
+        </ExpandableContent>
 
         <ExpandableToggle className="mt-2 data-[expanded=true]:hidden" asChild>
           <Button size="sm" variant="ghost">
@@ -60,7 +58,7 @@ const ChatMessageAssistantReasoning = ({
           </Button>
         </ExpandableToggle>
         <ExpandableToggle
-          className="mt-2 hidden group-data-[expanded=true]:inline-flex"
+          className="mt-2 data-[expanded=true]:inline-flex data-[expanded=false]:hidden"
           asChild
         >
           <Button size="sm" variant="ghost">
