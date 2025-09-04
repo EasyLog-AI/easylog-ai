@@ -71,9 +71,9 @@ class ZLMQuestionnaireAnswers(BaseModel):
     G19: int = Field(..., ge=0, le=6)
     G20: Literal[
         "nooit",
-        "gestopt_>1j",
-        "gestopt_6_12m",
-        "gestopt_<6m",
+        "gestopt_lang",
+        "gestopt_middel",
+        "gestopt_kort",
         "ja",
     ]
     G21: float = Field(..., gt=0)
@@ -394,9 +394,9 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
             # Roken score
             roken_map = {
                 "nooit": 0,
-                "gestopt_>1j": 0,
-                "gestopt_6_12m": 1,
-                "gestopt_<6m": 2,
+                "gestopt_lang": 0,
+                "gestopt_middel": 1,
+                "gestopt_kort": 2,
                 "ja": 6,
             }
             scores["roken"] = float(roken_map[answers.G20])
