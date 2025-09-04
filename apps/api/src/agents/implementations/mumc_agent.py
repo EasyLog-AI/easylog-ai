@@ -69,13 +69,7 @@ class ZLMQuestionnaireAnswers(BaseModel):
     G17: int = Field(..., ge=0, le=4)
     G18: int = Field(..., ge=0, le=6)
     G19: int = Field(..., ge=0, le=6)
-    G20: Literal[
-        "nooit",
-        "gestopt_lang",
-        "gestopt_middel",
-        "gestopt_kort",
-        "ja",
-    ]
+    G20: int = Field(..., ge=0, le=6)
     G21: float = Field(..., gt=0)
     G22: float = Field(..., gt=0)
 
@@ -315,8 +309,8 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                         f"Expected float, got '{val}' for question."
                     ) from exc
 
-            # Keep G20 as is - mapping happens later for scoring
-            g20_value = raw_answers["G20"].strip().lower()
+            # G20 is now numeric
+            g20_value = _to_int(raw_answers["G20"])
 
             parsed: dict[str, Any] = {
                 # ints 0-6 unless specified
@@ -325,7 +319,7 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                     for i in range(1, 20)
                     if i != 20
                 },
-                # g20 with mapped value
+                # g20 as integer
                 "G20": g20_value,
                 # floats
                 "G21": _to_float(raw_answers["G21"]),
