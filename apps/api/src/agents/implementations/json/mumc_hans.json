@@ -142,7 +142,7 @@
                             {
                                 "name": "G20",
                                 "question": "Rookt u of heeft u gerookt?",
-                                "instructions": "Antwoordopties: Nooit (label: 'Nee, ik heb nooit gerookt', value: 'nooit'); Gestopt, meer dan 12 maanden geleden (label: 'Gestopt, meer dan 12 maanden geleden', value: 'gestopt_lang'); Gestopt, tussen 6 en 12 maanden geleden (label: 'Gestopt, tussen 6 en 12 maanden geleden', value: 'gestopt_middel'); Gestopt, minder dan 6 maanden geleden (label: 'Gestopt, minder dan 6 maanden geleden', value: 'gestopt_kort'); Ja (label: 'Ja, ik rook nu', value: 'ja')."
+                                "instructions": "Antwoordopties: Nooit (label: 'Nee, ik heb nooit gerookt', value: 'nooit'); Gestopt, meer dan 12 maanden geleden (label: 'Ik ben meer dan 12 maanden geleden gestopt', value: 'gestopt_lang'); Gestopt, tussen 6 en 12 maanden geleden (label: 'Ik ben tussen 6 en 12 maanden geleden gestopt', value: 'gestopt_middel'); Gestopt, minder dan 6 maanden geleden (label: 'Ik ben minder dan 6 maanden geleden gestopt', value: 'gestopt_kort'); Ja (label: 'Ja, ik rook nu', value: 'ja')."
                             },
                             {
                                 "name": "G21",
