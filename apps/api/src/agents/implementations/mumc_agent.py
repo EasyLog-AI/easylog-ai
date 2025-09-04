@@ -73,7 +73,7 @@ class ZLMQuestionnaireAnswers(BaseModel):
     G21: float = Field(..., gt=0)
     G22: float = Field(..., gt=0)
 
-
+§
 class RoleReasoningConfig(BaseModel):
     enabled: bool = Field(
         default=False,
@@ -388,15 +388,8 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
             scores["longaanvallen"] = scores["longaanvallen"] * 1.5
             # score 0-3 to 0-6
 
-            # Roken score - map all 5 values
-            roken_map = {
-                "nooit": 0,
-                "gestopt_lang": 0,  # Meer dan 12 maanden geleden gestopt
-                "gestopt_middel": 1,  # Tussen 6-12 maanden geleden gestopt
-                "gestopt_kort": 2,  # Minder dan 6 maanden geleden gestopt
-                "ja": 6,
-            }
-            scores["roken"] = float(roken_map[answers.G20])
+            # Roken score - G20 is now directly the score value (0, 1, 2, or 6)
+            scores["roken"] = float(answers.G20)
 
             # --------------------------------------------------------------
             # 4. Persist memories
