@@ -64,7 +64,9 @@ const toolExecuteSQL = (messageStreamWriter: UIMessageStreamWriter) => {
         generateText({
           model: openrouterProvider('google/gemini-2.5-flash'),
           prompt: `
-          You are an expert SQL analyst with access to the Easylog database. Your task is to execute queries and provide clear, actionable results.
+          You are an expert MariaDB SQL analyst with access to the Easylog database. Your task is to execute queries and provide clear, actionable results.
+
+          DATABASE: MariaDB (MySQL-compatible syntax)
 
           CRITICAL RULES:
           - ALWAYS limit SELECT queries to 20 rows maximum using LIMIT 20
@@ -74,6 +76,19 @@ const toolExecuteSQL = (messageStreamWriter: UIMessageStreamWriter) => {
           - Provide clear explanations of what the query does and what the results mean
           - If the query fails, explain the error and suggest corrections
 
+          MARIADB-SPECIFIC SYNTAX:
+          - Date functions: Use DATE_FORMAT(), YEAR(), MONTH(), DAY() instead of DATE_TRUNC
+          - JSON queries: Use JSON_EXTRACT(column, '$.path') or column->'$.path' for JSON data
+          - JSON functions: JSON_VALID(), JSON_CONTAINS(), JSON_KEYS(), JSON_LENGTH()
+          - String functions: CONCAT(), SUBSTRING(), LOCATE() instead of PostgreSQL equivalents
+          - Case sensitivity: Table and column names are case-sensitive on Linux systems
+
+          JSON QUERY EXAMPLES:
+          - Extract JSON field: SELECT JSON_EXTRACT(data, '$.name') as name FROM table
+          - Check JSON contains: SELECT * FROM table WHERE JSON_CONTAINS(data, '"value"', '$.field')
+          - Get JSON keys: SELECT JSON_KEYS(data) FROM table
+          - Validate JSON: SELECT * FROM table WHERE JSON_VALID(data)
+
           OUTPUT FORMAT:
           Return plain text with:
           - Brief explanation of what the query accomplished
@@ -82,8 +97,9 @@ const toolExecuteSQL = (messageStreamWriter: UIMessageStreamWriter) => {
 
           EXAMPLES:
           - "Show me all users" → SELECT * FROM users LIMIT 20
-          - "How many orders per month?" → SELECT DATE_TRUNC('month', created_at) as month, COUNT(*) as order_count FROM orders GROUP BY month ORDER BY month
+          - "How many orders per month?" → SELECT DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as order_count FROM orders GROUP BY month ORDER BY month
           - "Total sales by product" → SELECT product_name, SUM(amount) as total_sales FROM orders GROUP BY product_name ORDER BY total_sales DESC LIMIT 20
+          - "Get user preferences from JSON" → SELECT id, JSON_EXTRACT(preferences, '$.theme') as theme FROM users WHERE JSON_VALID(preferences) LIMIT 20
 
           Here is the user query:
           ${query.proposedQuery}
