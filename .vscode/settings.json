@@ -13,12 +13,7 @@
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit"
   },
-  "tailwindCSS.classAttributes": [
-    "class",
-    "className",
-    "classNames",
-    "tv"
-  ],
+  "tailwindCSS.classAttributes": ["class", "className", "classNames", "tv"],
   "tailwindCSS.experimental.classRegex": [
     [
       // Match tailwind variants functions
@@ -28,16 +23,12 @@
       "classNames\\s*=\\s*\\{\\s*([^}]*)\\}"
     ]
   ],
-  "eslint.workingDirectories": [
-    "./apps/web"
-  ],
+  "eslint.workingDirectories": ["./apps/web"],
   "[json]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "python.analysis.typeCheckingMode": "basic",
-  "python.analysis.extraPaths": [
-    "./apps/api"
-  ],
+  "python.analysis.extraPaths": ["./apps/api"],
   "python.defaultInterpreterPath": "./apps/api/.venv/bin/python",
   "[prisma]": {
     "editor.defaultFormatter": "Prisma.prisma"
@@ -55,9 +46,7 @@
     "notebook.source.fixAll.ruff": "explicit"
   },
   "notebook.formatOnSave.enabled": true,
-  "python.testing.pytestArgs": [
-    "apps"
-  ],
+  "python.testing.pytestArgs": ["apps"],
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
   "cSpell.words": [
@@ -66,5 +55,7 @@
     "pdfs",
     "supabase",
     "Ziektelastmeter"
-  ]
+  ],
+  "cursorpyright.analysis.extraPaths": ["./apps/api"],
+  "cursorpyright.analysis.typeCheckingMode": "basic"
 }
