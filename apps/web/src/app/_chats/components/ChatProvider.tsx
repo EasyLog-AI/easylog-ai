@@ -22,7 +22,12 @@ type ChatMessage = UIMessage<
   }
 >;
 
-interface ChatContextType extends UseChatHelpers<ChatMessage> {}
+interface ChatContextType extends UseChatHelpers<ChatMessage> {
+  mode: 'chat' | 'awaiting-tool-call' | 'tool-call-finished' | 'realtime';
+  setMode: (
+    mode: 'chat' | 'awaiting-tool-call' | 'tool-call-finished' | 'realtime'
+  ) => void;
+}
 
 export const ChatContext = createContext<ChatContextType | undefined>(
   undefined
@@ -39,6 +44,9 @@ const ChatProvider = ({
   const api = useTRPC();
 
   const [didStartChat, setDidStartChat] = useState(false);
+  const [mode, setMode] = useState<
+    'chat' | 'awaiting-tool-call' | 'tool-call-finished' | 'realtime'
+  >('chat');
 
   const { data: dbChat, refetch } = useSuspenseQuery(
     api.chats.getOrCreate.queryOptions({
@@ -66,27 +74,50 @@ const ChatProvider = ({
       return lastAssistantMessageIsCompleteWithToolCalls(args);
     },
     onToolCall: async ({ toolCall }) => {
+      console.log('🔧 Tool call received:', {
+        toolName: toolCall.toolName,
+        toolCallId: toolCall.toolCallId
+      });
+
       if (toolCall.toolName === 'clearChat') {
         setDidStartChat(false);
         await refetch();
       }
     },
+    onFinish: () => {
+      console.log('✅ Chat finished');
+      setMode('tool-call-finished');
+    },
     experimental_throttle: 50
   });
 
   useEffect(() => {
-    if (
+    const shouldAutoStart =
       chat.messages.length === 0 &&
       chat.status === 'ready' &&
       !didStartChat &&
-      dbChat.agent?.autoStartMessage
-    ) {
+      dbChat.agent?.autoStartMessage;
+
+    if (shouldAutoStart && dbChat.agent?.autoStartMessage) {
       setDidStartChat(true);
       void chat.sendMessage({ text: dbChat.agent.autoStartMessage });
     }
   }, [chat, didStartChat, dbChat.agent?.autoStartMessage]);
 
-  return <ChatContext.Provider value={chat}>{children}</ChatContext.Provider>;
+  return (
+    <ChatContext.Provider
+      value={{
+        ...chat,
+        mode,
+        setMode: (newMode) => {
+          console.log(`🔄 Mode change: ${mode} → ${newMode}`);
+          setMode(newMode);
+        }
+      }}
+    >
+      {children}
+    </ChatContext.Provider>
+  );
 };
 
 export default ChatProvider;

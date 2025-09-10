@@ -1,12 +1,18 @@
 'use client';
 
-import { IconArrowUp, IconPlayerStop } from '@tabler/icons-react';
+import {
+  IconArrowUp,
+  IconMicrophone,
+  IconMicrophoneOff,
+  IconPlayerStop
+} from '@tabler/icons-react';
 import { motion } from 'motion/react';
 import { useEffect, useRef } from 'react';
 import { SubmitHandler } from 'react-hook-form';
 import TextareaAutosize from 'react-textarea-autosize';
 import { z } from 'zod';
 
+import { useRealTime } from '@/app/_realtime/hooks/useRealTime';
 import Button from '@/app/_ui/components/Button/Button';
 import ButtonContent from '@/app/_ui/components/Button/ButtonContent';
 import Icon from '@/app/_ui/components/Icon/Icon';
@@ -25,7 +31,9 @@ const ChatInput = () => {
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const { sendMessage, status, stop } = useChatContext();
+  const { sendMessage, status, stop, mode } = useChatContext();
+  const { session, canConnect, connect, disconnect, connectionState } =
+    useRealTime();
 
   const {
     reset,
@@ -35,10 +43,18 @@ const ChatInput = () => {
   } = useZodForm(schema);
 
   const submitHandler: SubmitHandler<z.infer<typeof schema>> = async (data) => {
-    await sendMessage({
-      parts: [{ type: 'text', text: data.content }],
-      role: 'user'
-    });
+    if (connectionState === 'connected' && session) {
+      session.sendMessage({
+        type: 'message',
+        role: 'user',
+        content: [{ type: 'input_text', text: data.content }]
+      });
+    } else {
+      await sendMessage({
+        parts: [{ type: 'text', text: data.content }],
+        role: 'user'
+      });
+    }
   };
 
   const { ref: textareaFormRef, ...rest } = register('content');
@@ -52,7 +68,7 @@ const ChatInput = () => {
 
   const isLoading =
     isSubmitting || status === 'submitted' || status === 'streaming';
-  
+
   const isStreaming = status === 'streaming';
 
   return (
@@ -100,15 +116,59 @@ const ChatInput = () => {
           />
         </div>
 
-        <div className="flex items-center justify-end px-2.5 pb-2.5">
+        <div className="flex items-center justify-end gap-2 px-2.5 pb-2.5">
           <Button
             shape="circle"
             size="lg"
-            isDisabled={(!isStreaming && (!isValid || isSubmitting)) || status === 'submitted'}
+            variant="ghost"
+            isDisabled={
+              isLoading ||
+              connectionState === 'connecting' ||
+              connectionState === 'disconnecting' ||
+              !canConnect
+            }
+            onClick={() => {
+              console.log('🎤 Microphone button clicked:', connectionState);
+
+              if (connectionState === 'connected') {
+                disconnect();
+              } else if (connectionState === 'disconnected') {
+                connect();
+              }
+            }}
+          >
+            <ButtonContent>
+              <Icon
+                icon={
+                  connectionState === 'connecting' ||
+                  connectionState === 'disconnecting'
+                    ? IconSpinner
+                    : mode === 'chat'
+                      ? IconMicrophone
+                      : IconMicrophoneOff
+                }
+              />
+            </ButtonContent>
+          </Button>
+          <Button
+            shape="circle"
+            size="lg"
+            isDisabled={
+              (!isStreaming && (!isValid || isSubmitting)) ||
+              status === 'submitted'
+            }
             onClick={isStreaming ? stop : handleSubmit(submitHandler)}
           >
             <ButtonContent>
-              <Icon icon={isLoading && !isStreaming ? IconSpinner : isStreaming ? IconPlayerStop : IconArrowUp} />
+              <Icon
+                icon={
+                  isLoading && !isStreaming
+                    ? IconSpinner
+                    : isStreaming
+                      ? IconPlayerStop
+                      : IconArrowUp
+                }
+              />
             </ButtonContent>
           </Button>
         </div>
