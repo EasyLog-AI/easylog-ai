@@ -7,10 +7,8 @@ import db from '@/database/client';
 import { chats } from '@/database/schema';
 
 import { realtimeItemSchema } from '../schemas/realtimeItemSchema';
-import {
-  convertRealtimeMessagesToUIMessages,
-  getNewRealtimeMessages
-} from '../utils/convertRealtimeMessages';
+import convertRealtimeToUI from '../utils/convertRealtimeToUI';
+import filterNewMessages from '../utils/filterNewMessages';
 
 const realtimeSyncMessages = chatMiddleware
   .input(
@@ -26,10 +24,7 @@ const realtimeSyncMessages = chatMiddleware
     const currentMessages = (chat.messages as UIMessage[]) || [];
 
     // Filter out messages that already exist
-    const newRealtimeItems = getNewRealtimeMessages(
-      realtimeItems,
-      currentMessages
-    );
+    const newRealtimeItems = filterNewMessages(realtimeItems, currentMessages);
 
     if (newRealtimeItems.length === 0) {
       return {
@@ -40,7 +35,7 @@ const realtimeSyncMessages = chatMiddleware
     }
 
     // Convert realtime messages to UI message format
-    const newUIMessages = convertRealtimeMessagesToUIMessages(newRealtimeItems);
+    const newUIMessages = convertRealtimeToUI(newRealtimeItems);
 
     if (newUIMessages.length === 0) {
       return {

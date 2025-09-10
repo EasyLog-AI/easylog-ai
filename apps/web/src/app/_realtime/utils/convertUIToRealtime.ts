@@ -6,9 +6,7 @@ import { RealtimeItem } from '../schemas/realtimeItemSchema';
  * Converts UIMessages to realtime session format for providing context to new sessions
  * Only converts text content as realtime sessions have limited type support
  */
-export function convertUIMessagesToRealtimeItems(
-  uiMessages: UIMessage[]
-): RealtimeItem[] {
+const convertUIToRealtime = (uiMessages: UIMessage[]): RealtimeItem[] => {
   return uiMessages
     .filter((message) => 
       // Only include user, assistant, and system messages
@@ -68,15 +66,6 @@ export function convertUIMessagesToRealtimeItems(
         ]
       };
     });
-}
+};
 
-/**
- * Filters out complex UI message parts that aren't supported in realtime
- * Returns true if the message contains only text content
- */
-export function isRealtimeCompatibleMessage(message: UIMessage): boolean {
-  return message.parts.every(part => 
-    part.type === 'text' || 
-    part.type === 'step-start' // Step markers are typically ignored
-  );
-}
+export default convertUIToRealtime;

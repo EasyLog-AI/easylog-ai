@@ -15,11 +15,9 @@ import useChatContext from '@/app/_chats/hooks/useChatContext';
 import useTRPC from '@/lib/trpc/browser';
 
 import { RealtimeItem } from '../schemas/realtimeItemSchema';
-import {
-  convertRealtimeMessagesToUIMessages,
-  getNewRealtimeMessages
-} from '../utils/convertRealtimeMessages';
-import { convertUIMessagesToRealtimeItems } from '../utils/convertUIMessagesToRealtime';
+import convertRealtimeToUI from '../utils/convertRealtimeToUI';
+import convertUIToRealtime from '../utils/convertUIToRealtime';
+import filterNewMessages from '../utils/filterNewMessages';
 
 interface RealTimeContextType {
   agent: RealtimeAgent;
@@ -74,12 +72,8 @@ const RealTimeProvider = ({
 
   useEffect(() => {
     const handleHistoryUpdate = (history: RealtimeItem[]) => {
-      const newRealtimeMessages = getNewRealtimeMessages(
-        history,
-        chat.messages
-      );
-      const newUIMessages =
-        convertRealtimeMessagesToUIMessages(newRealtimeMessages);
+      const newRealtimeMessages = filterNewMessages(history, chat.messages);
+      const newUIMessages = convertRealtimeToUI(newRealtimeMessages);
 
       console.log(
         'Frontend update - New realtime messages:',
@@ -158,7 +152,7 @@ const RealTimeProvider = ({
       apiKey: 'ek_68c1741eb7dc8191acbf4cf959d5737e'
     });
 
-    const realtimeHistory = convertUIMessagesToRealtimeItems(chat.messages);
+    const realtimeHistory = convertUIToRealtime(chat.messages);
     if (realtimeHistory.length > 0) {
       session.updateHistory(realtimeHistory);
       console.log(
