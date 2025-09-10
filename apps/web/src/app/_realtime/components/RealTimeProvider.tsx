@@ -51,29 +51,11 @@ const RealTimeProvider = ({
   const chat = useChatContext();
   const api = useTRPC();
 
-  // Enhanced logging
-  console.log('🔄 RealTimeProvider render:', {
-    isConnected,
-    realtimeMode,
-    agentSlug,
-    chatId: chat.id,
-    chatMode: chat.mode,
-    toolExecutionState: chat.toolExecutionState,
-    pendingRealtimeReturn: chat.pendingRealtimeReturn,
-    messagesCount: chat.messages.length
-  });
-
   const { data: dbChat } = useSuspenseQuery(
     api.chats.getOrCreate.queryOptions({
       agentId: agentSlug
     })
   );
-
-  console.log('📊 Database chat loaded:', {
-    chatId: dbChat.id,
-    agentName: dbChat.agent.name,
-    messagesCount: dbChat.messages?.length || 0
-  });
 
   const {
     data: realTimeSessionToken,
@@ -89,23 +71,23 @@ const RealTimeProvider = ({
           if (!state.data?.expires_at) return false;
           const now = Date.now();
           const expiresAtMs = state.data.expires_at * 1000;
+
           // Refetch 10 seconds before expiration, but never less than 1 second from now
           const msUntilRefetch = Math.max(expiresAtMs - now - 10000, 1000);
-          console.log('🔄 Refetching ephemeral token in', msUntilRefetch, 'ms');
+
+          if (msUntilRefetch < 10_000) {
+            console.log(
+              '🔄 Refetching ephemeral token in',
+              msUntilRefetch,
+              'ms'
+            );
+          }
+
           return msUntilRefetch;
         }
       }
     )
   );
-
-  console.log('🎟️ Ephemeral token status:', {
-    hasToken: !!realTimeSessionToken?.value,
-    tokenExpiry: realTimeSessionToken?.expires_at
-      ? new Date(realTimeSessionToken.expires_at * 1000).toISOString()
-      : null,
-    isLoading: tokenLoading,
-    error: tokenError?.message
-  });
 
   const agent = useMemo(
     () =>
@@ -123,24 +105,16 @@ const RealTimeProvider = ({
               proposedQuery: z.string().nullable()
             }),
             execute: async ({ queryIntent, proposedQuery }) => {
-              console.log(
-                '🔧 SQL tool called in realtime, initiating handover...',
-                {
-                  queryIntent,
-                  proposedQuery,
-                  currentMode: chat.mode
-                }
-              );
+              console.log('🔧 Tool called in realtime mode');
 
-              // Mark that we're executing a tool and need to return to realtime
-              chat.setToolExecutionState('executing');
-              chat.setPendingRealtimeReturn(true);
-
-              // Switch to normal chat mode for tool execution
-              console.log(
-                '🔄 Switching to normal chat mode for tool execution'
-              );
-              chat.setMode('chat');
+              // Only do handover if we're actually in realtime mode
+              if (chat.mode === 'realtime') {
+                console.log('🔧 Tool handover: realtime → chat');
+                chat.setShouldReturnToRealtime(true);
+                chat.setMode('chat');
+              } else {
+                console.log('🔧 Already in chat mode, no handover needed');
+              }
 
               // Send the tool execution message to normal chat
               await chat.sendMessage({
@@ -153,8 +127,13 @@ const RealTimeProvider = ({
                 role: 'user'
               });
 
-              // Return a simple acknowledgment - the session will be disconnected after this
-              return 'Tool execution initiated, switching to chat mode...';
+              // Only return a message if we're staying in realtime mode
+              if (chat.mode === 'realtime') {
+                return 'Tool execution initiated, switching to chat mode...';
+              } else {
+                // Don't return anything to avoid WebRTC errors when already disconnected
+                return;
+              }
             }
           })
         ]
@@ -170,11 +149,9 @@ const RealTimeProvider = ({
     [agent]
   );
 
-  // Cleanup session on unmount to prevent WebRTC errors
   useEffect(() => {
     return () => {
       if (session) {
-        console.log('🧹 Cleaning up session on unmount');
         session.close();
       }
     };
@@ -182,9 +159,6 @@ const RealTimeProvider = ({
 
   const { mutate: syncMessages, isPending } = useMutation(
     api.realtime.syncMessages.mutationOptions({
-      onSuccess: (result) => {
-        console.log('Sync completed:', result);
-      },
       onError: (error) => {
         console.error('Failed to sync realtime messages:', error);
       }
@@ -195,12 +169,6 @@ const RealTimeProvider = ({
     const handleHistoryUpdate = (history: RealtimeItem[]) => {
       const newRealtimeMessages = filterNewMessages(history, chat.messages);
       const newUIMessages = convertRealtimeToUI(newRealtimeMessages);
-
-      console.log(
-        'Frontend update - New realtime messages:',
-        newRealtimeMessages.length
-      );
-      console.log('Frontend update - New UI messages:', newUIMessages.length);
 
       if (newUIMessages.length > 0) {
         chat.setMessages([...chat.messages, ...newUIMessages] as UIMessage<
@@ -243,11 +211,6 @@ const RealTimeProvider = ({
       return;
     }
 
-    console.log(
-      'Syncing only completed messages to backend:',
-      newCompletedMessages.length
-    );
-
     const newSyncedIds = new Set([
       ...syncedMessageIds,
       ...newCompletedMessages.map((item) => item.itemId)
@@ -271,77 +234,40 @@ const RealTimeProvider = ({
   const { mutate: connect, isPending: isConnecting } = useMutation({
     mutationFn: async () => {
       setRealtimeMode('connecting');
-      console.log('🔌 Starting connection process...', {
-        realtimeMode: 'connecting',
-        hasToken: !!realTimeSessionToken?.value,
-        tokenLoading,
-        tokenError: tokenError?.message,
-        tokenExpiry: realTimeSessionToken?.expires_at
-          ? new Date(realTimeSessionToken.expires_at * 1000).toISOString()
-          : null
-      });
+      console.log('🔌 Connecting to realtime...');
 
       if (!realTimeSessionToken?.value) {
-        console.error('❌ No ephemeral token found for connection', {
-          tokenExists: !!realTimeSessionToken,
-          tokenValue: !!realTimeSessionToken?.value,
-          tokenLoading,
-          tokenError: tokenError?.message
-        });
+        console.error('❌ No ephemeral token available');
         throw new Error('No ephemeral token found');
       }
-
-      console.log('🔑 Using ephemeral token:', {
-        tokenExists: !!realTimeSessionToken.value,
-        expiresAt: new Date(
-          realTimeSessionToken.expires_at * 1000
-        ).toISOString()
-      });
 
       await session.connect({
         apiKey: realTimeSessionToken?.value
       });
 
-      console.log('✅ Session connected successfully');
-
       const realtimeHistory = convertUIToRealtime(chat.messages);
       if (realtimeHistory.length > 0) {
         session.updateHistory(realtimeHistory);
-        console.log(
-          `📚 Initialized realtime session with ${realtimeHistory.length} historical messages`
-        );
-      } else {
-        console.log('📚 No historical messages to initialize');
       }
     },
     onSuccess: () => {
-      console.log(
-        '🎉 Connection successful, switching to active realtime mode'
-      );
+      console.log('✅ Realtime connected');
       setRealtimeMode('active');
       chat.setMode('realtime');
       setIsConnected(true);
 
-      // If we just completed a tool execution, send a continuation message
-      if (chat.justCompletedToolExecution) {
-        console.log(
-          '🔄 Reconnected after tool execution, sending continuation message'
-        );
-        setTimeout(() => {
-          session.sendMessage({
-            type: 'message',
-            role: 'user',
-            content: [
-              {
-                type: 'input_text',
-                text: '[naturally continue the current conversation]'
-              }
-            ]
-          });
-          // Clear the flag after sending the message
-          chat.setJustCompletedToolExecution(false);
-        }, 100); // Small delay to ensure session is fully ready
-      }
+      setTimeout(() => {
+        session.sendMessage({
+          type: 'message',
+          role: 'user',
+          content: [
+            {
+              type: 'input_text',
+              text: '[naturally continue the current conversation]'
+            }
+          ]
+        });
+      }, 100);
     },
     onError: (error) => {
       console.error('❌ Connection failed:', error);
@@ -354,16 +280,15 @@ const RealTimeProvider = ({
 
   const { mutate: disconnect, isPending: isDisconnecting } = useMutation({
     mutationFn: async () => {
-      console.log('🔌 Starting disconnect process...');
+      console.log('🔌 Disconnecting from realtime...');
       session.close();
     },
     onSuccess: () => {
-      console.log('🔚 Disconnected successfully');
+      console.log('✅ Realtime disconnected');
       setIsConnected(false);
       setRealtimeMode('disconnected');
-      // Only switch to chat mode if we're not in a tool handover scenario
-      if (chat.mode === 'realtime' && !chat.pendingRealtimeReturn) {
-        console.log('💬 Manual disconnect, switching to chat mode');
+      // Only switch to chat mode if we're not planning to return to realtime
+      if (chat.mode === 'realtime' && !chat.shouldReturnToRealtime) {
         chat.setMode('chat');
       }
       setSyncedMessageIds(new Set());
@@ -376,30 +301,17 @@ const RealTimeProvider = ({
     }
   });
 
-  // Simple state machine - just react to mode changes
   useEffect(() => {
-    console.log('🔧 Realtime connection effect:', {
-      chatMode: chat.mode,
-      realtimeMode,
-      isConnected,
-      isConnecting,
-      isDisconnecting
-    });
-
     // Connect when switching to realtime mode
     if (chat.mode === 'realtime' && !isConnected && !isConnecting) {
-      console.log('🚀 Switching to realtime, connecting...', {
-        hasToken: !!realTimeSessionToken?.value,
-        tokenLoading: tokenLoading,
-        tokenError: tokenError?.message
-      });
+      console.log('🔄 Mode switch: chat → realtime');
       setRealtimeMode('connecting');
       void connect();
     }
 
     // Disconnect when switching to chat mode
     if (chat.mode === 'chat' && isConnected && !isDisconnecting) {
-      console.log('💬 Switching to chat, disconnecting...');
+      console.log('🔄 Mode switch: realtime → chat');
       session.interrupt();
       void disconnect();
     }
