@@ -32,6 +32,7 @@ interface RealTimeContextType {
     | 'connected'
     | 'disconnecting';
   canConnect: boolean;
+  isEnabled: boolean;
 }
 
 export const RealTimeContext = createContext<RealTimeContextType | undefined>(
@@ -98,7 +99,7 @@ const RealTimeProvider = ({
       new RealtimeAgent({
         name: dbChat.agent.name,
         instructions: dbChat.agent.prompt,
-        voice: 'marin',
+        voice: dbChat.agent.voiceChatVoice,
         tools: [
           tool({
             name: 'search_knowledge_base',
@@ -339,7 +340,8 @@ const RealTimeProvider = ({
         connect,
         disconnect,
         canConnect:
-          !!realTimeSessionToken?.value && !tokenLoading && !tokenError
+          !!realTimeSessionToken?.value && !tokenLoading && !tokenError,
+        isEnabled: dbChat.agent.voiceChatEnabled
       }}
     >
       {children}
