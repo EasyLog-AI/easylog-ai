@@ -1,6 +1,7 @@
 'use client';
 
 import { RealtimeAgent, RealtimeSession, tool } from '@openai/agents-realtime';
+import * as Sentry from '@sentry/nextjs';
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { UIMessage } from 'ai';
 import {
@@ -175,6 +176,7 @@ const RealTimeProvider = ({
     api.realtime.syncMessages.mutationOptions({
       onError: (error) => {
         console.error('Failed to sync realtime messages:', error);
+        Sentry.captureException(error);
       }
     })
   );
@@ -251,6 +253,7 @@ const RealTimeProvider = ({
       toast.error(
         `Failed to connect to realtime session: ${(error as Error).message}`
       );
+      Sentry.captureException(error);
       chat.setMode('chat');
     }
   }, [realTimeSessionToken?.value, agent, chat]);
@@ -268,6 +271,7 @@ const RealTimeProvider = ({
       toast.error(
         `Failed to disconnect from realtime session: ${(error as Error).message}`
       );
+      Sentry.captureException(error);
     }
   }, [session, chat]);
 
