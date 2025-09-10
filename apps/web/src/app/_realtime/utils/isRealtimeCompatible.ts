@@ -5,9 +5,8 @@ import { UIMessage } from 'ai';
  * Returns true if the message contains only text content
  */
 const isRealtimeCompatible = (message: UIMessage): boolean => {
-  return message.parts.every(part => 
-    part.type === 'text' || 
-    part.type === 'step-start' // Step markers are typically ignored
+  return message.parts.every(
+    (part) => part.type === 'text' || part.type === 'step-start' // Step markers are typically ignored
   );
 };
 
