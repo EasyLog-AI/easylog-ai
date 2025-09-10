@@ -267,29 +267,6 @@ export const POST = async (
     }),
     originalMessages: messages,
     onFinish: async ({ messages }) => {
-      // Remove duplicate message ids, keeping only the last occurrence of each id
-      const seenIds = new Set<string>();
-      const dedupedMessages: typeof messages = [];
-
-      // Iterate from end to start to keep the last occurrence
-      for (let i = messages.length - 1; i >= 0; i--) {
-        const msg = messages[i];
-        if (!seenIds.has(msg.id)) {
-          seenIds.add(msg.id);
-          dedupedMessages.unshift(msg);
-        }
-      }
-
-      // Replace messages with dedupedMessages for downstream usage and remove input-streaming parts
-      messages = dedupedMessages.map((message) => {
-        return {
-          ...message,
-          parts: message.parts.filter(
-            (part) => !('state' in part) || part.state !== 'input-streaming'
-          )
-        };
-      });
-
       await db
         .update(chats)
         .set({
@@ -298,6 +275,7 @@ export const POST = async (
         .where(eq(chats.id, id));
     },
     onError: (error) => {
+      console.error(error);
       Sentry.captureException(error);
       return 'An error occurred';
     }
