@@ -4,7 +4,7 @@ import { TRPCError } from '@trpc/server';
 import chatMiddleware from '@/app/_chats/middleware/chatMiddleware';
 import serverConfig from '@/server.config';
 
-const createEphemeralToken = chatMiddleware.mutation(async ({}) => {
+const createEphemeralToken = chatMiddleware.query(async ({}) => {
   const response = await fetch(
     'https://api.openai.com/v1/realtime/client_secrets',
     {

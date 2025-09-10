@@ -1,13 +1,13 @@
 'use client';
 
-import { RealtimeAgent, RealtimeSession } from '@openai/agents-realtime';
-import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
+import { RealtimeAgent, RealtimeSession, tool } from '@openai/agents-realtime';
+import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { UIMessage } from 'ai';
 import { createContext, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import z from 'zod';
 
 import useChatContext from '@/app/_chats/hooks/useChatContext';
-import useTRPCClient from '@/app/_shared/hooks/useTRPCClient';
 import useTRPC from '@/lib/trpc/browser';
 
 import { RealtimeItem } from '../schemas/realtimeItemSchema';
@@ -23,6 +23,7 @@ interface RealTimeContextType {
   disconnect: () => void;
   isConnecting: boolean;
   isDisconnecting: boolean;
+  canConnect: boolean;
 }
 
 export const RealTimeContext = createContext<RealTimeContextType | undefined>(
@@ -40,7 +41,6 @@ const RealTimeProvider = ({
   const [isConnected, setIsConnected] = useState(false);
 
   const chat = useChatContext();
-
   const api = useTRPC();
 
   const { data: dbChat } = useSuspenseQuery(
@@ -49,12 +49,57 @@ const RealTimeProvider = ({
     })
   );
 
+  const { data: realTimeSessionToken } = useQuery(
+    api.realtime.createEphemeralToken.queryOptions(
+      {
+        chatId: dbChat.id
+      },
+      {
+        refetchInterval: ({ state }) => {
+          if (!state.data?.expires_at) return false;
+          const now = Date.now();
+          const expiresAtMs = state.data.expires_at * 1000;
+          // Refetch 10 seconds before expiration, but never less than 1 second from now
+          const msUntilRefetch = Math.max(expiresAtMs - now - 10000, 1000);
+          console.log('Refetching ephemeral token in', msUntilRefetch, 'ms');
+          return msUntilRefetch;
+        }
+      }
+    )
+  );
+
   const agent = useMemo(
     () =>
       new RealtimeAgent({
         name: dbChat.agent.name,
-        instructions: dbChat.agent.prompt,
-        voice: 'marin'
+        instructions:
+          'je bent een agent die kan uitvoeren van SQL queries op de Easylog database.',
+        voice: 'marin',
+        tools: [
+          tool({
+            name: 'execute_sql',
+            description: 'Execute a SQL query on the Easylog database',
+            parameters: z.object({
+              queryIntent: z.string(),
+              proposedQuery: z.string().nullable()
+            }),
+            execute: async ({ queryIntent, proposedQuery }) => {
+              console.log('Executing SQL query', queryIntent, proposedQuery);
+
+              await chat.sendMessage({
+                parts: [
+                  {
+                    type: 'text',
+                    text: `[execute the tool executeSql with the query intent of "${queryIntent}" and the proposed query of "${proposedQuery}"]`
+                  }
+                ],
+                role: 'user'
+              });
+
+              chat.setIsWaitingForToolCall(true);
+            }
+          })
+        ]
       }),
     [dbChat.agent.name, dbChat.agent.prompt]
   );
@@ -66,8 +111,6 @@ const RealTimeProvider = ({
       }),
     [agent]
   );
-
-  const trpcClient = useTRPCClient();
 
   const { mutate: syncMessages, isPending } = useMutation(
     api.realtime.syncMessages.mutationOptions({
@@ -159,15 +202,12 @@ const RealTimeProvider = ({
 
   const { mutate: connect, isPending: isConnecting } = useMutation({
     mutationFn: async () => {
-      const tokenResponse =
-        await trpcClient.realtime.createEphemeralToken.mutate({
-          chatId: chat.id
-        });
-
-      console.log('Ephemeral token created:', tokenResponse);
+      if (!realTimeSessionToken?.value) {
+        throw new Error('No ephemeral token found');
+      }
 
       await session.connect({
-        apiKey: tokenResponse.value
+        apiKey: realTimeSessionToken?.value
       });
 
       const realtimeHistory = convertUIToRealtime(chat.messages);
@@ -179,11 +219,13 @@ const RealTimeProvider = ({
       }
     },
     onSuccess: () => {
+      chat.setMode('realtime');
       setIsConnected(true);
     },
     onError: (error) => {
       toast.error(`Failed to connect to realtime session: ${error.message}`);
       setIsConnected(false);
+      chat.setMode('chat');
     }
   });
 
@@ -193,6 +235,7 @@ const RealTimeProvider = ({
     },
     onSuccess: () => {
       setIsConnected(false);
+      chat.setMode('chat');
       setSyncedMessageIds(new Set());
     },
     onError: (error) => {
@@ -201,6 +244,56 @@ const RealTimeProvider = ({
       );
     }
   });
+
+  useEffect(() => {
+    if (
+      chat.mode === 'realtime' &&
+      chat.isWaitingForToolCall &&
+      isConnected &&
+      !isDisconnecting
+    ) {
+      session.interrupt();
+      void disconnect();
+    }
+  }, [
+    chat.isWaitingForToolCall,
+    isConnected,
+    disconnect,
+    session,
+    chat.mode,
+    isDisconnecting
+  ]);
+
+  useEffect(() => {
+    if (
+      chat.mode === 'realtime' &&
+      !chat.isWaitingForToolCall &&
+      !isConnected &&
+      !isConnecting
+    ) {
+      void connect();
+    }
+  }, [
+    chat.isWaitingForToolCall,
+    isConnected,
+    connect,
+    session,
+    chat.mode,
+    isConnecting
+  ]);
+
+  useEffect(() => {
+    if (isConnected) {
+      console.log('Continuing conversation');
+      session.sendMessage({
+        type: 'message',
+        role: 'user',
+        content: [
+          { type: 'input_text', text: '[naturally continue the conversation]' }
+        ]
+      });
+    }
+  }, [isConnected, session]);
 
   return (
     <RealTimeContext.Provider
@@ -211,7 +304,8 @@ const RealTimeProvider = ({
         connect,
         disconnect,
         isConnecting,
-        isDisconnecting
+        isDisconnecting,
+        canConnect: !!realTimeSessionToken?.value
       }}
     >
       {children}

@@ -22,7 +22,12 @@ type ChatMessage = UIMessage<
   }
 >;
 
-interface ChatContextType extends UseChatHelpers<ChatMessage> {}
+interface ChatContextType extends UseChatHelpers<ChatMessage> {
+  mode: 'chat' | 'realtime';
+  setMode: (mode: 'chat' | 'realtime') => void;
+  isWaitingForToolCall: boolean;
+  setIsWaitingForToolCall: (isWaitingForToolCall: boolean) => void;
+}
 
 export const ChatContext = createContext<ChatContextType | undefined>(
   undefined
@@ -39,6 +44,8 @@ const ChatProvider = ({
   const api = useTRPC();
 
   const [didStartChat, setDidStartChat] = useState(false);
+  const [mode, setMode] = useState<'chat' | 'realtime'>('chat');
+  const [isWaitingForToolCall, setIsWaitingForToolCall] = useState(false);
 
   const { data: dbChat, refetch } = useSuspenseQuery(
     api.chats.getOrCreate.queryOptions({
@@ -71,6 +78,9 @@ const ChatProvider = ({
         await refetch();
       }
     },
+    onFinish: () => {
+      setIsWaitingForToolCall(false);
+    },
     experimental_throttle: 50
   });
 
@@ -86,7 +96,19 @@ const ChatProvider = ({
     }
   }, [chat, didStartChat, dbChat.agent?.autoStartMessage]);
 
-  return <ChatContext.Provider value={chat}>{children}</ChatContext.Provider>;
+  return (
+    <ChatContext.Provider
+      value={{
+        ...chat,
+        mode,
+        setMode,
+        isWaitingForToolCall,
+        setIsWaitingForToolCall
+      }}
+    >
+      {children}
+    </ChatContext.Provider>
+  );
 };
 
 export default ChatProvider;
