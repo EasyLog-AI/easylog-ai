@@ -41,7 +41,7 @@ const RealTimeProvider = ({
     () =>
       new RealtimeAgent({
         name: 'Assistant',
-        instructions: 'You are a helpful assistant.'
+        instructions: 'You only speak spanish.'
       }),
     []
   );
@@ -146,8 +146,14 @@ const RealTimeProvider = ({
 
   const { mutate: connect, isPending: isConnecting } = useMutation({
     mutationFn: async () => {
+      // Create ephemeral token for secure connection
+      // const tokenResponse = await api.realtie.createEphemeralToken.mutationOptions({
+      //   instructions: 'You are a helpful assistant.'
+      // })
+      // .mutateAsync();
+
       await session.connect({
-        apiKey: 'ek_68c1741eb7dc8191acbf4cf959d5737e'
+        apiKey: 'ek_68c17b13b248819185d2d01094a9ef13'
       });
 
       const realtimeHistory = convertUIToRealtime(chat.messages);

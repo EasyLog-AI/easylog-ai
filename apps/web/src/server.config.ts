@@ -6,6 +6,7 @@ const serverConfig = {
   appUrl: getAppUrl(),
   dbUrl: serverEnv.DB_URL,
   openrouterApiKey: serverEnv.OPENROUTER_API_KEY,
+  openaiApiKey: serverEnv.OPENAI_API_KEY,
   s3Endpoint: serverEnv.S3_ENDPOINT,
   s3Region: serverEnv.S3_REGION,
   s3AccessKey: serverEnv.S3_ACCESS_KEY,
