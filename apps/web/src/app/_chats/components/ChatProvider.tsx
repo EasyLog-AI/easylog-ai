@@ -23,10 +23,10 @@ type ChatMessage = UIMessage<
 >;
 
 interface ChatContextType extends UseChatHelpers<ChatMessage> {
-  mode: 'chat' | 'realtime';
-  setMode: (mode: 'chat' | 'realtime') => void;
-  shouldReturnToRealtime: boolean;
-  setShouldReturnToRealtime: (should: boolean) => void;
+  mode: 'chat' | 'awaiting-tool-call' | 'tool-call-finished' | 'realtime';
+  setMode: (
+    mode: 'chat' | 'awaiting-tool-call' | 'tool-call-finished' | 'realtime'
+  ) => void;
 }
 
 export const ChatContext = createContext<ChatContextType | undefined>(
@@ -44,15 +44,15 @@ const ChatProvider = ({
   const api = useTRPC();
 
   const [didStartChat, setDidStartChat] = useState(false);
-  const [mode, setMode] = useState<'chat' | 'realtime'>('chat');
-  const [shouldReturnToRealtime, setShouldReturnToRealtime] = useState(false);
+  const [mode, setMode] = useState<
+    'chat' | 'awaiting-tool-call' | 'tool-call-finished' | 'realtime'
+  >('chat');
 
   const { data: dbChat, refetch } = useSuspenseQuery(
     api.chats.getOrCreate.queryOptions({
       agentId: agentSlug
     })
   );
-
 
   const chat = useChat({
     id: dbChat.id,
@@ -86,16 +86,10 @@ const ChatProvider = ({
     },
     onFinish: () => {
       console.log('✅ Chat finished');
-      // If we should return to realtime, do it now
-      if (shouldReturnToRealtime) {
-        console.log('🔄 Returning to realtime mode after tool completion');
-        setMode('realtime');
-        setShouldReturnToRealtime(false);
-      }
+      setMode('tool-call-finished');
     },
     experimental_throttle: 50
   });
-
 
   useEffect(() => {
     const shouldAutoStart =
@@ -110,24 +104,14 @@ const ChatProvider = ({
     }
   }, [chat, didStartChat, dbChat.agent?.autoStartMessage]);
 
-  // No complex state machine needed - onFinish handles the return to realtime
-
   return (
     <ChatContext.Provider
       value={{
         ...chat,
         mode,
         setMode: (newMode) => {
-          console.log('🔄 Mode change:', { from: mode, to: newMode, caller: new Error().stack?.split('\n')[1] });
+          console.log(`🔄 Mode change: ${mode} → ${newMode}`);
           setMode(newMode);
-        },
-        shouldReturnToRealtime,
-        setShouldReturnToRealtime: (should) => {
-          console.log('🔄 Should return to realtime change:', {
-            from: shouldReturnToRealtime,
-            to: should
-          });
-          setShouldReturnToRealtime(should);
         }
       }}
     >

@@ -32,15 +32,8 @@ const ChatInput = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { sendMessage, status, stop, mode } = useChatContext();
-  const {
-    isConnected,
-    session,
-    canConnect,
-    connect,
-    disconnect,
-    isConnecting,
-    isDisconnecting
-  } = useRealTime();
+  const { session, canConnect, connect, disconnect, connectionState } =
+    useRealTime();
 
   const {
     reset,
@@ -50,21 +43,12 @@ const ChatInput = () => {
   } = useZodForm(schema);
 
   const submitHandler: SubmitHandler<z.infer<typeof schema>> = async (data) => {
-    if (isConnected && session) {
-      try {
-        session.sendMessage({
-          type: 'message',
-          role: 'user',
-          content: [{ type: 'input_text', text: data.content }]
-        });
-      } catch (error) {
-        console.error('Failed to send realtime message:', error);
-        // Fallback to regular chat
-        await sendMessage({
-          parts: [{ type: 'text', text: data.content }],
-          role: 'user'
-        });
-      }
+    if (connectionState === 'connected' && session) {
+      session.sendMessage({
+        type: 'message',
+        role: 'user',
+        content: [{ type: 'input_text', text: data.content }]
+      });
     } else {
       await sendMessage({
         parts: [{ type: 'text', text: data.content }],
@@ -138,21 +122,17 @@ const ChatInput = () => {
             size="lg"
             variant="ghost"
             isDisabled={
-              isLoading || isConnecting || isDisconnecting || !canConnect
+              isLoading ||
+              connectionState === 'connecting' ||
+              connectionState === 'disconnecting' ||
+              !canConnect
             }
             onClick={() => {
-              console.log('🎤 Microphone button clicked:', {
-                isConnected,
-                canConnect,
-                isConnecting,
-                isDisconnecting,
-                mode,
-                action: isConnected ? 'disconnect' : 'connect'
-              });
-              
-              if (isConnected) {
+              console.log('🎤 Microphone button clicked:', connectionState);
+
+              if (connectionState === 'connected') {
                 disconnect();
-              } else {
+              } else if (connectionState === 'disconnected') {
                 connect();
               }
             }}
@@ -160,11 +140,12 @@ const ChatInput = () => {
             <ButtonContent>
               <Icon
                 icon={
-                  isConnecting || isDisconnecting
+                  connectionState === 'connecting' ||
+                  connectionState === 'disconnecting'
                     ? IconSpinner
-                    : mode === 'realtime'
-                      ? IconMicrophoneOff
-                      : IconMicrophone
+                    : mode === 'chat'
+                      ? IconMicrophone
+                      : IconMicrophoneOff
                 }
               />
             </ButtonContent>
