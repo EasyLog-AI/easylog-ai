@@ -32,8 +32,14 @@ const ChatInput = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { sendMessage, status, stop, mode } = useChatContext();
-  const { session, canConnect, connect, disconnect, connectionState } =
-    useRealTime();
+  const {
+    session,
+    canConnect,
+    connect,
+    disconnect,
+    connectionState,
+    isEnabled
+  } = useRealTime();
 
   const {
     reset,
@@ -117,39 +123,41 @@ const ChatInput = () => {
         </div>
 
         <div className="flex items-center justify-end gap-2 px-2.5 pb-2.5">
-          <Button
-            shape="circle"
-            size="lg"
-            variant="ghost"
-            isDisabled={
-              isLoading ||
-              connectionState === 'connecting' ||
-              connectionState === 'disconnecting' ||
-              !canConnect
-            }
-            onClick={() => {
-              console.log('🎤 Microphone button clicked:', connectionState);
-
-              if (connectionState === 'connected') {
-                disconnect();
-              } else if (connectionState === 'disconnected') {
-                connect();
+          {isEnabled && (
+            <Button
+              shape="circle"
+              size="lg"
+              variant="ghost"
+              isDisabled={
+                isLoading ||
+                connectionState === 'connecting' ||
+                connectionState === 'disconnecting' ||
+                !canConnect
               }
-            }}
-          >
-            <ButtonContent>
-              <Icon
-                icon={
-                  connectionState === 'connecting' ||
-                  connectionState === 'disconnecting'
-                    ? IconSpinner
-                    : mode === 'chat'
-                      ? IconMicrophone
-                      : IconMicrophoneOff
+              onClick={() => {
+                console.log('🎤 Microphone button clicked:', connectionState);
+
+                if (connectionState === 'connected') {
+                  disconnect();
+                } else if (connectionState === 'disconnected') {
+                  connect();
                 }
-              />
-            </ButtonContent>
-          </Button>
+              }}
+            >
+              <ButtonContent>
+                <Icon
+                  icon={
+                    connectionState === 'connecting' ||
+                    connectionState === 'disconnecting'
+                      ? IconSpinner
+                      : mode === 'chat'
+                        ? IconMicrophone
+                        : IconMicrophoneOff
+                  }
+                />
+              </ButtonContent>
+            </Button>
+          )}
           <Button
             shape="circle"
             size="lg"
