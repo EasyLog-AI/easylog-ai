@@ -32,7 +32,7 @@ const ChatInput = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { sendMessage, status, stop } = useChatContext();
-  const { isConnected, session, connect, disconnect } = useRealTime();
+  const { isConnected, session, connect, disconnect, isConnecting, isDisconnecting } = useRealTime();
 
   const {
     reset,
@@ -120,11 +120,19 @@ const ChatInput = () => {
             shape="circle"
             size="lg"
             variant="ghost"
-            isDisabled={isLoading}
+            isDisabled={isLoading || isConnecting || isDisconnecting}
             onClick={() => (isConnected ? disconnect() : connect())}
           >
             <ButtonContent>
-              <Icon icon={isConnected ? IconMicrophoneOff : IconMicrophone} />
+              <Icon 
+                icon={
+                  isConnecting || isDisconnecting 
+                    ? IconSpinner
+                    : isConnected 
+                      ? IconMicrophoneOff 
+                      : IconMicrophone
+                } 
+              />
             </ButtonContent>
           </Button>
           <Button

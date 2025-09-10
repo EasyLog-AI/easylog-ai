@@ -3,13 +3,8 @@
 import { RealtimeAgent, RealtimeSession } from '@openai/agents-realtime';
 import { useMutation } from '@tanstack/react-query';
 import { UIMessage } from 'ai';
-import {
-  createContext,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState
-} from 'react';
+import { createContext, useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 
 import useChatContext from '@/app/_chats/hooks/useChatContext';
 import useTRPC from '@/lib/trpc/browser';
@@ -23,8 +18,10 @@ interface RealTimeContextType {
   agent: RealtimeAgent;
   session: RealtimeSession;
   isConnected: boolean;
-  connect: () => Promise<void>;
+  connect: () => void;
   disconnect: () => void;
+  isConnecting: boolean;
+  isDisconnecting: boolean;
 }
 
 export const RealTimeContext = createContext<RealTimeContextType | undefined>(
@@ -147,27 +144,43 @@ const RealTimeProvider = ({
     syncedMessageIds
   ]);
 
-  const connect = useCallback(async () => {
-    await session.connect({
-      apiKey: 'ek_68c1741eb7dc8191acbf4cf959d5737e'
-    });
+  const { mutate: connect, isPending: isConnecting } = useMutation({
+    mutationFn: async () => {
+      await session.connect({
+        apiKey: 'ek_68c1741eb7dc8191acbf4cf959d5737e'
+      });
 
-    const realtimeHistory = convertUIToRealtime(chat.messages);
-    if (realtimeHistory.length > 0) {
-      session.updateHistory(realtimeHistory);
-      console.log(
-        `Initialized realtime session with ${realtimeHistory.length} historical messages`
+      const realtimeHistory = convertUIToRealtime(chat.messages);
+      if (realtimeHistory.length > 0) {
+        session.updateHistory(realtimeHistory);
+        console.log(
+          `Initialized realtime session with ${realtimeHistory.length} historical messages`
+        );
+      }
+    },
+    onSuccess: () => {
+      setIsConnected(true);
+    },
+    onError: (error) => {
+      toast.error(`Failed to connect to realtime session: ${error.message}`);
+      setIsConnected(false);
+    }
+  });
+
+  const { mutate: disconnect, isPending: isDisconnecting } = useMutation({
+    mutationFn: async () => {
+      session.close();
+    },
+    onSuccess: () => {
+      setIsConnected(false);
+      setSyncedMessageIds(new Set());
+    },
+    onError: (error) => {
+      toast.error(
+        `Failed to disconnect from realtime session: ${error.message}`
       );
     }
-
-    setIsConnected(true);
-  }, [session, chat.messages]);
-
-  const disconnect = useCallback(() => {
-    session.close();
-    setIsConnected(false);
-    setSyncedMessageIds(new Set()); // Clear synced message tracking
-  }, [session]);
+  });
 
   return (
     <RealTimeContext.Provider
@@ -176,7 +189,9 @@ const RealTimeProvider = ({
         session,
         isConnected,
         connect,
-        disconnect
+        disconnect,
+        isConnecting,
+        isDisconnecting
       }}
     >
       {children}
