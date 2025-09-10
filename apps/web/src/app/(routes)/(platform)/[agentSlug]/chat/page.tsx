@@ -36,7 +36,7 @@ const ChatPage = async ({
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
       <ChatProvider agentSlug={agentSlug}>
-        <RealTimeProvider>
+        <RealTimeProvider agentSlug={agentSlug}>
           <ChatHistory />
           <ChatInput />
         </RealTimeProvider>

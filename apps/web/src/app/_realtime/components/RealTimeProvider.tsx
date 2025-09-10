@@ -1,12 +1,13 @@
 'use client';
 
 import { RealtimeAgent, RealtimeSession } from '@openai/agents-realtime';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { UIMessage } from 'ai';
 import { createContext, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import useChatContext from '@/app/_chats/hooks/useChatContext';
+import useTRPCClient from '@/app/_shared/hooks/useTRPCClient';
 import useTRPC from '@/lib/trpc/browser';
 
 import { RealtimeItem } from '../schemas/realtimeItemSchema';
@@ -28,22 +29,34 @@ export const RealTimeContext = createContext<RealTimeContextType | undefined>(
   undefined
 );
 
-interface RealTimeProviderProps {}
+interface RealTimeProviderProps {
+  agentSlug: string;
+}
 
 const RealTimeProvider = ({
-  children
+  children,
+  agentSlug
 }: React.PropsWithChildren<RealTimeProviderProps>) => {
   const [isConnected, setIsConnected] = useState(false);
 
   const chat = useChatContext();
 
+  const api = useTRPC();
+
+  const { data: dbChat } = useSuspenseQuery(
+    api.chats.getOrCreate.queryOptions({
+      agentId: agentSlug
+    })
+  );
+
   const agent = useMemo(
     () =>
       new RealtimeAgent({
-        name: 'Assistant',
-        instructions: 'You only speak spanish.'
+        name: dbChat.agent.name,
+        instructions: dbChat.agent.prompt,
+        voice: 'marin'
       }),
-    []
+    [dbChat.agent.name, dbChat.agent.prompt]
   );
 
   const session = useMemo(
@@ -54,7 +67,7 @@ const RealTimeProvider = ({
     [agent]
   );
 
-  const api = useTRPC();
+  const trpcClient = useTRPCClient();
 
   const { mutate: syncMessages, isPending } = useMutation(
     api.realtime.syncMessages.mutationOptions({
@@ -146,14 +159,15 @@ const RealTimeProvider = ({
 
   const { mutate: connect, isPending: isConnecting } = useMutation({
     mutationFn: async () => {
-      // Create ephemeral token for secure connection
-      // const tokenResponse = await api.realtie.createEphemeralToken.mutationOptions({
-      //   instructions: 'You are a helpful assistant.'
-      // })
-      // .mutateAsync();
+      const tokenResponse =
+        await trpcClient.realtime.createEphemeralToken.mutate({
+          chatId: chat.id
+        });
+
+      console.log('Ephemeral token created:', tokenResponse);
 
       await session.connect({
-        apiKey: 'ek_68c17b13b248819185d2d01094a9ef13'
+        apiKey: tokenResponse.value
       });
 
       const realtimeHistory = convertUIToRealtime(chat.messages);

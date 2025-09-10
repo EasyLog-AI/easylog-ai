@@ -1,18 +1,28 @@
 'use client';
 
-import { QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
+  TRPCClient,
   createTRPCClient,
   httpBatchStreamLink,
   loggerLink
 } from '@trpc/client';
-import { useState } from 'react';
+import { createContext, useState } from 'react';
 import superjson from 'superjson';
 
 import clientConfig from '@/client.config';
 import getQueryClient from '@/lib/react-query';
 import { TRPCProvider } from '@/lib/trpc/browser';
 import { AppRouter } from '@/trpc-router';
+
+interface TRPCContextType {
+  trpcClient: TRPCClient<AppRouter>;
+  queryClient: QueryClient;
+}
+
+export const TRPCContext = createContext<TRPCContextType | undefined>(
+  undefined
+);
 
 export interface TRPCReactProviderProps {}
 
@@ -43,7 +53,14 @@ const TRPCReactProvider = ({
   return (
     <QueryClientProvider client={queryClient}>
       <TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
-        {children}
+        <TRPCContext.Provider
+          value={{
+            trpcClient,
+            queryClient
+          }}
+        >
+          {children}
+        </TRPCContext.Provider>
       </TRPCProvider>
     </QueryClientProvider>
   );
