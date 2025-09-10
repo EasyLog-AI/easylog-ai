@@ -1,6 +1,8 @@
 'use client';
 
 import { RealtimeAgent, RealtimeSession } from '@openai/agents-realtime';
+import { useMutation } from '@tanstack/react-query';
+import { UIMessage } from 'ai';
 import {
   createContext,
   useCallback,
@@ -9,7 +11,8 @@ import {
   useState
 } from 'react';
 
-import useChatContext from '../hooks/useChatContext';
+import useChatContext from '@/app/_chats/hooks/useChatContext';
+import useTRPC from '@/lib/trpc/browser';
 
 interface RealTimeContextType {
   agent: RealtimeAgent;
@@ -49,54 +52,40 @@ const RealTimeProvider = ({
     [agent]
   );
 
-  const convertRealtimeMessagesToChatMessages = useCallback(
-    (realtimeMessages: unknown[]) => {
-      return realtimeMessages.map((item: unknown) => {
-        const message = item as {
-          itemId: string;
-          role: string;
-          content: { transcript?: string }[];
-        };
-        return {
-          id: message.itemId,
-          role: message.role as 'user' | 'assistant' | 'system',
-          parts: message.content.map((content) => ({
-            text: content.transcript || '',
-            type: 'text' as const
-          }))
-        };
-      });
-    },
-    []
+  const api = useTRPC();
+
+  const { mutate: syncMessages } = useMutation(
+    api.realtime.syncMessages.mutationOptions({
+      onSuccess: (result) => {
+        if (result.success && result.addedCount > 0) {
+          // Update frontend state with the persisted messages
+          chat.setMessages(result.messages as UIMessage<unknown, {}>[]);
+        }
+      },
+      onError: (error) => {
+        console.error('Failed to sync realtime messages:', error);
+      }
+    })
   );
 
   useEffect(() => {
     console.log('realtime history', session.history);
     console.log('chat messages', chat.messages);
 
-    // Convert and sync realtime messages to chat
-    if (session.history.length > 0) {
-      const convertedMessages = convertRealtimeMessagesToChatMessages(
-        session.history
-      );
-
-      // Only add new messages that aren't already in chat
-      const existingChatIds = new Set(chat.messages.map((msg) => msg.id));
-      const newMessages = convertedMessages.filter(
-        (msg) => !existingChatIds.has(msg.id)
-      );
-
-      // For persistence, we need to send messages through the server
-      // Using setMessages for now - messages will show in UI but won't persist
-      if (newMessages.length > 0) {
-        chat.setMessages([...chat.messages, ...newMessages]);
-      }
+    // Sync realtime messages with persistent storage
+    if (session.history.length === 0) {
+      return;
     }
-  }, [session.history, chat, convertRealtimeMessagesToChatMessages]);
+
+    void syncMessages({
+      chatId: chat.id,
+      realtimeItems: session.history
+    });
+  }, [chat.id, chat.messages, session.history, syncMessages]);
 
   const connect = useCallback(async () => {
     await session.connect({
-      apiKey: 'ek_68c160e530f88191af5bf99daf1c0f90'
+      apiKey: 'ek_68c168fd3a8c81918657da7b98e8225e'
     });
     setIsConnected(true);
   }, [session]);

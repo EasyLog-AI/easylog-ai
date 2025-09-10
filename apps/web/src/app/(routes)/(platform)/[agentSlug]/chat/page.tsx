@@ -6,7 +6,7 @@ import getCurrentUser from '@/app/_auth/data/getCurrentUser';
 import ChatHistory from '@/app/_chats/components/ChatHistory';
 import ChatInput from '@/app/_chats/components/ChatInput';
 import ChatProvider from '@/app/_chats/components/ChatProvider';
-import RealTimeProvider from '@/app/_chats/components/RealTimeProvider';
+import RealTimeProvider from '@/app/_realtime/components/RealTimeProvider';
 import getQueryClient from '@/lib/react-query';
 import api from '@/lib/trpc/server';
 

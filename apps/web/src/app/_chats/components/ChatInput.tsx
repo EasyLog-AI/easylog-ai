@@ -12,6 +12,7 @@ import { SubmitHandler } from 'react-hook-form';
 import TextareaAutosize from 'react-textarea-autosize';
 import { z } from 'zod';
 
+import { useRealTime } from '@/app/_realtime/hooks/useRealTime';
 import Button from '@/app/_ui/components/Button/Button';
 import ButtonContent from '@/app/_ui/components/Button/ButtonContent';
 import Icon from '@/app/_ui/components/Icon/Icon';
@@ -19,7 +20,6 @@ import IconSpinner from '@/app/_ui/components/Icon/IconSpinner';
 import useZodForm from '@/app/_ui/hooks/useZodForm';
 
 import useChatContext from '../hooks/useChatContext';
-import { useRealTime } from '../hooks/useRealTime';
 
 const schema = z.object({
   content: z.string().min(1)
