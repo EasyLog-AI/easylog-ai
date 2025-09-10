@@ -1,6 +1,7 @@
 from datetime import datetime
+from enum import Enum
 
-from openai import BaseModel
+from pydantic import BaseModel
 from prisma.enums import health_data_unit, health_platform
 
 
@@ -23,3 +24,21 @@ class SyncStepData(BaseModel):
 class SyncStepsInput(BaseModel):
     user_id: str
     data_points: list[SyncStepData]
+
+
+class AggregationType(str, Enum):
+    quarter = "quarter"
+    hour = "hour"  
+    day = "day"
+
+
+class StepDataPoint(BaseModel):
+    created_at: str
+    value: int
+    date_from: str | None = None
+    date_to: str | None = None
+
+
+class GetStepsResponse(BaseModel):
+    data: list[StepDataPoint]
+    total_count: int
