@@ -74,12 +74,25 @@ const RealTimeProvider = ({
 
   useEffect(() => {
     const handleHistoryUpdate = (history: RealtimeItem[]) => {
-      chat.setMessages([
-        ...chat.messages,
-        ...convertRealtimeMessagesToUIMessages(
-          getNewRealtimeMessages(history, chat.messages)
-        )
-      ] as UIMessage<unknown, {}>[]);
+      const newRealtimeMessages = getNewRealtimeMessages(
+        history,
+        chat.messages
+      );
+      const newUIMessages =
+        convertRealtimeMessagesToUIMessages(newRealtimeMessages);
+
+      console.log(
+        'Frontend update - New realtime messages:',
+        newRealtimeMessages.length
+      );
+      console.log('Frontend update - New UI messages:', newUIMessages.length);
+
+      if (newUIMessages.length > 0) {
+        chat.setMessages([...chat.messages, ...newUIMessages] as UIMessage<
+          unknown,
+          {}
+        >[]);
+      }
     };
 
     session.on('history_updated', handleHistoryUpdate);
@@ -89,25 +102,26 @@ const RealTimeProvider = ({
     };
   }, [session, chat]);
 
+  const [syncedMessageIds, setSyncedMessageIds] = useState<Set<string>>(
+    new Set()
+  );
+
   useEffect(() => {
     if (session.history.length === 0 || !isConnected || isPending) {
       return;
     }
 
-    // Only sync completed messages to backend
     const completedMessages = session.history.filter((item) => {
       if (item.type !== 'message') return false;
 
-      // Check if message is completed and has actual content
       const isCompleted = 'status' in item ? item.status === 'completed' : true;
       const hasContent = item.content && item.content.length > 0;
 
       return isCompleted && hasContent;
     });
 
-    const newCompletedMessages = getNewRealtimeMessages(
-      completedMessages,
-      chat.messages
+    const newCompletedMessages = completedMessages.filter(
+      (item) => !syncedMessageIds.has(item.itemId)
     );
 
     if (newCompletedMessages.length === 0) {
@@ -118,17 +132,25 @@ const RealTimeProvider = ({
       'Syncing only completed messages to backend:',
       newCompletedMessages.length
     );
+
+    const newSyncedIds = new Set([
+      ...syncedMessageIds,
+      ...newCompletedMessages.map((item) => item.itemId)
+    ]);
+
+    setSyncedMessageIds(newSyncedIds);
+
     syncMessages({
       chatId: chat.id,
-      realtimeItems: completedMessages // Only send completed messages
+      realtimeItems: completedMessages
     });
   }, [
     session.history,
-    chat.messages,
     isConnected,
     isPending,
     chat.id,
-    syncMessages
+    syncMessages,
+    syncedMessageIds
   ]);
 
   const connect = useCallback(async () => {
@@ -150,6 +172,7 @@ const RealTimeProvider = ({
   const disconnect = useCallback(() => {
     session.close();
     setIsConnected(false);
+    setSyncedMessageIds(new Set()); // Clear synced message tracking
   }, [session]);
 
   return (
