@@ -9,6 +9,8 @@ import {
   useState
 } from 'react';
 
+import useChatContext from '../hooks/useChatContext';
+
 interface RealTimeContextType {
   agent: RealtimeAgent;
   session: RealtimeSession;
@@ -28,6 +30,8 @@ const RealTimeProvider = ({
 }: React.PropsWithChildren<RealTimeProviderProps>) => {
   const [isConnected, setIsConnected] = useState(false);
 
+  const chat = useChatContext();
+
   const agent = useMemo(
     () =>
       new RealtimeAgent({
@@ -45,15 +49,54 @@ const RealTimeProvider = ({
     [agent]
   );
 
+  const convertRealtimeMessagesToChatMessages = useCallback(
+    (realtimeMessages: unknown[]) => {
+      return realtimeMessages.map((item: unknown) => {
+        const message = item as {
+          itemId: string;
+          role: string;
+          content: { transcript?: string }[];
+        };
+        return {
+          id: message.itemId,
+          role: message.role as 'user' | 'assistant' | 'system',
+          parts: message.content.map((content) => ({
+            text: content.transcript || '',
+            type: 'text' as const
+          }))
+        };
+      });
+    },
+    []
+  );
+
   useEffect(() => {
-    session.history.forEach((item) => {
-      console.log(item);
-    });
-  }, [session.history]);
+    console.log('realtime history', session.history);
+    console.log('chat messages', chat.messages);
+
+    // Convert and sync realtime messages to chat
+    if (session.history.length > 0) {
+      const convertedMessages = convertRealtimeMessagesToChatMessages(
+        session.history
+      );
+
+      // Only add new messages that aren't already in chat
+      const existingChatIds = new Set(chat.messages.map((msg) => msg.id));
+      const newMessages = convertedMessages.filter(
+        (msg) => !existingChatIds.has(msg.id)
+      );
+
+      // For persistence, we need to send messages through the server
+      // Using setMessages for now - messages will show in UI but won't persist
+      if (newMessages.length > 0) {
+        chat.setMessages([...chat.messages, ...newMessages]);
+      }
+    }
+  }, [session.history, chat, convertRealtimeMessagesToChatMessages]);
 
   const connect = useCallback(async () => {
     await session.connect({
-      apiKey: 'ek_68c14cf41c2c81919bf250988597835b'
+      apiKey: 'ek_68c160e530f88191af5bf99daf1c0f90'
     });
     setIsConnected(true);
   }, [session]);
