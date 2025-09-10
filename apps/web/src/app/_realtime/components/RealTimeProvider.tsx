@@ -3,7 +3,13 @@
 import { RealtimeAgent, RealtimeSession, tool } from '@openai/agents-realtime';
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { UIMessage } from 'ai';
-import { createContext, useEffect, useMemo, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState
+} from 'react';
 import { toast } from 'sonner';
 import z from 'zod';
 
@@ -17,7 +23,7 @@ import filterNewMessages from '../utils/filterNewMessages';
 
 interface RealTimeContextType {
   agent: RealtimeAgent;
-  session: RealtimeSession;
+  session: RealtimeSession | null;
   connect: () => void;
   disconnect: () => void;
   connectionState:
@@ -42,6 +48,12 @@ const RealTimeProvider = ({
 }: React.PropsWithChildren<RealTimeProviderProps>) => {
   const chat = useChatContext();
   const api = useTRPC();
+
+  const [connectionState, setConnectionState] = useState<
+    'disconnected' | 'connecting' | 'connected' | 'disconnecting'
+  >('disconnected');
+
+  const [session, setSession] = useState<RealtimeSession | null>(null);
 
   const { data: dbChat } = useSuspenseQuery(
     api.chats.getOrCreate.queryOptions({
@@ -85,8 +97,7 @@ const RealTimeProvider = ({
     () =>
       new RealtimeAgent({
         name: dbChat.agent.name,
-        instructions:
-          'je bent een agent die kan uitvoeren van SQL queries op de Easylog database.',
+        instructions: dbChat.agent.prompt,
         voice: 'marin',
         tools: [
           tool({
@@ -99,8 +110,6 @@ const RealTimeProvider = ({
             execute: async ({ queryIntent, proposedQuery }) => {
               console.log('🔧 Tool called - initiating handover');
 
-              // Always do handover when tool is called from realtime session
-              // (We know we're in realtime mode because this tool only exists in the realtime agent)
               console.log('🔧 Tool handover: realtime → chat');
 
               chat.setMode('awaiting-tool-call');
@@ -121,15 +130,9 @@ const RealTimeProvider = ({
           })
         ]
       }),
+    // eslint-disable-next-line react-compiler/react-compiler
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [dbChat.agent.name]
-  );
-
-  const session = useMemo(
-    () =>
-      new RealtimeSession(agent, {
-        model: 'gpt-realtime'
-      }),
-    [agent]
   );
 
   useEffect(() => {
@@ -161,10 +164,10 @@ const RealTimeProvider = ({
       }
     };
 
-    session.on('history_updated', handleHistoryUpdate);
+    session?.on('history_updated', handleHistoryUpdate);
 
     return () => {
-      session.off('history_updated', handleHistoryUpdate);
+      session?.off('history_updated', handleHistoryUpdate);
     };
   }, [session, chat]);
 
@@ -172,87 +175,80 @@ const RealTimeProvider = ({
     new Set()
   );
 
-  const {
-    mutate: connect,
-    isPending: isConnecting,
-    data: connected
-  } = useMutation({
-    mutationFn: async () => {
-      console.log('🔌 Connecting to realtime...');
+  const connect = useCallback(async () => {
+    setConnectionState('connecting');
 
+    try {
       if (!realTimeSessionToken?.value) {
         console.error('❌ No ephemeral token available');
         throw new Error('No ephemeral token found');
       }
 
+      const session = new RealtimeSession(agent, {
+        model: 'gpt-realtime'
+      });
+
       await session.connect({
         apiKey: realTimeSessionToken?.value
       });
+
+      setSession(session);
 
       const realtimeHistory = convertUIToRealtime(chat.messages);
       if (realtimeHistory.length > 0) {
         session.updateHistory(realtimeHistory);
       }
 
-      return true;
-    },
-    onSuccess: () => {
-      console.log('✅ Realtime connected');
+      console.log('🔧 Connected to realtime session');
+      setConnectionState('connected');
+
+      if (chat.mode === 'tool-call-finished') {
+        console.log('🔧 Naturally continuing conversation');
+        session.sendMessage({
+          type: 'message',
+          role: 'user',
+          content: [
+            {
+              type: 'input_text',
+              text: '[naturally continue our conversation]'
+            }
+          ]
+        });
+      }
+
       chat.setMode('realtime');
-    },
-    onError: (error) => {
+    } catch (error) {
+      setConnectionState('disconnected');
       console.error('❌ Connection failed:', error);
-      toast.error(`Failed to connect to realtime session: ${error.message}`);
+      toast.error(
+        `Failed to connect to realtime session: ${(error as Error).message}`
+      );
       chat.setMode('chat');
     }
-  });
+  }, [realTimeSessionToken?.value, agent, chat]);
 
-  const {
-    mutate: disconnect,
-    isPending: isDisconnecting,
-    data: disconnected
-  } = useMutation({
-    mutationFn: async () => {
-      console.log('🔌 Disconnecting from realtime...');
-      session.close();
-
-      return true;
-    },
-    onSuccess: () => {
-      console.log('✅ Realtime disconnected');
-      chat.setMode('chat');
+  const disconnect = useCallback(async () => {
+    setConnectionState('disconnecting');
+    try {
+      session?.close();
       setSyncedMessageIds(new Set());
-    },
-    onError: (error) => {
+      chat.setMode('chat');
+      console.log('🔧 Disconnected from realtime session');
+      setConnectionState('disconnected');
+    } catch (error) {
       console.error('❌ Disconnect failed:', error);
       toast.error(
-        `Failed to disconnect from realtime session: ${error.message}`
+        `Failed to disconnect from realtime session: ${(error as Error).message}`
       );
     }
-  });
-
-  const connectionState = useMemo(() => {
-    if (isConnecting) {
-      return 'connecting';
-    }
-
-    if (connected) {
-      return 'connected';
-    }
-
-    if (isDisconnecting) {
-      return 'disconnecting';
-    }
-
-    if (disconnected) {
-      return 'disconnected';
-    }
-
-    return 'disconnected';
-  }, [isConnecting, isDisconnecting, connected, disconnected]);
+  }, [session, chat]);
 
   useEffect(() => {
-    if (session.history.length === 0 || connectionState !== 'connected') {
+    if (
+      !session ||
+      session.history.length === 0 ||
+      connectionState !== 'connected'
+    ) {
       return;
     }
 
@@ -285,13 +281,27 @@ const RealTimeProvider = ({
       realtimeItems: completedMessages
     });
   }, [
-    session.history,
+    session?.history,
     connectionState,
     isPending,
     chat.id,
     syncMessages,
-    syncedMessageIds
+    syncedMessageIds,
+    session
   ]);
+
+  useEffect(() => {
+    if (connectionState === 'connected' && chat.mode === 'awaiting-tool-call') {
+      console.log('🔌 Disconnecting from realtime...');
+      void disconnect();
+    } else if (
+      connectionState === 'disconnected' &&
+      chat.mode === 'tool-call-finished'
+    ) {
+      console.log('🔌 Connecting to realtime...');
+      void connect();
+    }
+  }, [chat.mode, disconnect, connectionState, connect]);
 
   return (
     <RealTimeContext.Provider
