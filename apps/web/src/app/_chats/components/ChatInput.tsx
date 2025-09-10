@@ -50,12 +50,21 @@ const ChatInput = () => {
   } = useZodForm(schema);
 
   const submitHandler: SubmitHandler<z.infer<typeof schema>> = async (data) => {
-    if (isConnected) {
-      session.sendMessage({
-        type: 'message',
-        role: 'user',
-        content: [{ type: 'input_text', text: data.content }]
-      });
+    if (isConnected && session) {
+      try {
+        session.sendMessage({
+          type: 'message',
+          role: 'user',
+          content: [{ type: 'input_text', text: data.content }]
+        });
+      } catch (error) {
+        console.error('Failed to send realtime message:', error);
+        // Fallback to regular chat
+        await sendMessage({
+          parts: [{ type: 'text', text: data.content }],
+          role: 'user'
+        });
+      }
     } else {
       await sendMessage({
         parts: [{ type: 'text', text: data.content }],
@@ -131,7 +140,22 @@ const ChatInput = () => {
             isDisabled={
               isLoading || isConnecting || isDisconnecting || !canConnect
             }
-            onClick={() => (isConnected ? disconnect() : connect())}
+            onClick={() => {
+              console.log('🎤 Microphone button clicked:', {
+                isConnected,
+                canConnect,
+                isConnecting,
+                isDisconnecting,
+                mode,
+                action: isConnected ? 'disconnect' : 'connect'
+              });
+              
+              if (isConnected) {
+                disconnect();
+              } else {
+                connect();
+              }
+            }}
           >
             <ButtonContent>
               <Icon

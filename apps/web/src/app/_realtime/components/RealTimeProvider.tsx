@@ -24,11 +24,17 @@ interface RealTimeContextType {
   isConnecting: boolean;
   isDisconnecting: boolean;
   canConnect: boolean;
+  realtimeMode: RealtimeMode;
 }
 
 export const RealTimeContext = createContext<RealTimeContextType | undefined>(
   undefined
 );
+
+type RealtimeMode =
+  | 'disconnected' // Not in realtime mode
+  | 'connecting' // Connecting to realtime
+  | 'active'; // Active realtime conversation
 
 interface RealTimeProviderProps {
   agentSlug: string;
@@ -39,9 +45,23 @@ const RealTimeProvider = ({
   agentSlug
 }: React.PropsWithChildren<RealTimeProviderProps>) => {
   const [isConnected, setIsConnected] = useState(false);
+  const [realtimeMode, setRealtimeMode] =
+    useState<RealtimeMode>('disconnected');
 
   const chat = useChatContext();
   const api = useTRPC();
+
+  // Enhanced logging
+  console.log('🔄 RealTimeProvider render:', {
+    isConnected,
+    realtimeMode,
+    agentSlug,
+    chatId: chat.id,
+    chatMode: chat.mode,
+    toolExecutionState: chat.toolExecutionState,
+    pendingRealtimeReturn: chat.pendingRealtimeReturn,
+    messagesCount: chat.messages.length
+  });
 
   const { data: dbChat } = useSuspenseQuery(
     api.chats.getOrCreate.queryOptions({
@@ -49,7 +69,17 @@ const RealTimeProvider = ({
     })
   );
 
-  const { data: realTimeSessionToken } = useQuery(
+  console.log('📊 Database chat loaded:', {
+    chatId: dbChat.id,
+    agentName: dbChat.agent.name,
+    messagesCount: dbChat.messages?.length || 0
+  });
+
+  const {
+    data: realTimeSessionToken,
+    isLoading: tokenLoading,
+    error: tokenError
+  } = useQuery(
     api.realtime.createEphemeralToken.queryOptions(
       {
         chatId: dbChat.id
@@ -61,12 +91,21 @@ const RealTimeProvider = ({
           const expiresAtMs = state.data.expires_at * 1000;
           // Refetch 10 seconds before expiration, but never less than 1 second from now
           const msUntilRefetch = Math.max(expiresAtMs - now - 10000, 1000);
-          console.log('Refetching ephemeral token in', msUntilRefetch, 'ms');
+          console.log('🔄 Refetching ephemeral token in', msUntilRefetch, 'ms');
           return msUntilRefetch;
         }
       }
     )
   );
+
+  console.log('🎟️ Ephemeral token status:', {
+    hasToken: !!realTimeSessionToken?.value,
+    tokenExpiry: realTimeSessionToken?.expires_at
+      ? new Date(realTimeSessionToken.expires_at * 1000).toISOString()
+      : null,
+    isLoading: tokenLoading,
+    error: tokenError?.message
+  });
 
   const agent = useMemo(
     () =>
@@ -84,8 +123,26 @@ const RealTimeProvider = ({
               proposedQuery: z.string().nullable()
             }),
             execute: async ({ queryIntent, proposedQuery }) => {
-              console.log('Executing SQL query', queryIntent, proposedQuery);
+              console.log(
+                '🔧 SQL tool called in realtime, initiating handover...',
+                {
+                  queryIntent,
+                  proposedQuery,
+                  currentMode: chat.mode
+                }
+              );
 
+              // Mark that we're executing a tool and need to return to realtime
+              chat.setToolExecutionState('executing');
+              chat.setPendingRealtimeReturn(true);
+
+              // Switch to normal chat mode for tool execution
+              console.log(
+                '🔄 Switching to normal chat mode for tool execution'
+              );
+              chat.setMode('chat');
+
+              // Send the tool execution message to normal chat
               await chat.sendMessage({
                 parts: [
                   {
@@ -96,12 +153,13 @@ const RealTimeProvider = ({
                 role: 'user'
               });
 
-              chat.setIsWaitingForToolCall(true);
+              // Return a simple acknowledgment - the session will be disconnected after this
+              return 'Tool execution initiated, switching to chat mode...';
             }
           })
         ]
       }),
-    [dbChat.agent.name, dbChat.agent.prompt]
+    [dbChat.agent.name]
   );
 
   const session = useMemo(
@@ -111,6 +169,16 @@ const RealTimeProvider = ({
       }),
     [agent]
   );
+
+  // Cleanup session on unmount to prevent WebRTC errors
+  useEffect(() => {
+    return () => {
+      if (session) {
+        console.log('🧹 Cleaning up session on unmount');
+        session.close();
+      }
+    };
+  }, [session]);
 
   const { mutate: syncMessages, isPending } = useMutation(
     api.realtime.syncMessages.mutationOptions({
@@ -202,28 +270,83 @@ const RealTimeProvider = ({
 
   const { mutate: connect, isPending: isConnecting } = useMutation({
     mutationFn: async () => {
+      setRealtimeMode('connecting');
+      console.log('🔌 Starting connection process...', {
+        realtimeMode: 'connecting',
+        hasToken: !!realTimeSessionToken?.value,
+        tokenLoading,
+        tokenError: tokenError?.message,
+        tokenExpiry: realTimeSessionToken?.expires_at
+          ? new Date(realTimeSessionToken.expires_at * 1000).toISOString()
+          : null
+      });
+
       if (!realTimeSessionToken?.value) {
+        console.error('❌ No ephemeral token found for connection', {
+          tokenExists: !!realTimeSessionToken,
+          tokenValue: !!realTimeSessionToken?.value,
+          tokenLoading,
+          tokenError: tokenError?.message
+        });
         throw new Error('No ephemeral token found');
       }
+
+      console.log('🔑 Using ephemeral token:', {
+        tokenExists: !!realTimeSessionToken.value,
+        expiresAt: new Date(
+          realTimeSessionToken.expires_at * 1000
+        ).toISOString()
+      });
 
       await session.connect({
         apiKey: realTimeSessionToken?.value
       });
 
+      console.log('✅ Session connected successfully');
+
       const realtimeHistory = convertUIToRealtime(chat.messages);
       if (realtimeHistory.length > 0) {
         session.updateHistory(realtimeHistory);
         console.log(
-          `Initialized realtime session with ${realtimeHistory.length} historical messages`
+          `📚 Initialized realtime session with ${realtimeHistory.length} historical messages`
         );
+      } else {
+        console.log('📚 No historical messages to initialize');
       }
     },
     onSuccess: () => {
+      console.log(
+        '🎉 Connection successful, switching to active realtime mode'
+      );
+      setRealtimeMode('active');
       chat.setMode('realtime');
       setIsConnected(true);
+
+      // If we just completed a tool execution, send a continuation message
+      if (chat.justCompletedToolExecution) {
+        console.log(
+          '🔄 Reconnected after tool execution, sending continuation message'
+        );
+        setTimeout(() => {
+          session.sendMessage({
+            type: 'message',
+            role: 'user',
+            content: [
+              {
+                type: 'input_text',
+                text: '[naturally continue the current conversation]'
+              }
+            ]
+          });
+          // Clear the flag after sending the message
+          chat.setJustCompletedToolExecution(false);
+        }, 100); // Small delay to ensure session is fully ready
+      }
     },
     onError: (error) => {
+      console.error('❌ Connection failed:', error);
       toast.error(`Failed to connect to realtime session: ${error.message}`);
+      setRealtimeMode('disconnected');
       setIsConnected(false);
       chat.setMode('chat');
     }
@@ -231,69 +354,68 @@ const RealTimeProvider = ({
 
   const { mutate: disconnect, isPending: isDisconnecting } = useMutation({
     mutationFn: async () => {
+      console.log('🔌 Starting disconnect process...');
       session.close();
     },
     onSuccess: () => {
+      console.log('🔚 Disconnected successfully');
       setIsConnected(false);
-      chat.setMode('chat');
+      setRealtimeMode('disconnected');
+      // Only switch to chat mode if we're not in a tool handover scenario
+      if (chat.mode === 'realtime' && !chat.pendingRealtimeReturn) {
+        console.log('💬 Manual disconnect, switching to chat mode');
+        chat.setMode('chat');
+      }
       setSyncedMessageIds(new Set());
     },
     onError: (error) => {
+      console.error('❌ Disconnect failed:', error);
       toast.error(
         `Failed to disconnect from realtime session: ${error.message}`
       );
     }
   });
 
+  // Simple state machine - just react to mode changes
   useEffect(() => {
-    if (
-      chat.mode === 'realtime' &&
-      chat.isWaitingForToolCall &&
-      isConnected &&
-      !isDisconnecting
-    ) {
+    console.log('🔧 Realtime connection effect:', {
+      chatMode: chat.mode,
+      realtimeMode,
+      isConnected,
+      isConnecting,
+      isDisconnecting
+    });
+
+    // Connect when switching to realtime mode
+    if (chat.mode === 'realtime' && !isConnected && !isConnecting) {
+      console.log('🚀 Switching to realtime, connecting...', {
+        hasToken: !!realTimeSessionToken?.value,
+        tokenLoading: tokenLoading,
+        tokenError: tokenError?.message
+      });
+      setRealtimeMode('connecting');
+      void connect();
+    }
+
+    // Disconnect when switching to chat mode
+    if (chat.mode === 'chat' && isConnected && !isDisconnecting) {
+      console.log('💬 Switching to chat, disconnecting...');
       session.interrupt();
       void disconnect();
     }
   }, [
-    chat.isWaitingForToolCall,
+    chat.mode,
     isConnected,
+    isConnecting,
+    isDisconnecting,
+    connect,
     disconnect,
     session,
-    chat.mode,
-    isDisconnecting
+    realtimeMode,
+    realTimeSessionToken?.value,
+    tokenLoading,
+    tokenError
   ]);
-
-  useEffect(() => {
-    if (
-      chat.mode === 'realtime' &&
-      !chat.isWaitingForToolCall &&
-      !isConnected &&
-      !isConnecting
-    ) {
-      void connect();
-    }
-  }, [
-    chat.isWaitingForToolCall,
-    isConnected,
-    connect,
-    session,
-    chat.mode,
-    isConnecting
-  ]);
-
-  useEffect(() => {
-    if (isConnected) {
-      console.log('Continuing conversation');
-      session.sendMessage({
-        type: 'message',
-        role: 'user',
-        content: [
-          { type: 'input_text', text: '[naturally continue the conversation]' }
-        ]
-      });
-    }
-  }, [isConnected, session]);
 
   return (
     <RealTimeContext.Provider
@@ -305,7 +427,9 @@ const RealTimeProvider = ({
         disconnect,
         isConnecting,
         isDisconnecting,
-        canConnect: !!realTimeSessionToken?.value
+        canConnect:
+          !!realTimeSessionToken?.value && !tokenLoading && !tokenError,
+        realtimeMode
       }}
     >
       {children}
