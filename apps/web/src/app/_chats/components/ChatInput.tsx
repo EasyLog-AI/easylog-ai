@@ -1,6 +1,11 @@
 'use client';
 
-import { IconArrowUp, IconPlayerStop } from '@tabler/icons-react';
+import {
+  IconArrowUp,
+  IconMicrophone,
+  IconMicrophoneOff,
+  IconPlayerStop
+} from '@tabler/icons-react';
 import { motion } from 'motion/react';
 import { useEffect, useRef } from 'react';
 import { SubmitHandler } from 'react-hook-form';
@@ -14,6 +19,7 @@ import IconSpinner from '@/app/_ui/components/Icon/IconSpinner';
 import useZodForm from '@/app/_ui/hooks/useZodForm';
 
 import useChatContext from '../hooks/useChatContext';
+import { useRealTime } from '../hooks/useRealTime';
 
 const schema = z.object({
   content: z.string().min(1)
@@ -26,6 +32,7 @@ const ChatInput = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { sendMessage, status, stop } = useChatContext();
+  const { isConnected, connect, disconnect } = useRealTime();
 
   const {
     reset,
@@ -52,7 +59,7 @@ const ChatInput = () => {
 
   const isLoading =
     isSubmitting || status === 'submitted' || status === 'streaming';
-  
+
   const isStreaming = status === 'streaming';
 
   return (
@@ -100,15 +107,37 @@ const ChatInput = () => {
           />
         </div>
 
-        <div className="flex items-center justify-end px-2.5 pb-2.5">
+        <div className="flex items-center justify-end gap-2 px-2.5 pb-2.5">
           <Button
             shape="circle"
             size="lg"
-            isDisabled={(!isStreaming && (!isValid || isSubmitting)) || status === 'submitted'}
+            variant="ghost"
+            isDisabled={isLoading}
+            onClick={() => (isConnected ? disconnect() : connect())}
+          >
+            <ButtonContent>
+              <Icon icon={isConnected ? IconMicrophoneOff : IconMicrophone} />
+            </ButtonContent>
+          </Button>
+          <Button
+            shape="circle"
+            size="lg"
+            isDisabled={
+              (!isStreaming && (!isValid || isSubmitting)) ||
+              status === 'submitted'
+            }
             onClick={isStreaming ? stop : handleSubmit(submitHandler)}
           >
             <ButtonContent>
-              <Icon icon={isLoading && !isStreaming ? IconSpinner : isStreaming ? IconPlayerStop : IconArrowUp} />
+              <Icon
+                icon={
+                  isLoading && !isStreaming
+                    ? IconSpinner
+                    : isStreaming
+                      ? IconPlayerStop
+                      : IconArrowUp
+                }
+              />
             </ButtonContent>
           </Button>
         </div>
