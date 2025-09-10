@@ -45,6 +45,19 @@ export const reasoningEffortEnum = pgEnum('reasoning_effort_enum', [
   'low'
 ]);
 
+export const voiceChatVoiceEnum = pgEnum('voice_chat_voice_enum', [
+  'alloy',
+  'ash',
+  'ballad',
+  'cedar',
+  'coral',
+  'echo',
+  'marin',
+  'sage',
+  'shimmer',
+  'verse'
+]);
+
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name'),
@@ -156,6 +169,10 @@ export const agents = pgTable('agents', {
     'default_reasoning_effort'
   ).notNull(),
   autoStartMessage: text('auto_start_message').default('[hello]'),
+  voiceChatEnabled: boolean('voice_chat_enabled').notNull().default(false),
+  voiceChatVoice: voiceChatVoiceEnum('voice_chat_voice')
+    .notNull()
+    .default('marin'),
   ...timestamps
 });
 
