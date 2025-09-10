@@ -127,12 +127,14 @@ const ChatInput = () => {
             <Button
               shape="circle"
               size="lg"
+              type="button"
               variant="ghost"
               isDisabled={
                 isLoading ||
                 connectionState === 'connecting' ||
                 connectionState === 'disconnecting' ||
-                !canConnect
+                !canConnect ||
+                !isEnabled
               }
               onClick={() => {
                 console.log('🎤 Microphone button clicked:', connectionState);
@@ -161,6 +163,7 @@ const ChatInput = () => {
           <Button
             shape="circle"
             size="lg"
+            type="submit"
             isDisabled={
               (!isStreaming && (!isValid || isSubmitting)) ||
               status === 'submitted'

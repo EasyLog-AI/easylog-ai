@@ -86,7 +86,10 @@ const ChatProvider = ({
     },
     onFinish: () => {
       console.log('✅ Chat finished');
-      setMode('tool-call-finished');
+      if (mode === 'awaiting-tool-call') {
+        console.log('🔧 Tool call finished');
+        setMode('tool-call-finished');
+      }
     },
     experimental_throttle: 50
   });
