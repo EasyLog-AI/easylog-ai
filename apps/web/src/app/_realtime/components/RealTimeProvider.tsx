@@ -14,6 +14,11 @@ import {
 import useChatContext from '@/app/_chats/hooks/useChatContext';
 import useTRPC from '@/lib/trpc/browser';
 
+import { RealtimeItem } from '../schemas/realtimeItemSchema';
+import {
+  convertRealtimeMessagesToUIMessages,
+  getNewRealtimeMessages
+} from '../utils/convertRealtimeMessages';
 import { convertUIMessagesToRealtimeItems } from '../utils/convertUIMessagesToRealtime';
 
 interface RealTimeContextType {
@@ -56,13 +61,10 @@ const RealTimeProvider = ({
 
   const api = useTRPC();
 
-  const { mutate: syncMessages } = useMutation(
+  const { mutate: syncMessages, isPending } = useMutation(
     api.realtime.syncMessages.mutationOptions({
       onSuccess: (result) => {
-        if (result.success && result.addedCount > 0) {
-          // Update frontend state with the persisted messages
-          chat.setMessages(result.messages as UIMessage<unknown, {}>[]);
-        }
+        console.log('Sync completed:', result);
       },
       onError: (error) => {
         console.error('Failed to sync realtime messages:', error);
@@ -71,23 +73,67 @@ const RealTimeProvider = ({
   );
 
   useEffect(() => {
-    console.log('realtime history', session.history);
-    console.log('chat messages', chat.messages);
+    const handleHistoryUpdate = (history: RealtimeItem[]) => {
+      chat.setMessages([
+        ...chat.messages,
+        ...convertRealtimeMessagesToUIMessages(
+          getNewRealtimeMessages(history, chat.messages)
+        )
+      ] as UIMessage<unknown, {}>[]);
+    };
 
-    // Sync realtime messages with persistent storage
-    if (session.history.length === 0) {
+    session.on('history_updated', handleHistoryUpdate);
+
+    return () => {
+      session.off('history_updated', handleHistoryUpdate);
+    };
+  }, [session, chat]);
+
+  useEffect(() => {
+    if (session.history.length === 0 || !isConnected || isPending) {
       return;
     }
 
-    void syncMessages({
-      chatId: chat.id,
-      realtimeItems: session.history
+    // Only sync completed messages to backend
+    const completedMessages = session.history.filter((item) => {
+      if (item.type !== 'message') return false;
+
+      // Check if message is completed and has actual content
+      const isCompleted = 'status' in item ? item.status === 'completed' : true;
+      const hasContent = item.content && item.content.length > 0;
+
+      return isCompleted && hasContent;
     });
-  }, [chat.id, chat.messages, session.history, syncMessages]);
+
+    const newCompletedMessages = getNewRealtimeMessages(
+      completedMessages,
+      chat.messages
+    );
+
+    if (newCompletedMessages.length === 0) {
+      return;
+    }
+
+    console.log(
+      'Syncing only completed messages to backend:',
+      newCompletedMessages.length
+    );
+    syncMessages({
+      chatId: chat.id,
+      realtimeItems: completedMessages // Only send completed messages
+    });
+  }, [
+    session.history,
+    chat.messages,
+    isConnected,
+    isPending,
+    chat.id,
+    syncMessages
+  ]);
 
   const connect = useCallback(async () => {
     await session.connect({
-      apiKey: 'ek_68c16bf554108191a70e36c64db54ec5'
+      apiKey: 'ek_68c1741eb7dc8191acbf4cf959d5737e'
     });
 
     const realtimeHistory = convertUIMessagesToRealtimeItems(chat.messages);

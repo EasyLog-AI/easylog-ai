@@ -32,7 +32,7 @@ const ChatInput = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { sendMessage, status, stop } = useChatContext();
-  const { isConnected, connect, disconnect } = useRealTime();
+  const { isConnected, session, connect, disconnect } = useRealTime();
 
   const {
     reset,
@@ -42,10 +42,18 @@ const ChatInput = () => {
   } = useZodForm(schema);
 
   const submitHandler: SubmitHandler<z.infer<typeof schema>> = async (data) => {
-    await sendMessage({
-      parts: [{ type: 'text', text: data.content }],
-      role: 'user'
-    });
+    if (isConnected) {
+      session.sendMessage({
+        type: 'message',
+        role: 'user',
+        content: [{ type: 'input_text', text: data.content }]
+      });
+    } else {
+      await sendMessage({
+        parts: [{ type: 'text', text: data.content }],
+        role: 'user'
+      });
+    }
   };
 
   const { ref: textareaFormRef, ...rest } = register('content');
