@@ -48,20 +48,21 @@ const RealTimeProvider = ({
   children,
   agentSlug
 }: React.PropsWithChildren<RealTimeProviderProps>) => {
-  const chat = useChatContext();
+  const { setMode, messages, setMessages, sendMessage, mode } =
+    useChatContext();
   const api = useTRPC();
 
   const [connectionState, setConnectionState] = useState<
     'disconnected' | 'connecting' | 'connected' | 'disconnecting'
   >('disconnected');
 
-  const [session, setSession] = useState<RealtimeSession | null>(null);
-
   const { data: dbChat } = useSuspenseQuery(
     api.chats.getOrCreate.queryOptions({
       agentId: agentSlug
     })
   );
+
+  const isEnabled = dbChat.agent.voiceChatEnabled;
 
   const {
     data: realTimeSessionToken,
@@ -113,10 +114,10 @@ const RealTimeProvider = ({
 
               console.log('🔧 Tool handover: realtime → chat');
 
-              chat.setMode('awaiting-tool-call');
+              setMode('awaiting-tool-call');
 
               // Send the tool execution message to normal chat
-              await chat.sendMessage({
+              await sendMessage({
                 parts: [
                   {
                     type: 'text',
@@ -141,10 +142,10 @@ const RealTimeProvider = ({
 
               console.log('🔧 Tool handover: realtime → chat');
 
-              chat.setMode('awaiting-tool-call');
+              setMode('awaiting-tool-call');
 
               // Send the tool execution message to normal chat
-              await chat.sendMessage({
+              await sendMessage({
                 parts: [
                   {
                     type: 'text',
@@ -161,7 +162,15 @@ const RealTimeProvider = ({
       }),
     // eslint-disable-next-line react-compiler/react-compiler
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [dbChat.agent.name]
+    [dbChat.agent]
+  );
+
+  const session = useMemo(
+    () =>
+      new RealtimeSession(agent, {
+        model: 'gpt-realtime'
+      }),
+    [agent]
   );
 
   useEffect(() => {
@@ -183,11 +192,11 @@ const RealTimeProvider = ({
 
   useEffect(() => {
     const handleHistoryUpdate = (history: RealtimeItem[]) => {
-      const newRealtimeMessages = filterNewMessages(history, chat.messages);
+      const newRealtimeMessages = filterNewMessages(history, messages);
       const newUIMessages = convertRealtimeToUI(newRealtimeMessages);
 
       if (newUIMessages.length > 0) {
-        chat.setMessages([...chat.messages, ...newUIMessages] as UIMessage<
+        setMessages([...messages, ...newUIMessages] as UIMessage<
           unknown,
           {}
         >[]);
@@ -199,13 +208,18 @@ const RealTimeProvider = ({
     return () => {
       session?.off('history_updated', handleHistoryUpdate);
     };
-  }, [session, chat]);
+  }, [session, messages, setMessages]);
 
   const [syncedMessageIds, setSyncedMessageIds] = useState<Set<string>>(
     new Set()
   );
 
   const connect = useCallback(async () => {
+    if (!isEnabled) {
+      console.log('🔧 Voice chat is disabled');
+      return;
+    }
+
     setConnectionState('connecting');
 
     try {
@@ -214,17 +228,11 @@ const RealTimeProvider = ({
         throw new Error('No ephemeral token found');
       }
 
-      const session = new RealtimeSession(agent, {
-        model: 'gpt-realtime'
-      });
-
       await session.connect({
         apiKey: realTimeSessionToken?.value
       });
 
-      setSession(session);
-
-      const realtimeHistory = convertUIToRealtime(chat.messages);
+      const realtimeHistory = convertUIToRealtime(messages);
       if (realtimeHistory.length > 0) {
         session.updateHistory(realtimeHistory);
       }
@@ -232,7 +240,7 @@ const RealTimeProvider = ({
       console.log('🔧 Connected to realtime session');
       setConnectionState('connected');
 
-      if (chat.mode === 'tool-call-finished') {
+      if (mode === 'tool-call-finished') {
         console.log('🔧 Naturally continuing conversation');
         session.sendMessage({
           type: 'message',
@@ -246,7 +254,7 @@ const RealTimeProvider = ({
         });
       }
 
-      chat.setMode('realtime');
+      setMode('realtime');
     } catch (error) {
       setConnectionState('disconnected');
       console.error('❌ Connection failed:', error);
@@ -254,16 +262,34 @@ const RealTimeProvider = ({
         `Failed to connect to realtime session: ${(error as Error).message}`
       );
       Sentry.captureException(error);
-      chat.setMode('chat');
+      if (mode !== 'awaiting-tool-call') {
+        setMode('chat');
+      } else {
+        console.log(
+          '🔧 Preserving awaiting-tool-call mode during connection error'
+        );
+      }
     }
-  }, [realTimeSessionToken?.value, agent, chat]);
+  }, [
+    isEnabled,
+    realTimeSessionToken?.value,
+    session,
+    messages,
+    mode,
+    setMode
+  ]);
 
   const disconnect = useCallback(async () => {
     setConnectionState('disconnecting');
     try {
       session?.close();
       setSyncedMessageIds(new Set());
-      chat.setMode('chat');
+      if (mode === 'realtime') {
+        console.log('🔧 Realtime mode finished');
+        setMode('chat');
+      } else if (mode === 'awaiting-tool-call') {
+        console.log('🔧 Preserving awaiting-tool-call mode during handover');
+      }
       console.log('🔧 Disconnected from realtime session');
       setConnectionState('disconnected');
     } catch (error) {
@@ -273,7 +299,7 @@ const RealTimeProvider = ({
       );
       Sentry.captureException(error);
     }
-  }, [session, chat]);
+  }, [session, mode, setMode]);
 
   useEffect(() => {
     if (
@@ -309,31 +335,36 @@ const RealTimeProvider = ({
     setSyncedMessageIds(newSyncedIds);
 
     syncMessages({
-      chatId: chat.id,
+      chatId: dbChat.id,
       realtimeItems: completedMessages
     });
   }, [
-    session?.history,
+    session.history,
     connectionState,
     isPending,
-    chat.id,
     syncMessages,
     syncedMessageIds,
-    session
+    session,
+    dbChat.id
   ]);
 
   useEffect(() => {
-    if (connectionState === 'connected' && chat.mode === 'awaiting-tool-call') {
+    if (
+      connectionState === 'connected' &&
+      mode === 'awaiting-tool-call' &&
+      isEnabled
+    ) {
       console.log('🔌 Disconnecting from realtime...');
       void disconnect();
     } else if (
       connectionState === 'disconnected' &&
-      chat.mode === 'tool-call-finished'
+      mode === 'tool-call-finished' &&
+      isEnabled
     ) {
       console.log('🔌 Connecting to realtime...');
       void connect();
     }
-  }, [chat.mode, disconnect, connectionState, connect]);
+  }, [mode, disconnect, connectionState, connect, isEnabled]);
 
   return (
     <RealTimeContext.Provider
@@ -345,7 +376,7 @@ const RealTimeProvider = ({
         disconnect,
         canConnect:
           !!realTimeSessionToken?.value && !tokenLoading && !tokenError,
-        isEnabled: dbChat.agent.voiceChatEnabled
+        isEnabled
       }}
     >
       {children}

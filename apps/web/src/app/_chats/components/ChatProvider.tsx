@@ -44,7 +44,7 @@ const ChatProvider = ({
   const api = useTRPC();
 
   const [didStartChat, setDidStartChat] = useState(false);
-  const [mode, setMode] = useState<
+  const [_mode, _setMode] = useState<
     'chat' | 'awaiting-tool-call' | 'tool-call-finished' | 'realtime'
   >('chat');
 
@@ -86,10 +86,7 @@ const ChatProvider = ({
     },
     onFinish: () => {
       console.log('✅ Chat finished');
-      if (mode === 'awaiting-tool-call') {
-        console.log('🔧 Tool call finished');
-        setMode('tool-call-finished');
-      }
+      _setMode('tool-call-finished');
     },
     experimental_throttle: 50
   });
@@ -111,10 +108,10 @@ const ChatProvider = ({
     <ChatContext.Provider
       value={{
         ...chat,
-        mode,
+        mode: _mode,
         setMode: (newMode) => {
-          console.log(`🔄 Mode change: ${mode} → ${newMode}`);
-          setMode(newMode);
+          console.log(`🔄 Mode change: ${_mode} → ${newMode}`);
+          return _setMode(newMode);
         }
       }}
     >
