@@ -14,6 +14,8 @@ import {
 import useChatContext from '@/app/_chats/hooks/useChatContext';
 import useTRPC from '@/lib/trpc/browser';
 
+import { convertUIMessagesToRealtimeItems } from '../utils/convertUIMessagesToRealtime';
+
 interface RealTimeContextType {
   agent: RealtimeAgent;
   session: RealtimeSession;
@@ -85,10 +87,19 @@ const RealTimeProvider = ({
 
   const connect = useCallback(async () => {
     await session.connect({
-      apiKey: 'ek_68c168fd3a8c81918657da7b98e8225e'
+      apiKey: 'ek_68c16bf554108191a70e36c64db54ec5'
     });
+
+    const realtimeHistory = convertUIMessagesToRealtimeItems(chat.messages);
+    if (realtimeHistory.length > 0) {
+      session.updateHistory(realtimeHistory);
+      console.log(
+        `Initialized realtime session with ${realtimeHistory.length} historical messages`
+      );
+    }
+
     setIsConnected(true);
-  }, [session]);
+  }, [session, chat.messages]);
 
   const disconnect = useCallback(() => {
     session.close();
