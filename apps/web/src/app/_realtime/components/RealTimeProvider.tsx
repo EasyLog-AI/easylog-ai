@@ -101,6 +101,33 @@ const RealTimeProvider = ({
         voice: 'marin',
         tools: [
           tool({
+            name: 'search_knowledge_base',
+            description: 'Search the knowledge base for information',
+            parameters: z.object({
+              query: z.string()
+            }),
+            execute: async ({ query }) => {
+              console.log('🔧 Tool called - initiating handover');
+
+              console.log('🔧 Tool handover: realtime → chat');
+
+              chat.setMode('awaiting-tool-call');
+
+              // Send the tool execution message to normal chat
+              await chat.sendMessage({
+                parts: [
+                  {
+                    type: 'text',
+                    text: `[execute the tool searchKnowledgeBase with the query of "${query}"]`
+                  }
+                ],
+                role: 'user'
+              });
+
+              return 'Tool execution initiated, switching to chat mode...';
+            }
+          }),
+          tool({
             name: 'execute_sql',
             description: 'Execute a SQL query on the Easylog database',
             parameters: z.object({

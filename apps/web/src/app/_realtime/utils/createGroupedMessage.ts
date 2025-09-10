@@ -19,7 +19,7 @@ const createGroupedMessage = (
             content.type === 'input_audio' ||
             content.type === 'output_audio'
           ) {
-            return content.transcript || '';
+            return `[${content.transcript}]` || '';
           }
           return '';
         })

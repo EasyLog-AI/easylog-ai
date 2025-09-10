@@ -1,19 +1,21 @@
 import { UIMessage } from 'ai';
 
-import { RealtimeItem, RealtimeMessageItem } from '../schemas/realtimeItemSchema';
 import createGroupedMessage from './createGroupedMessage';
 import createIndividualMessage from './createIndividualMessage';
+import {
+  RealtimeItem,
+  RealtimeMessageItem
+} from '../schemas/realtimeItemSchema';
 
 /**
- * Converts realtime messages to UIMessage format for persistence
- * Only groups consecutive user messages into parts - keeps assistant messages separate
+ * Converts realtime messages to UIMessage format for persistence Only groups
+ * consecutive user messages into parts - keeps assistant messages separate
  * Includes both completed and in-progress messages to show live transcription
  */
 const convertRealtimeToUI = (realtimeItems: RealtimeItem[]): UIMessage[] => {
   const messageItems = realtimeItems.filter(
-    (item): item is RealtimeMessageItem =>
-      item.type === 'message'
-      // Don't filter by status - include in-progress for live updates
+    (item): item is RealtimeMessageItem => item.type === 'message'
+    // Don't filter by status - include in-progress for live updates
   );
 
   const groupedMessages: UIMessage[] = [];
@@ -32,7 +34,7 @@ const convertRealtimeToUI = (realtimeItems: RealtimeItem[]): UIMessage[] => {
         }
         currentUserGroup = [];
       }
-      
+
       // Create individual message for assistant/system messages
       const individualMessage = createIndividualMessage(item);
       if (individualMessage) {

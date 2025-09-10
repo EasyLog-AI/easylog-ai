@@ -3,22 +3,24 @@ import { UIMessage } from 'ai';
 import { RealtimeItem } from '../schemas/realtimeItemSchema';
 
 /**
- * Converts UIMessages to realtime session format for providing context to new sessions
- * Only converts text content as realtime sessions have limited type support
+ * Converts UIMessages to realtime session format for providing context to new
+ * sessions Only converts text content as realtime sessions have limited type
+ * support
  */
 const convertUIToRealtime = (uiMessages: UIMessage[]): RealtimeItem[] => {
   return uiMessages
-    .filter((message) => 
-      // Only include user, assistant, and system messages
-      ['user', 'assistant', 'system'].includes(message.role) &&
-      // Only process messages that have text content
-      message.parts.some(part => part.type === 'text')
+    .filter(
+      (message) =>
+        // Only include user, assistant, and system messages
+        ['user', 'assistant', 'system'].includes(message.role) &&
+        // Only process messages that have text content
+        message.parts.some((part) => part.type === 'text')
     )
     .map((message) => {
       // Extract text content from all text parts
       const textContent = message.parts
-        .filter(part => part.type === 'text')
-        .map(part => ('text' in part ? part.text : ''))
+        .filter((part) => part.type === 'text')
+        .map((part) => ('text' in part ? part.text : ''))
         .filter(Boolean)
         .join(' ');
 
