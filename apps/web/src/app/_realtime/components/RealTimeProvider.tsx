@@ -50,11 +50,8 @@ const RealTimeProvider = ({
 }: React.PropsWithChildren<RealTimeProviderProps>) => {
   const { setMode, messages, setMessages, sendMessage, mode } =
     useChatContext();
-  const api = useTRPC();
 
-  const [connectionState, setConnectionState] = useState<
-    'disconnected' | 'connecting' | 'connected' | 'disconnecting'
-  >('disconnected');
+  const api = useTRPC();
 
   const { data: dbChat } = useSuspenseQuery(
     api.chats.getOrCreate.queryOptions({
@@ -165,13 +162,14 @@ const RealTimeProvider = ({
     [dbChat.agent]
   );
 
-  const session = useMemo(
-    () =>
-      new RealtimeSession(agent, {
+  const session = useMemo(() => {
+    if (isEnabled) {
+      return new RealtimeSession(agent, {
         model: 'gpt-realtime'
-      }),
-    [agent]
-  );
+      });
+    }
+    return null;
+  }, [agent, isEnabled]);
 
   useEffect(() => {
     return () => {
@@ -220,29 +218,26 @@ const RealTimeProvider = ({
       return;
     }
 
-    setConnectionState('connecting');
-
     try {
       if (!realTimeSessionToken?.value) {
         console.error('❌ No ephemeral token available');
         throw new Error('No ephemeral token found');
       }
 
-      await session.connect({
+      await session?.connect({
         apiKey: realTimeSessionToken?.value
       });
 
       const realtimeHistory = convertUIToRealtime(messages);
       if (realtimeHistory.length > 0) {
-        session.updateHistory(realtimeHistory);
+        session?.updateHistory(realtimeHistory);
       }
 
       console.log('🔧 Connected to realtime session');
-      setConnectionState('connected');
 
       if (mode === 'tool-call-finished') {
         console.log('🔧 Naturally continuing conversation');
-        session.sendMessage({
+        session?.sendMessage({
           type: 'message',
           role: 'user',
           content: [
@@ -256,7 +251,6 @@ const RealTimeProvider = ({
 
       setMode('realtime');
     } catch (error) {
-      setConnectionState('disconnected');
       console.error('❌ Connection failed:', error);
       toast.error(
         `Failed to connect to realtime session: ${(error as Error).message}`
@@ -280,7 +274,6 @@ const RealTimeProvider = ({
   ]);
 
   const disconnect = useCallback(async () => {
-    setConnectionState('disconnecting');
     try {
       session?.close();
       setSyncedMessageIds(new Set());
@@ -291,7 +284,6 @@ const RealTimeProvider = ({
         console.log('🔧 Preserving awaiting-tool-call mode during handover');
       }
       console.log('🔧 Disconnected from realtime session');
-      setConnectionState('disconnected');
     } catch (error) {
       console.error('❌ Disconnect failed:', error);
       toast.error(
@@ -305,7 +297,7 @@ const RealTimeProvider = ({
     if (
       !session ||
       session.history.length === 0 ||
-      connectionState !== 'connected'
+      session.transport.status !== 'connected'
     ) {
       return;
     }
@@ -339,8 +331,8 @@ const RealTimeProvider = ({
       realtimeItems: completedMessages
     });
   }, [
-    session.history,
-    connectionState,
+    session?.history,
+    session?.transport.status,
     isPending,
     syncMessages,
     syncedMessageIds,
@@ -350,28 +342,28 @@ const RealTimeProvider = ({
 
   useEffect(() => {
     if (
-      connectionState === 'connected' &&
+      session?.transport.status === 'connected' &&
       mode === 'awaiting-tool-call' &&
       isEnabled
     ) {
       console.log('🔌 Disconnecting from realtime...');
       void disconnect();
     } else if (
-      connectionState === 'disconnected' &&
+      session?.transport.status === 'disconnected' &&
       mode === 'tool-call-finished' &&
       isEnabled
     ) {
       console.log('🔌 Connecting to realtime...');
       void connect();
     }
-  }, [mode, disconnect, connectionState, connect, isEnabled]);
+  }, [mode, disconnect, session?.transport.status, connect, isEnabled]);
 
   return (
     <RealTimeContext.Provider
       value={{
         agent,
         session,
-        connectionState,
+        connectionState: session?.transport.status ?? 'disconnected',
         connect,
         disconnect,
         canConnect:
