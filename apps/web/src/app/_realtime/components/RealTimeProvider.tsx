@@ -256,13 +256,7 @@ const RealTimeProvider = ({
         `Failed to connect to realtime session: ${(error as Error).message}`
       );
       Sentry.captureException(error);
-      if (mode !== 'awaiting-tool-call') {
-        setMode('chat');
-      } else {
-        console.log(
-          '🔧 Preserving awaiting-tool-call mode during connection error'
-        );
-      }
+      setMode('chat');
     }
   }, [
     isEnabled,
@@ -277,12 +271,7 @@ const RealTimeProvider = ({
     try {
       session?.close();
       setSyncedMessageIds(new Set());
-      if (mode === 'realtime') {
-        console.log('🔧 Realtime mode finished');
-        setMode('chat');
-      } else if (mode === 'awaiting-tool-call') {
-        console.log('🔧 Preserving awaiting-tool-call mode during handover');
-      }
+      setMode('chat');
       console.log('🔧 Disconnected from realtime session');
     } catch (error) {
       console.error('❌ Disconnect failed:', error);
@@ -291,7 +280,7 @@ const RealTimeProvider = ({
       );
       Sentry.captureException(error);
     }
-  }, [session, mode, setMode]);
+  }, [session, setMode]);
 
   useEffect(() => {
     if (
@@ -341,22 +330,43 @@ const RealTimeProvider = ({
   ]);
 
   useEffect(() => {
-    if (
-      session?.transport.status === 'connected' &&
-      mode === 'awaiting-tool-call' &&
-      isEnabled
-    ) {
-      console.log('🔌 Disconnecting from realtime...');
-      void disconnect();
-    } else if (
-      session?.transport.status === 'disconnected' &&
-      mode === 'tool-call-finished' &&
-      isEnabled
-    ) {
-      console.log('🔌 Connecting to realtime...');
-      void connect();
+    if (!session || session?.transport.status !== 'connected') {
+      return;
     }
-  }, [mode, disconnect, session?.transport.status, connect, isEnabled]);
+
+    if (mode === 'awaiting-tool-call' && !session?.transport.muted) {
+      console.log('🔌 Muting realtime...');
+      session?.mute(true);
+      return;
+    }
+
+    if (mode === 'tool-call-finished' && session?.transport.muted) {
+      console.log('🔌 Unmuting realtime...');
+
+      const realtimeHistory = convertUIToRealtime(messages);
+      if (realtimeHistory.length > 0) {
+        session?.updateHistory(realtimeHistory);
+        console.log('🔧 Updated realtime history');
+      }
+
+      session?.mute(false);
+
+      console.log('🔧 Sending message to continue conversation');
+
+      session?.sendMessage({
+        type: 'message',
+        role: 'user',
+        content: [
+          {
+            type: 'input_text',
+            text: '[naturally continue our conversation]'
+          }
+        ]
+      });
+
+      setMode('realtime');
+    }
+  }, [mode, session?.transport.status, session, messages, setMode]);
 
   return (
     <RealTimeContext.Provider

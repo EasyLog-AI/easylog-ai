@@ -19,23 +19,12 @@ const createGroupedMessage = (
             content.type === 'input_audio' ||
             content.type === 'output_audio'
           ) {
-            return `[${content.transcript}]` || '';
+            return content.transcript ? `[${content.transcript}]` : null;
           }
-          return '';
+          return null;
         })
         .filter(Boolean)
         .join(' ');
-
-      console.log('Converting grouped realtime message:', {
-        itemId: item.itemId,
-        role: item.role,
-        status: 'status' in item ? item.status : 'system',
-        contentTypes: item.content.map((c) => c.type),
-        textContent,
-        hasTranscript: item.content.some(
-          (c) => 'transcript' in c && c.transcript
-        )
-      });
 
       return textContent;
     })
