@@ -229,25 +229,9 @@ const RealTimeProvider = ({
       });
 
       const realtimeHistory = convertUIToRealtime(messages);
-      if (realtimeHistory.length > 0) {
-        session?.updateHistory(realtimeHistory);
-      }
+      session?.updateHistory(realtimeHistory);
 
       console.log('🔧 Connected to realtime session');
-
-      if (mode === 'tool-call-finished') {
-        console.log('🔧 Naturally continuing conversation');
-        session?.sendMessage({
-          type: 'message',
-          role: 'user',
-          content: [
-            {
-              type: 'input_text',
-              text: '[naturally continue our conversation]'
-            }
-          ]
-        });
-      }
 
       setMode('realtime');
     } catch (error) {
@@ -258,14 +242,7 @@ const RealTimeProvider = ({
       Sentry.captureException(error);
       setMode('chat');
     }
-  }, [
-    isEnabled,
-    realTimeSessionToken?.value,
-    session,
-    messages,
-    mode,
-    setMode
-  ]);
+  }, [isEnabled, messages, realTimeSessionToken?.value, session, setMode]);
 
   const disconnect = useCallback(async () => {
     try {
@@ -340,15 +317,12 @@ const RealTimeProvider = ({
       return;
     }
 
-    if (mode === 'tool-call-finished' && session?.transport.muted) {
-      console.log('🔌 Unmuting realtime...');
-
+    if (mode === 'chat-finished' && session?.transport.muted) {
       const realtimeHistory = convertUIToRealtime(messages);
-      if (realtimeHistory.length > 0) {
-        session?.updateHistory(realtimeHistory);
-        console.log('🔧 Updated realtime history');
-      }
+      console.log('🔧 Realtime history:', realtimeHistory);
+      session?.updateHistory(realtimeHistory);
 
+      console.log('🔧 Unmuting realtime...');
       session?.mute(false);
 
       console.log('🔧 Sending message to continue conversation');

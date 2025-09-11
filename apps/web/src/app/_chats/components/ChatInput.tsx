@@ -31,7 +31,7 @@ const ChatInput = () => {
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const { sendMessage, status, stop, mode } = useChatContext();
+  const { sendMessage, status, stop } = useChatContext();
   const {
     session,
     canConnect,
@@ -152,9 +152,9 @@ const ChatInput = () => {
                     connectionState === 'connecting' ||
                     connectionState === 'disconnecting'
                       ? IconSpinner
-                      : mode === 'chat'
-                        ? IconMicrophone
-                        : IconMicrophoneOff
+                      : connectionState === 'connected'
+                        ? IconMicrophoneOff
+                        : IconMicrophone
                   }
                 />
               </ButtonContent>

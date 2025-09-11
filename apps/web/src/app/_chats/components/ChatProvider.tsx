@@ -23,9 +23,9 @@ type ChatMessage = UIMessage<
 >;
 
 interface ChatContextType extends UseChatHelpers<ChatMessage> {
-  mode: 'chat' | 'awaiting-tool-call' | 'tool-call-finished' | 'realtime';
+  mode: 'chat' | 'awaiting-tool-call' | 'chat-finished' | 'realtime';
   setMode: (
-    mode: 'chat' | 'awaiting-tool-call' | 'tool-call-finished' | 'realtime'
+    mode: 'chat' | 'awaiting-tool-call' | 'chat-finished' | 'realtime'
   ) => void;
 }
 
@@ -45,7 +45,7 @@ const ChatProvider = ({
 
   const [didStartChat, setDidStartChat] = useState(false);
   const [mode, setMode] = useState<
-    'chat' | 'awaiting-tool-call' | 'tool-call-finished' | 'realtime'
+    'chat' | 'awaiting-tool-call' | 'chat-finished' | 'realtime'
   >('chat');
 
   const { data: dbChat, refetch } = useSuspenseQuery(
@@ -85,12 +85,8 @@ const ChatProvider = ({
       }
     },
     onFinish: () => {
-      console.log(
-        '🔧 Tool call finished, switching to tool-call-finished mode'
-      );
-      setMode('tool-call-finished');
-      // if (mode === 'awaiting-tool-call') {
-      // }
+      console.log('🔧 Chat finished, switching to chat-finished mode');
+      setMode('chat-finished');
       console.log('✅ Chat finished');
     },
     experimental_throttle: 50

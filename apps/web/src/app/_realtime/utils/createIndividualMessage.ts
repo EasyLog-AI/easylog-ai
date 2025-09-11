@@ -5,19 +5,19 @@ import { RealtimeMessageItem } from '../schemas/realtimeItemSchema';
 const createIndividualMessage = (
   item: RealtimeMessageItem
 ): UIMessage | null => {
-  // Extract text content from the realtime message
   const textContent = item.content
     .map((content) => {
       if (content.type === 'input_text' || content.type === 'output_text') {
         return content.text;
       }
       if (content.type === 'input_audio' || content.type === 'output_audio') {
-        return content.transcript || '';
+        return content.transcript;
       }
-      return '';
+      return null;
     })
     .filter(Boolean)
-    .join(' ');
+    .join(' ')
+    .trim();
 
   console.log('Converting individual realtime message:', {
     itemId: item.itemId,
