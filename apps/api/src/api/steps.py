@@ -112,6 +112,7 @@ async def sync_steps(
             )
 
         await batcher.commit()
+        logger.info(f"Successfully synced {len(data.data_points)} steps for user {data.user_id}")
         return Response(status_code=200)
 
     except Exception as e:
@@ -140,6 +141,10 @@ async def get_steps(
     - List of step data points limited to 300 rows maximum
     """
     try:
+        logger.info(
+            f"get_steps called with user_id={user_id}, date_from={date_from}, "
+            f"date_to={date_to}, timezone={timezone}, aggregation={aggregation}"
+        )
         # ------------------------------------------------------------------ #
         # 1. Validate timezone                                               #
         # ------------------------------------------------------------------ #
@@ -210,17 +215,25 @@ async def get_steps(
             # Use SQL aggregation for hour/day
             rows: list[dict[str, Any]] = await prisma.query_raw(
                 f"""
+                WITH series AS (
+                    SELECT generate_series(
+                        date_trunc('{aggregation.value}', $2::timestamptz, '{tz_name}'),
+                        $3::timestamptz,
+                        '1 {aggregation.value}'::interval
+                    ) AS bucket
+                )
                 SELECT
-                    date_trunc('{aggregation.value}', date_from AT TIME ZONE 'UTC' AT TIME ZONE '{tz_name}')
-                    AT TIME ZONE '{tz_name}' AT TIME ZONE 'UTC' AS bucket,
-                    SUM(value)::int AS total
-                FROM   health_data_points
-                WHERE  user_id  = $1::uuid
-                AND    type     = 'steps'
-                AND    date_from >= $2::timestamptz
-                AND    date_to   <= $3::timestamptz
-                GROUP  BY bucket
-                ORDER  BY bucket
+                    s.bucket AS bucket,
+                    COALESCE(SUM(hdp.value)::int, 0) AS total
+                FROM series s
+                LEFT JOIN health_data_points hdp
+                    ON date_trunc('{aggregation.value}', hdp.date_from, '{tz_name}') = s.bucket
+                    AND hdp.user_id = $1::uuid
+                    AND hdp.type = 'steps'
+                    AND hdp.date_from >= $2::timestamptz
+                    AND hdp.date_to <= $3::timestamptz
+                GROUP BY s.bucket
+                ORDER BY s.bucket
                 LIMIT 300
                 """,
                 user.id,
@@ -249,33 +262,61 @@ async def get_steps(
                 take=300,
             )
 
-            if not steps_data:
-                return GetStepsResponse(data=[], total_count=0)
+            # --- Quarter-hour aggregation logic with padding ---
+            # 1. Generate all quarter-hour buckets in the time range.
+            all_buckets: dict[str, int] = {}
+            current_dt = date_from_dt.astimezone(tz)
+            floored_minute = (current_dt.minute // 15) * 15
+            current_dt = current_dt.replace(minute=floored_minute, second=0, microsecond=0)
 
-            # Quarter-hour aggregation logic
+            date_to_local = date_to_dt.astimezone(tz)
+            
+            logger.info(f"Quarter aggregation - Generating buckets from {current_dt.isoformat()} to {date_to_local.isoformat()}")
+            
+            while current_dt < date_to_local:
+                all_buckets[current_dt.isoformat()] = 0
+                current_dt += datetime.timedelta(minutes=15)
+
+            logger.info(f"Generated {len(all_buckets)} empty buckets")
+
+            # 2. Populate with real data.
             bucket_totals: dict[str, int] = defaultdict(int)
+            if steps_data:
+                logger.info(f"Processing {len(steps_data)} step data points from database")
 
-            def _parse_for_quarter(val: str | datetime.datetime) -> datetime.datetime:
-                dt_obj = datetime.datetime.fromisoformat(val) if isinstance(val, str) else val
-                if dt_obj.tzinfo is None:
-                    dt_obj = dt_obj.replace(tzinfo=tz)
-                return dt_obj
+                def _parse_for_quarter(val: str | datetime.datetime) -> datetime.datetime:
+                    dt_obj = datetime.datetime.fromisoformat(val) if isinstance(val, str) else val
+                    if dt_obj.tzinfo is None:
+                        dt_obj = dt_obj.replace(tzinfo=utc)
+                    return dt_obj
 
-            for dp in steps_data:
-                start_dt = _parse_for_quarter(dp.date_from)
-                local_dt = start_dt.astimezone(tz)
-                floored_minute = (local_dt.minute // 15) * 15
-                bucket_dt = local_dt.replace(minute=floored_minute, second=0, microsecond=0)
-                bucket_key = bucket_dt.isoformat()
-                bucket_totals[bucket_key] += dp.value
+                for dp in steps_data:
+                    start_dt = _parse_for_quarter(dp.date_from)
+                    local_dt = start_dt.astimezone(tz)
+                    floored_minute = (local_dt.minute // 15) * 15
+                    bucket_dt = local_dt.replace(minute=floored_minute, second=0, microsecond=0)
+                    bucket_key = bucket_dt.isoformat()
+                    
+                    logger.debug(f"Data point: {dp.date_from} -> bucket: {bucket_key}, value: {dp.value}")
+                    
+                    bucket_totals[bucket_key] += dp.value
 
-            sorted_rows = sorted(bucket_totals.items())[:300]
+                logger.info(f"Populated {len(bucket_totals)} buckets with actual data")
+
+            # 3. Merge real data into the complete set of buckets
+            all_buckets.update(bucket_totals)
+            
+            logger.info(f"Final bucket count after merge: {len(all_buckets)}")
+
+            # 4. Format for response
+            sorted_rows = sorted(all_buckets.items())[:300]
             result_data = [StepDataPoint(created_at=key, value=total) for key, total in sorted_rows]
 
         else:
             # This shouldn't happen due to enum validation, but just in case
             raise HTTPException(status_code=400, detail="Invalid aggregation type")
 
+        logger.info(f"get_steps response for user {user_id} ({len(result_data)} points): {result_data}")
         return GetStepsResponse(data=result_data, total_count=len(result_data))
 
     except HTTPException:
