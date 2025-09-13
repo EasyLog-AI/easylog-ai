@@ -7,7 +7,7 @@ import {
   IconPlayerStop
 } from '@tabler/icons-react';
 import { motion } from 'motion/react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { SubmitHandler } from 'react-hook-form';
 import TextareaAutosize from 'react-textarea-autosize';
 import { z } from 'zod';
@@ -32,6 +32,7 @@ const ChatInput = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressTriggeredRef = useRef<boolean>(false);
+  const [uiMuted, setUiMuted] = useState(false);
 
   const { sendMessage, status, stop } = useChatContext();
   const {
@@ -78,6 +79,14 @@ const ChatInput = () => {
     isSubmitting || status === 'submitted' || status === 'streaming';
 
   const isStreaming = status === 'streaming';
+
+  useEffect(() => {
+    if (connectionState === 'connected' && session) {
+      setUiMuted(Boolean(session.transport?.muted));
+    } else {
+      setUiMuted(false);
+    }
+  }, [session, connectionState]);
 
   return (
     <motion.div
@@ -169,7 +178,8 @@ const ChatInput = () => {
                 }
 
                 if (connectionState === 'connected' && session) {
-                  const nextMuted = !(session.transport?.muted ?? false);
+                  const nextMuted = !uiMuted;
+                  setUiMuted(nextMuted);
                   session.mute(nextMuted);
                 } else if (connectionState === 'disconnected') {
                   connect();
@@ -183,7 +193,7 @@ const ChatInput = () => {
                     connectionState === 'disconnecting'
                       ? IconSpinner
                       : connectionState === 'connected'
-                        ? session?.transport?.muted
+                        ? uiMuted
                           ? IconMicrophoneOff
                           : IconMicrophone
                         : IconMicrophone
