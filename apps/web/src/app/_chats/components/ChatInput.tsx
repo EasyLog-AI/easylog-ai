@@ -135,8 +135,8 @@ const ChatInput = () => {
                 isLoading ||
                 connectionState === 'connecting' ||
                 connectionState === 'disconnecting' ||
-                !canConnect ||
-                !isEnabled
+                !isEnabled ||
+                (connectionState === 'disconnected' && !canConnect)
               }
               onPointerDown={() => {
                 longPressTriggeredRef.current = false;
@@ -169,7 +169,8 @@ const ChatInput = () => {
                 }
 
                 if (connectionState === 'connected' && session) {
-                  session.mute(true);
+                  const nextMuted = !(session.transport?.muted ?? false);
+                  session.mute(nextMuted);
                 } else if (connectionState === 'disconnected') {
                   connect();
                 }
@@ -182,7 +183,9 @@ const ChatInput = () => {
                     connectionState === 'disconnecting'
                       ? IconSpinner
                       : connectionState === 'connected'
-                        ? IconMicrophoneOff
+                        ? session?.transport?.muted
+                          ? IconMicrophoneOff
+                          : IconMicrophone
                         : IconMicrophone
                   }
                 />
