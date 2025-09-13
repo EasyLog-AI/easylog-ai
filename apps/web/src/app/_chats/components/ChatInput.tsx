@@ -139,8 +139,8 @@ const ChatInput = () => {
               onClick={() => {
                 console.log('🎤 Microphone button clicked:', connectionState);
 
-                if (connectionState === 'connected') {
-                  disconnect();
+                if (connectionState === 'connected' && session) {
+                  session.mute(true);
                 } else if (connectionState === 'disconnected') {
                   connect();
                 }
