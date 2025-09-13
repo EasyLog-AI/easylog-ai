@@ -139,9 +139,8 @@ const ChatInput = () => {
               onClick={() => {
                 console.log('🎤 Microphone button clicked:', connectionState);
 
-                if (connectionState === 'connected' && session) {
-                  const nextMuted = !(session.transport?.muted ?? false);
-                  session.mute(nextMuted);
+                if (connectionState === 'connected') {
+                  disconnect();
                 } else if (connectionState === 'disconnected') {
                   connect();
                 }
@@ -154,29 +153,10 @@ const ChatInput = () => {
                     connectionState === 'disconnecting'
                       ? IconSpinner
                       : connectionState === 'connected'
-                        ? session?.transport?.muted
-                          ? IconMicrophoneOff
-                          : IconMicrophone
+                        ? IconMicrophoneOff
                         : IconMicrophone
                   }
                 />
-              </ButtonContent>
-            </Button>
-          )}
-          {isEnabled && connectionState === 'connected' && (
-            <Button
-              shape="circle"
-              size="lg"
-              type="button"
-              variant="ghost"
-              isDisabled={isLoading}
-              onClick={() => {
-                console.log('🛑 Stop voice clicked');
-                disconnect();
-              }}
-            >
-              <ButtonContent>
-                <Icon icon={IconPlayerStop} />
               </ButtonContent>
             </Button>
           )}
