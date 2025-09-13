@@ -199,6 +199,24 @@ const RealTimeProvider = ({
           {}
         >[]);
       }
+
+      // Auto-mute mic when assistant is speaking (output_audio present)
+      const aiSpeaking = newRealtimeMessages.some(
+        (item) =>
+          item.type === 'message' &&
+          'role' in item &&
+          item.role === 'assistant' &&
+          Array.isArray(item.content) &&
+          item.content.some((c: any) => c?.type === 'output_audio')
+      );
+
+      if (
+        aiSpeaking &&
+        session?.transport.status === 'connected' &&
+        !session.transport.muted
+      ) {
+        session.mute(true);
+      }
     };
 
     session?.on('history_updated', handleHistoryUpdate);
