@@ -207,7 +207,13 @@ const RealTimeProvider = ({
           'role' in item &&
           item.role === 'assistant' &&
           Array.isArray(item.content) &&
-          item.content.some((c: any) => c?.type === 'output_audio')
+          item.content.some(
+            (c) =>
+              typeof c === 'object' &&
+              c !== null &&
+              'type' in c &&
+              (c as { type: string }).type === 'output_audio'
+          )
       );
 
       if (
