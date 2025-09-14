@@ -8,13 +8,17 @@ import ChartTooltipContent from '@/app/_ui/components/Chart/ChartTooltipContent'
 import { ChartConfig } from '@/app/_ui/components/Chart/utils/chartConfig';
 
 import { InternalChartConfig } from '../schemas/internalChartConfigSchema';
+import { transformPieChartConfig } from '../utils/pieChartTransform';
 
 export interface PieChartProps {
   config: InternalChartConfig;
 }
 
 const PieChart = ({ config }: PieChartProps) => {
-  const { values, xAxisKey, data } = config;
+  // CRITICAL: Apply transformation to ensure proper multi-color pie charts
+  // This fixes the common issue where agents use different dataKeys per segment
+  const transformedConfig = transformPieChartConfig(config);
+  const { values, xAxisKey, data } = transformedConfig;
 
   // For pie charts, if we only have one series, we need to generate colors for each data point
   const availableColors = [
@@ -26,9 +30,14 @@ const PieChart = ({ config }: PieChartProps) => {
   ];
 
   // Generate colors for each data point - for pie charts, use colors from values array
-  const colors = values.length >= data.length
-    ? data.map((_, index) => values[index]?.color || availableColors[index % availableColors.length])
-    : values.map((s) => s.color);
+  const colors =
+    values.length >= data.length
+      ? data.map(
+          (_, index) =>
+            values[index]?.color ||
+            availableColors[index % availableColors.length]
+        )
+      : values.map((s) => s.color);
 
   /**
    * Build legend config per category to ensure correct label-color mapping per
