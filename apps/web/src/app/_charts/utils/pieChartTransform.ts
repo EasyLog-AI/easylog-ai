@@ -71,13 +71,13 @@ export const transformPieChartConfig = (
   // Case 1: Multiple value entries (common mistake)
   // Transform data to use a single "value" dataKey
   if (config.values.length > 1) {
-    const transformedData = config.values.map((valueEntry, index) => {
+    const transformedData = config.values.map((valueEntry) => {
       const dataKey = valueEntry.dataKey;
       const label = valueEntry.label;
 
       // Find the sum of this dataKey across all data points
       const total = config.data.reduce((sum, item) => {
-        const value = (item as any)[dataKey];
+        const value = (item as Record<string, unknown>)[dataKey];
         return sum + (typeof value === 'number' ? value : 0);
       }, 0);
 
@@ -104,7 +104,7 @@ export const transformPieChartConfig = (
   // Case 2: Single value entry but data has multiple numeric fields
   // This might be a case where data was structured incorrectly
   if (config.values.length === 1 && config.data.length > 0) {
-    const firstDataPoint = config.data[0] as Record<string, any>;
+    const firstDataPoint = config.data[0] as Record<string, unknown>;
     const numericKeys = Object.keys(firstDataPoint).filter(
       (key) =>
         key !== config.xAxisKey && typeof firstDataPoint[key] === 'number'
@@ -112,10 +112,10 @@ export const transformPieChartConfig = (
 
     // If there are multiple numeric fields, transform them into segments
     if (numericKeys.length > 1) {
-      const transformedData = numericKeys.map((key, index) => {
+      const transformedData = numericKeys.map((key) => {
         // Sum up values for this key across all data points
         const total = config.data.reduce((sum, item) => {
-          const value = (item as any)[key];
+          const value = (item as Record<string, unknown>)[key];
           return sum + (typeof value === 'number' ? value : 0);
         }, 0);
 
