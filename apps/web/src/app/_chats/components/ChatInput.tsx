@@ -41,7 +41,8 @@ const ChatInput = () => {
     connect,
     disconnect: _disconnect,
     connectionState,
-    isEnabled
+    isEnabled,
+    isMuted
   } = useRealTime();
 
   const {
@@ -81,12 +82,9 @@ const ChatInput = () => {
   const isStreaming = status === 'streaming';
 
   useEffect(() => {
-    if (connectionState === 'connected' && session) {
-      setUiMuted(Boolean(session.transport?.muted));
-    } else {
-      setUiMuted(false);
-    }
-  }, [session, connectionState]);
+    // Sync UI icon with provider-level mute state, including auto-mute
+    setUiMuted(Boolean(isMuted));
+  }, [isMuted]);
 
   return (
     <motion.div
