@@ -196,7 +196,7 @@ const ChatInput = () => {
                         ? uiMuted
                           ? IconMicrophoneOff
                           : IconMicrophone
-                        : IconMicrophone
+                        : IconMicrophoneOff
                   }
                 />
               </ButtonContent>

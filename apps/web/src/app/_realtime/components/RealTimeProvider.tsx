@@ -27,6 +27,7 @@ interface RealTimeContextType {
   session: RealtimeSession | null;
   connect: () => void;
   disconnect: () => void;
+  isMuted: boolean;
   connectionState:
     | 'disconnected'
     | 'connecting'
@@ -60,6 +61,7 @@ const RealTimeProvider = ({
   );
 
   const isEnabled = dbChat.agent.voiceChatEnabled;
+  const [isMuted, setIsMuted] = useState(false);
 
   const {
     data: realTimeSessionToken,
@@ -222,6 +224,7 @@ const RealTimeProvider = ({
         !session.transport.muted
       ) {
         session.mute(true);
+        setIsMuted(true);
       }
     };
 
@@ -258,6 +261,7 @@ const RealTimeProvider = ({
       console.log('🔧 Connected to realtime session');
 
       setMode('realtime');
+      setIsMuted(false);
     } catch (error) {
       console.error('❌ Connection failed:', error);
       toast.error(
@@ -273,6 +277,7 @@ const RealTimeProvider = ({
       session?.close();
       setSyncedMessageIds(new Set());
       setMode('chat');
+      setIsMuted(false);
       console.log('🔧 Disconnected from realtime session');
     } catch (error) {
       console.error('❌ Disconnect failed:', error);
@@ -338,6 +343,7 @@ const RealTimeProvider = ({
     if (mode === 'awaiting-tool-call' && !session?.transport.muted) {
       console.log('🔌 Muting realtime...');
       session?.mute(true);
+      setIsMuted(true);
       return;
     }
 
@@ -348,6 +354,7 @@ const RealTimeProvider = ({
 
       console.log('🔧 Unmuting realtime...');
       session?.mute(false);
+      setIsMuted(false);
 
       console.log('🔧 Sending message to continue conversation');
 
@@ -371,6 +378,7 @@ const RealTimeProvider = ({
       value={{
         agent,
         session,
+        isMuted,
         connectionState: session?.transport.status ?? 'disconnected',
         connect,
         disconnect,
