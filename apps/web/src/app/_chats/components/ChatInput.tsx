@@ -7,7 +7,7 @@ import {
   IconPlayerStop
 } from '@tabler/icons-react';
 import { motion } from 'motion/react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { SubmitHandler } from 'react-hook-form';
 import TextareaAutosize from 'react-textarea-autosize';
 import { z } from 'zod';
@@ -32,7 +32,6 @@ const ChatInput = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressTriggeredRef = useRef<boolean>(false);
-  const [uiMuted, setUiMuted] = useState(false);
 
   const { sendMessage, status, stop } = useChatContext();
   const {
@@ -82,10 +81,7 @@ const ChatInput = () => {
 
   const isStreaming = status === 'streaming';
 
-  useEffect(() => {
-    // Sync UI icon with provider-level mute state, including auto-mute
-    setUiMuted(Boolean(isMuted));
-  }, [isMuted]);
+  // No local mute state; rely on provider isMuted entirely
 
   return (
     <motion.div
@@ -177,8 +173,6 @@ const ChatInput = () => {
                 }
 
                 if (connectionState === 'connected' && session) {
-                  const nextMuted = !uiMuted;
-                  setUiMuted(nextMuted);
                   void toggleMute();
                 } else if (connectionState === 'disconnected') {
                   connect();
@@ -192,7 +186,7 @@ const ChatInput = () => {
                     connectionState === 'disconnecting'
                       ? IconSpinner
                       : connectionState === 'connected'
-                        ? uiMuted
+                        ? isMuted
                           ? IconMicrophoneOff
                           : IconMicrophone
                         : IconMicrophoneOff
