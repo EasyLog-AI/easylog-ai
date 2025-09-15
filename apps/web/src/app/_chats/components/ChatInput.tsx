@@ -42,7 +42,8 @@ const ChatInput = () => {
     disconnect: _disconnect,
     connectionState,
     isEnabled,
-    isMuted
+    isMuted,
+    toggleMute
   } = useRealTime();
 
   const {
@@ -178,14 +179,7 @@ const ChatInput = () => {
                 if (connectionState === 'connected' && session) {
                   const nextMuted = !uiMuted;
                   setUiMuted(nextMuted);
-                  // Delegate to provider for optimistic + reconcile
-                  // Using context: toggleMute based on isMuted
-                  // Fallback: direct session.mute if toggleMute absent
-                  if (typeof (useRealTime as unknown) === 'function') {
-                    // no-op; useRealTime is a hook, ignore safety branch
-                  }
-                  // simple call to session.mute kept to avoid changing signatures if provider not yet updated in runtime
-                  session.mute(nextMuted);
+                  void toggleMute();
                 } else if (connectionState === 'disconnected') {
                   connect();
                 }

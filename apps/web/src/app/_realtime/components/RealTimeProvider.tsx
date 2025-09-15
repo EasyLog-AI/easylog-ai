@@ -217,6 +217,10 @@ const RealTimeProvider = ({
     })
   );
 
+  const [lastAiAudioItemId, setLastAiAudioItemId] = useState<string | null>(
+    null
+  );
+
   useEffect(() => {
     const handleHistoryUpdate = (history: RealtimeItem[]) => {
       const newRealtimeMessages = filterNewMessages(history, messages);
@@ -229,28 +233,33 @@ const RealTimeProvider = ({
         >[]);
       }
 
-      // Auto-mute mic when assistant is speaking (output_audio present)
-      const aiSpeaking = newRealtimeMessages.some(
-        (item) =>
-          item.type === 'message' &&
-          'role' in item &&
-          item.role === 'assistant' &&
-          Array.isArray(item.content) &&
-          item.content.some(
-            (c) =>
-              typeof c === 'object' &&
-              c !== null &&
-              'type' in c &&
-              (c as { type: string }).type === 'output_audio'
-          )
-      );
+      // Auto-mute when assistant outputs audio; scan entire history and de-dup by last audio item id
+      const latestAiAudio = [...(session?.history ?? [])]
+        .reverse()
+        .find(
+          (item) =>
+            item.type === 'message' &&
+            'role' in item &&
+            item.role === 'assistant' &&
+            Array.isArray(item.content) &&
+            item.content.some(
+              (c) =>
+                typeof c === 'object' &&
+                c !== null &&
+                'type' in c &&
+                (c as { type: string }).type === 'output_audio'
+            )
+        );
 
       if (
-        aiSpeaking &&
-        session?.transport.status === 'connected' &&
-        !session.transport.muted
+        latestAiAudio &&
+        latestAiAudio.itemId !== lastAiAudioItemId &&
+        session?.transport.status === 'connected'
       ) {
-        void mute(true);
+        setLastAiAudioItemId(latestAiAudio.itemId);
+        if (!session.transport.muted) {
+          void mute(true);
+        }
       }
     };
 
@@ -259,7 +268,7 @@ const RealTimeProvider = ({
     return () => {
       session?.off('history_updated', handleHistoryUpdate);
     };
-  }, [session, messages, setMessages]);
+  }, [session, messages, setMessages, mute, lastAiAudioItemId]);
 
   const [syncedMessageIds, setSyncedMessageIds] = useState<Set<string>>(
     new Set()
