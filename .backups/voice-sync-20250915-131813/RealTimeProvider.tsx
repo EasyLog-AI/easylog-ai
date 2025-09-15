@@ -28,8 +28,6 @@ interface RealTimeContextType {
   connect: () => void;
   disconnect: () => void;
   isMuted: boolean;
-  mute: (next: boolean) => Promise<void> | void;
-  toggleMute: () => Promise<void> | void;
   connectionState:
     | 'disconnected'
     | 'connecting'
@@ -64,30 +62,6 @@ const RealTimeProvider = ({
 
   const isEnabled = dbChat.agent.voiceChatEnabled;
   const [isMuted, setIsMuted] = useState(false);
-  const mute = useCallback(
-    async (next: boolean) => {
-      if (!session || session.transport.status !== 'connected') return;
-      // optimistic update
-      setIsMuted(next);
-      try {
-        await session.mute(next);
-      } finally {
-        // reconcile after a tick
-        setTimeout(() => {
-          const transportMuted = Boolean(session.transport.muted);
-          if (transportMuted !== next) {
-            setIsMuted(transportMuted);
-          }
-        }, 50);
-      }
-    },
-    [session]
-  );
-
-  const toggleMute = useCallback(async () => {
-    if (!session || session.transport.status !== 'connected') return;
-    await mute(!isMuted);
-  }, [isMuted, mute, session]);
 
   const {
     data: realTimeSessionToken,
@@ -249,7 +223,8 @@ const RealTimeProvider = ({
         session?.transport.status === 'connected' &&
         !session.transport.muted
       ) {
-        void mute(true);
+        session.mute(true);
+        setIsMuted(true);
       }
     };
 
@@ -367,7 +342,8 @@ const RealTimeProvider = ({
 
     if (mode === 'awaiting-tool-call' && !session?.transport.muted) {
       console.log('🔌 Muting realtime...');
-      void mute(true);
+      session?.mute(true);
+      setIsMuted(true);
       return;
     }
 
@@ -377,7 +353,8 @@ const RealTimeProvider = ({
       session?.updateHistory(realtimeHistory);
 
       console.log('🔧 Unmuting realtime...');
-      void mute(false);
+      session?.mute(false);
+      setIsMuted(false);
 
       console.log('🔧 Sending message to continue conversation');
 
@@ -402,8 +379,6 @@ const RealTimeProvider = ({
         agent,
         session,
         isMuted,
-        mute,
-        toggleMute,
         connectionState: session?.transport.status ?? 'disconnected',
         connect,
         disconnect,
