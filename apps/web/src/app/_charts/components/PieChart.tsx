@@ -52,6 +52,116 @@ const PieChart = ({ config }: PieChartProps) => {
   /** Assuming the first value entry is the one to display in the pie chart */
   const pieValue = values[0];
 
+  // Label configuration with safe defaults (backward compatible)
+  const showLabels = config.showLabels ?? false;
+  const labelContent = config.labelContent ?? 'name+percent';
+  const labelPosition = config.labelPosition ?? 'auto';
+  const minSliceAngleForInside = config.minSliceAngleForInside ?? 18;
+  const showLeaderLines = config.showLeaderLines ?? true;
+  const labelFontSize = config.labelFontSize ?? 12;
+  const labelFontWeight = config.labelFontWeight ?? 500;
+  const explicitLabelColor = config.labelColor;
+
+  function getAutoContrastColor(hexOrCss: string | undefined, fallback: string): string {
+    if (!hexOrCss) return fallback;
+    if (hexOrCss.startsWith('var(')) {
+      return fallback;
+    }
+    if (hexOrCss.startsWith('#')) {
+      const hex = hexOrCss.replace('#', '');
+      const bigint = parseInt(hex.length === 3 ? hex.split('').map((c) => c + c).join('') : hex, 16);
+      const r = (bigint >> 16) & 255;
+      const g = (bigint >> 8) & 255;
+      const b = bigint & 255;
+      // Relative luminance
+      const [R, G, B] = [r, g, b].map((v) => {
+        const s = v / 255;
+        return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+      });
+      const luminance = 0.2126 * R + 0.7152 * G + 0.0722 * B;
+      return luminance > 0.5 ? '#111827' : '#FFFFFF'; // gray-900 or white
+    }
+    return fallback;
+  }
+
+  type LabelProps = {
+    cx: number;
+    cy: number;
+    midAngle: number;
+    innerRadius: number;
+    outerRadius: number;
+    percent: number;
+    index: number;
+    name?: string;
+    value?: number;
+    fill?: string;
+  };
+
+  const renderLabel = (props: LabelProps) => {
+    const { cx, cy, midAngle, innerRadius, outerRadius, percent, name, value, fill } = props;
+
+    if (!showLabels) return null;
+
+    const angleDeg = percent * 360;
+    const shouldPlaceInside =
+      labelPosition === 'inside' ||
+      (labelPosition === 'auto' && angleDeg >= minSliceAngleForInside);
+    const shouldPlaceOutside = labelPosition === 'outside' || !shouldPlaceInside;
+
+    const RADIAN = Math.PI / 180;
+    const radiusInside = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const radiusOutside = outerRadius + 16;
+    const xInside = cx + radiusInside * Math.cos(-midAngle * RADIAN);
+    const yInside = cy + radiusInside * Math.sin(-midAngle * RADIAN);
+    const xOutside = cx + radiusOutside * Math.cos(-midAngle * RADIAN);
+    const yOutside = cy + radiusOutside * Math.sin(-midAngle * RADIAN);
+
+    const percentLabel = `${Math.round(percent * 100)}%`;
+    const content =
+      labelContent === 'percent'
+        ? percentLabel
+        : labelContent === 'name'
+        ? String(name ?? '')
+        : `${String(name ?? '')} ${percentLabel}`;
+
+    const fillColor = explicitLabelColor
+      ? explicitLabelColor
+      : shouldPlaceInside
+      ? getAutoContrastColor(fill, '#FFFFFF')
+      : 'var(--foreground)';
+
+    if (shouldPlaceInside) {
+      return (
+        <text
+          x={xInside}
+          y={yInside}
+          fill={fillColor}
+          fontSize={labelFontSize}
+          fontWeight={labelFontWeight}
+          textAnchor="middle"
+          dominantBaseline="central"
+        >
+          {content}
+        </text>
+      );
+    }
+
+    const isRight = xOutside >= cx;
+    return (
+      <text
+        x={xOutside}
+        y={yOutside}
+        fill={fillColor}
+        fontSize={labelFontSize}
+        fontWeight={labelFontWeight}
+        textAnchor={isRight ? 'start' : 'end'}
+        dominantBaseline="central"
+      >
+        {content}
+      </text>
+    );
+  };
+
   return (
     <ChartContainer config={chartConfig} className="my-4 aspect-[4/3]">
       <RechartsPieChart>
@@ -64,6 +174,8 @@ const PieChart = ({ config }: PieChartProps) => {
           outerRadius="75%"
           strokeWidth={5}
           stroke="var(--card)"
+          label={renderLabel}
+          labelLine={showLabels && showLeaderLines}
         >
           {data.map((_, index) => {
             return (
