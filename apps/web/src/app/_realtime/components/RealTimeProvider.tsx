@@ -64,30 +64,6 @@ const RealTimeProvider = ({
 
   const isEnabled = dbChat.agent.voiceChatEnabled;
   const [isMuted, setIsMuted] = useState(false);
-  const mute = useCallback(
-    async (next: boolean) => {
-      if (!session || session.transport.status !== 'connected') return;
-      // optimistic update
-      setIsMuted(next);
-      try {
-        await session.mute(next);
-      } finally {
-        // reconcile after a tick
-        setTimeout(() => {
-          const transportMuted = Boolean(session.transport.muted);
-          if (transportMuted !== next) {
-            setIsMuted(transportMuted);
-          }
-        }, 50);
-      }
-    },
-    [session]
-  );
-
-  const toggleMute = useCallback(async () => {
-    if (!session || session.transport.status !== 'connected') return;
-    await mute(!isMuted);
-  }, [isMuted, mute, session]);
 
   const {
     data: realTimeSessionToken,
@@ -206,6 +182,31 @@ const RealTimeProvider = ({
       }
     };
   }, [session]);
+
+  const mute = useCallback(
+    async (next: boolean) => {
+      if (!session || session.transport.status !== 'connected') return;
+      // optimistic update
+      setIsMuted(next);
+      try {
+        await session.mute(next);
+      } finally {
+        // reconcile after a tick
+        setTimeout(() => {
+          const transportMuted = Boolean(session.transport.muted);
+          if (transportMuted !== next) {
+            setIsMuted(transportMuted);
+          }
+        }, 50);
+      }
+    },
+    [session]
+  );
+
+  const toggleMute = useCallback(async () => {
+    if (!session || session.transport.status !== 'connected') return;
+    await mute(!isMuted);
+  }, [isMuted, mute, session]);
 
   const { mutate: syncMessages, isPending } = useMutation(
     api.realtime.syncMessages.mutationOptions({
