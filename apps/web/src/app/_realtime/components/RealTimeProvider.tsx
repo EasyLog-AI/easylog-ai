@@ -220,6 +220,9 @@ const RealTimeProvider = ({
   const [lastAiAudioItemId, setLastAiAudioItemId] = useState<string | null>(
     null
   );
+  const [lastAssistantStartId, setLastAssistantStartId] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     const handleHistoryUpdate = (history: RealtimeItem[]) => {
@@ -231,6 +234,29 @@ const RealTimeProvider = ({
           unknown,
           {}
         >[]);
+      }
+
+      // Early auto-mute: assistant has started speaking (status in_progress)
+      const latestAssistantStart = [...(session?.history ?? [])]
+        .reverse()
+        .find(
+          (item) =>
+            item.type === 'message' &&
+            'role' in item &&
+            item.role === 'assistant' &&
+            'status' in item &&
+            (item as { status?: string }).status === 'in_progress'
+        );
+
+      if (
+        latestAssistantStart &&
+        latestAssistantStart.itemId !== lastAssistantStartId &&
+        session?.transport.status === 'connected'
+      ) {
+        setLastAssistantStartId(latestAssistantStart.itemId);
+        if (!session.transport.muted) {
+          void mute(true);
+        }
       }
 
       // Auto-mute when assistant outputs audio; scan entire history and de-dup by last audio item id
@@ -268,7 +294,7 @@ const RealTimeProvider = ({
     return () => {
       session?.off('history_updated', handleHistoryUpdate);
     };
-  }, [session, messages, setMessages, mute, lastAiAudioItemId]);
+  }, [session, messages, setMessages, mute, lastAiAudioItemId, lastAssistantStartId]);
 
   const [syncedMessageIds, setSyncedMessageIds] = useState<Set<string>>(
     new Set()
