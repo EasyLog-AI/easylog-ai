@@ -98,7 +98,7 @@ const PieChart = ({ config }: PieChartProps) => {
   };
 
   const renderLabel = (props: LabelProps) => {
-    const { cx, cy, midAngle, innerRadius, outerRadius, percent, name, value, fill } = props;
+    const { cx, cy, midAngle, innerRadius, outerRadius, percent, name, fill } = props;
 
     if (!showLabels) return null;
 
@@ -106,7 +106,6 @@ const PieChart = ({ config }: PieChartProps) => {
     const shouldPlaceInside =
       labelPosition === 'inside' ||
       (labelPosition === 'auto' && angleDeg >= minSliceAngleForInside);
-    const shouldPlaceOutside = labelPosition === 'outside' || !shouldPlaceInside;
 
     const RADIAN = Math.PI / 180;
     const radiusInside = innerRadius + (outerRadius - innerRadius) * 0.5;
