@@ -9,6 +9,15 @@ import { chats, multipleChoiceQuestions } from '@/database/schema';
 import multipleChoiceQuestionMiddleware from '../middleware/multipleChoiceQuestionMiddleware';
 
 const multipleChoiceQuestionUpdate = multipleChoiceQuestionMiddleware
+  .meta({
+    openapi: {
+      method: 'PATCH',
+      path: '/multiple-choice/questions',
+      tags: ['Multiple Choice'],
+      summary: 'Update a multiple choice answer',
+      protect: true
+    }
+  })
   .input(
     z.object({
       value: z.string()

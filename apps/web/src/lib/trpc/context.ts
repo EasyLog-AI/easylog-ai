@@ -3,9 +3,16 @@ import { cache } from 'react';
 
 import getCurrentUser from '@/app/_auth/data/getCurrentUser';
 
-const createTRPCContext = cache(async () => {
+const createTRPCContext = cache(async (incomingHeaders?: HeadersInit) => {
+  const resolvedHeaders =
+    incomingHeaders === undefined
+      ? await headers()
+      : incomingHeaders instanceof Headers
+        ? incomingHeaders
+        : new Headers(incomingHeaders);
+
   return {
-    user: await getCurrentUser(await headers())
+    user: await getCurrentUser(resolvedHeaders)
   };
 });
 

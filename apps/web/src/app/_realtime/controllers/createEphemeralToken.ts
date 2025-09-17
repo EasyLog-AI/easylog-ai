@@ -4,9 +4,19 @@ import { TRPCError } from '@trpc/server';
 import chatMiddleware from '@/app/_chats/middleware/chatMiddleware';
 import serverConfig from '@/server.config';
 
-const createEphemeralToken = chatMiddleware.query(async ({}) => {
-  const response = await fetch(
-    'https://api.openai.com/v1/realtime/client_secrets',
+const createEphemeralToken = chatMiddleware
+  .meta({
+    openapi: {
+      method: 'GET',
+      path: '/realtime/ephemeral-token',
+      tags: ['Realtime'],
+      summary: 'Create a realtime ephemeral token for a chat',
+      protect: true
+    }
+  })
+  .query(async ({}) => {
+    const response = await fetch(
+      'https://api.openai.com/v1/realtime/client_secrets',
     {
       method: 'POST',
       headers: {

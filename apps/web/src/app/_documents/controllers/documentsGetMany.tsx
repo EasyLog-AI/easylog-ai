@@ -6,6 +6,15 @@ import db from '@/database/client';
 import { documents } from '@/database/schema';
 
 const documentsGetMany = agentMiddleware
+  .meta({
+    openapi: {
+      method: 'GET',
+      path: '/documents',
+      tags: ['Documents'],
+      summary: 'List documents for an agent',
+      protect: true
+    }
+  })
   .input(
     z.object({
       cursor: z.number().default(0),

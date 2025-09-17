@@ -1,25 +1,32 @@
 import { initTRPC } from '@trpc/server';
 import superjson from 'superjson';
+import { OpenApiMeta } from 'trpc-openapi';
 import { ZodError } from 'zod';
 
 import { Context } from './context';
 
-export type Meta = {
-  span: string;
+type TrpcMeta = OpenApiMeta & {
+  span?: string;
 };
 
-export const t = initTRPC.context<Context>().create({
-  transformer: superjson,
-  errorFormatter: ({ shape, error }) => {
-    return {
-      ...shape,
-      data: {
-        ...shape.data,
-        zodError: error.cause instanceof ZodError ? error.cause.flatten() : null
-      }
-    };
-  }
-});
+export type Meta = TrpcMeta;
+
+export const t = initTRPC
+  .meta<TrpcMeta>()
+  .context<Context>()
+  .create({
+    transformer: superjson,
+    errorFormatter: ({ shape, error }) => {
+      return {
+        ...shape,
+        data: {
+          ...shape.data,
+          zodError:
+            error.cause instanceof ZodError ? error.cause.flatten() : null
+        }
+      };
+    }
+  });
 
 /**
  * Create a server-side caller
