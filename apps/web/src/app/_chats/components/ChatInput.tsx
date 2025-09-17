@@ -31,6 +31,7 @@ const ChatInput = () => {
   'use no memo';
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const isFlutterWebViewRef = useRef<boolean>(false);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressTriggeredRef = useRef<boolean>(false);
 
@@ -74,9 +75,22 @@ const ChatInput = () => {
   const { ref: textareaFormRef, ...rest } = register('content');
 
   useEffect(() => {
+    if (typeof navigator !== 'undefined') {
+      const ua = navigator.userAgent ?? '';
+      // Flutter WebViews often add these markers to the UA string.
+      isFlutterWebViewRef.current = /Flutter|InAppWebView|\bwv\b/i.test(ua);
+    }
+  }, []);
+
+  useEffect(() => {
     if (isSubmitSuccessful) {
       reset();
-      textareaRef.current?.focus();
+      if (isFlutterWebViewRef.current) {
+        // Flutter WebView: blur to keep the soft keyboard closed after send.
+        textareaRef.current?.blur();
+      } else {
+        textareaRef.current?.focus();
+      }
     }
   }, [isSubmitSuccessful, reset]);
 
