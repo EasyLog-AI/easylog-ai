@@ -253,7 +253,14 @@ const RealTimeProvider = ({
       Sentry.captureException(error);
       setMode('chat');
     }
-  }, [isEnabled, messages, realTimeSessionToken?.value, session, setMode]);
+  }, [
+    isEnabled,
+    messages,
+    realTimeSessionToken?.value,
+    session,
+    setIsMuted,
+    setMode
+  ]);
 
   const disconnect = useCallback(async () => {
     try {
@@ -269,7 +276,7 @@ const RealTimeProvider = ({
       );
       Sentry.captureException(error);
     }
-  }, [session, setMode]);
+  }, [session, setIsMuted, setMode]);
 
   useEffect(() => {
     if (

@@ -14,12 +14,12 @@ export interface HeaderProps {
 }
 
 const Header = ({ user, agentSlug }: HeaderProps) => {
-  const [headerVisible] = useQueryState(
-    'header_visible',
-    parseAsBoolean.withDefault(true)
+  const [headerHidden] = useQueryState(
+    'header_hidden',
+    parseAsBoolean.withDefault(false)
   );
 
-  if (!headerVisible) {
+  if (headerHidden) {
     return null;
   }
 

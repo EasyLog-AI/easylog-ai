@@ -130,7 +130,10 @@ const appertoServerPlugin = (
               user: user.user
             });
 
+            console.log('redirectURI', redirectURI);
+
             if (redirectURI) {
+              console.log('redirecting to', redirectURI);
               return ctx.redirect(redirectURI);
             }
 

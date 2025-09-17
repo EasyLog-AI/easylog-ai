@@ -3,6 +3,7 @@
 import {
   IconArrowUp,
   IconMicrophone,
+  IconMicrophoneFilled,
   IconMicrophoneOff,
   IconPlayerStop
 } from '@tabler/icons-react';
@@ -30,8 +31,6 @@ const ChatInput = () => {
   'use no memo';
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const longPressTriggeredRef = useRef<boolean>(false);
 
   const { sendMessage, status, stop } = useChatContext();
   const {
@@ -140,35 +139,8 @@ const ChatInput = () => {
                 !isEnabled ||
                 (connectionState === 'disconnected' && !canConnect)
               }
-              onPointerDown={() => {
-                longPressTriggeredRef.current = false;
-                if (connectionState === 'connected') {
-                  longPressTimerRef.current = setTimeout(() => {
-                    longPressTriggeredRef.current = true;
-                    _disconnect();
-                  }, 700);
-                }
-              }}
-              onPointerUp={() => {
-                if (longPressTimerRef.current) {
-                  clearTimeout(longPressTimerRef.current);
-                  longPressTimerRef.current = null;
-                }
-              }}
-              onPointerLeave={() => {
-                if (longPressTimerRef.current) {
-                  clearTimeout(longPressTimerRef.current);
-                  longPressTimerRef.current = null;
-                }
-              }}
               onClick={() => {
                 console.log('🎤 Microphone button clicked:', connectionState);
-
-                if (longPressTriggeredRef.current) {
-                  // Long-press already handled disconnect; ignore click
-                  longPressTriggeredRef.current = false;
-                  return;
-                }
 
                 if (connectionState === 'connected' && session) {
                   setIsMuted(!isMuted);
@@ -186,8 +158,8 @@ const ChatInput = () => {
                       : connectionState === 'connected'
                         ? isMuted
                           ? IconMicrophoneOff
-                          : IconMicrophone
-                        : IconMicrophoneOff
+                          : IconMicrophoneFilled
+                        : IconMicrophone
                   }
                 />
               </ButtonContent>
