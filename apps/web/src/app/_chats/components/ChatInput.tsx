@@ -12,7 +12,9 @@ import { SubmitHandler } from 'react-hook-form';
 import TextareaAutosize from 'react-textarea-autosize';
 import { z } from 'zod';
 
+import RealtimeBlobEffect from '@/app/_realtime/components/RealtimeBlobEffect';
 import { useRealTime } from '@/app/_realtime/hooks/useRealTime';
+import { useAudioAmplitude } from '@/app/_realtime/hooks/useAudioAmplitude';
 import Button from '@/app/_ui/components/Button/Button';
 import ButtonContent from '@/app/_ui/components/Button/ButtonContent';
 import Icon from '@/app/_ui/components/Icon/Icon';
@@ -33,7 +35,7 @@ const ChatInput = () => {
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressTriggeredRef = useRef<boolean>(false);
 
-  const { sendMessage, status, stop } = useChatContext();
+  const { sendMessage, status, stop, mode } = useChatContext();
   const {
     session,
     canConnect,
@@ -44,6 +46,11 @@ const ChatInput = () => {
     isMuted,
     setIsMuted
   } = useRealTime();
+
+  const audioAmplitude = useAudioAmplitude({
+    enabled: connectionState === 'connected' && !isMuted,
+    smoothingFactor: 0.85
+  });
 
   const {
     reset,
@@ -81,6 +88,24 @@ const ChatInput = () => {
 
   const isStreaming = status === 'streaming';
 
+  const realtimeIntensity = (() => {
+    if (!isEnabled) return 0;
+    switch (connectionState) {
+      case 'connecting':
+        return 0.4;
+      case 'connected':
+        return isMuted ? 0.35 : 1;
+      case 'disconnecting':
+        return 0.3;
+      default:
+        return 0;
+    }
+  })();
+
+  const showRealtimeBlob =
+    realtimeIntensity > 0 ||
+    (mode === 'realtime' && connectionState !== 'disconnected');
+
   return (
     <motion.div
       className="sticky bottom-3 left-0 right-0 px-3 md:bottom-5 md:px-5"
@@ -97,124 +122,131 @@ const ChatInput = () => {
         }
       }}
     >
-      <div className="bg-surface-primary shadow-short mx-auto w-full max-w-2xl overflow-clip rounded-2xl bg-clip-padding contain-inline-size">
-        <div
-          className="cursor-text px-5 pt-5 data-[disabled=true]:cursor-not-allowed data-[disabled=true]:opacity-50"
-          data-disabled={isLoading}
-          onClick={() => {
-            textareaRef.current?.focus();
-          }}
-        >
-          <TextareaAutosize
-            disabled={isLoading}
-            autoFocus
-            className="decoration-none placeholder:text-text-muted text-text-primary w-full resize-none focus:outline-none"
-            ref={(e) => {
-              textareaFormRef(e);
-              textareaRef.current = e;
+      <div className="relative mx-auto w-full max-w-2xl">
+        <RealtimeBlobEffect
+          isActive={showRealtimeBlob}
+          intensity={realtimeIntensity}
+          audioAmplitude={audioAmplitude}
+        />
+        <div className="bg-surface-primary shadow-short overflow-clip rounded-2xl bg-clip-padding contain-inline-size relative z-10">
+          <div
+            className="cursor-text px-5 pt-5 data-[disabled=true]:cursor-not-allowed data-[disabled=true]:opacity-50"
+            data-disabled={isLoading}
+            onClick={() => {
+              textareaRef.current?.focus();
             }}
-            onKeyDown={(e) => {
-              if (!e.shiftKey && e.key === 'Enter') {
-                e.preventDefault();
-                void handleSubmit(submitHandler)();
-              }
-            }}
-            minRows={1}
-            maxRows={6}
-            placeholder="Ask me anything..."
-            {...rest}
-          />
-        </div>
+          >
+            <TextareaAutosize
+              disabled={isLoading}
+              autoFocus
+              className="decoration-none placeholder:text-text-muted text-text-primary w-full resize-none focus:outline-none"
+              ref={(e) => {
+                textareaFormRef(e);
+                textareaRef.current = e;
+              }}
+              onKeyDown={(e) => {
+                if (!e.shiftKey && e.key === 'Enter') {
+                  e.preventDefault();
+                  void handleSubmit(submitHandler)();
+                }
+              }}
+              minRows={1}
+              maxRows={6}
+              placeholder="Ask me anything..."
+              {...rest}
+            />
+          </div>
 
-        <div className="flex items-center justify-end gap-2 px-2.5 pb-2.5">
-          {isEnabled && (
+          <div className="flex items-center justify-end gap-2 px-2.5 pb-2.5">
+            {isEnabled && (
+              <Button
+                shape="circle"
+                size="lg"
+                type="button"
+                variant="ghost"
+                isDisabled={
+                  isLoading ||
+                  connectionState === 'connecting' ||
+                  connectionState === 'disconnecting' ||
+                  !isEnabled ||
+                  (connectionState === 'disconnected' && !canConnect)
+                }
+                onPointerDown={() => {
+                  longPressTriggeredRef.current = false;
+                  if (connectionState === 'connected') {
+                    longPressTimerRef.current = setTimeout(() => {
+                      longPressTriggeredRef.current = true;
+                      _disconnect();
+                    }, 700);
+                  }
+                }}
+                onPointerUp={() => {
+                  if (longPressTimerRef.current) {
+                    clearTimeout(longPressTimerRef.current);
+                    longPressTimerRef.current = null;
+                  }
+                }}
+                onPointerLeave={() => {
+                  if (longPressTimerRef.current) {
+                    clearTimeout(longPressTimerRef.current);
+                    longPressTimerRef.current = null;
+                  }
+                }}
+                onClick={() => {
+                  console.log('🎤 Microphone button clicked:', connectionState);
+
+                  if (longPressTriggeredRef.current) {
+                    // Long-press already handled disconnect; ignore click
+                    longPressTriggeredRef.current = false;
+                    return;
+                  }
+
+                  if (connectionState === 'connected' && session) {
+                    setIsMuted(!isMuted);
+                  } else if (connectionState === 'disconnected') {
+                    connect();
+                  }
+                }}
+              >
+                <ButtonContent>
+                  <Icon
+                    icon={
+                      connectionState === 'connecting' ||
+                      connectionState === 'disconnecting'
+                        ? IconSpinner
+                        : connectionState === 'connected'
+                          ? isMuted
+                            ? IconMicrophoneOff
+                            : IconMicrophone
+                          : IconMicrophoneOff
+                    }
+                  />
+                </ButtonContent>
+              </Button>
+            )}
             <Button
               shape="circle"
               size="lg"
-              type="button"
-              variant="ghost"
+              type="submit"
               isDisabled={
-                isLoading ||
-                connectionState === 'connecting' ||
-                connectionState === 'disconnecting' ||
-                !isEnabled ||
-                (connectionState === 'disconnected' && !canConnect)
+                (!isStreaming && (!isValid || isSubmitting)) ||
+                status === 'submitted'
               }
-              onPointerDown={() => {
-                longPressTriggeredRef.current = false;
-                if (connectionState === 'connected') {
-                  longPressTimerRef.current = setTimeout(() => {
-                    longPressTriggeredRef.current = true;
-                    _disconnect();
-                  }, 700);
-                }
-              }}
-              onPointerUp={() => {
-                if (longPressTimerRef.current) {
-                  clearTimeout(longPressTimerRef.current);
-                  longPressTimerRef.current = null;
-                }
-              }}
-              onPointerLeave={() => {
-                if (longPressTimerRef.current) {
-                  clearTimeout(longPressTimerRef.current);
-                  longPressTimerRef.current = null;
-                }
-              }}
-              onClick={() => {
-                console.log('🎤 Microphone button clicked:', connectionState);
-
-                if (longPressTriggeredRef.current) {
-                  // Long-press already handled disconnect; ignore click
-                  longPressTriggeredRef.current = false;
-                  return;
-                }
-
-                if (connectionState === 'connected' && session) {
-                  setIsMuted(!isMuted);
-                } else if (connectionState === 'disconnected') {
-                  connect();
-                }
-              }}
+              onClick={isStreaming ? stop : handleSubmit(submitHandler)}
             >
               <ButtonContent>
                 <Icon
                   icon={
-                    connectionState === 'connecting' ||
-                    connectionState === 'disconnecting'
+                    isLoading && !isStreaming
                       ? IconSpinner
-                      : connectionState === 'connected'
-                        ? isMuted
-                          ? IconMicrophoneOff
-                          : IconMicrophone
-                        : IconMicrophoneOff
+                      : isStreaming
+                        ? IconPlayerStop
+                        : IconArrowUp
                   }
                 />
               </ButtonContent>
             </Button>
-          )}
-          <Button
-            shape="circle"
-            size="lg"
-            type="submit"
-            isDisabled={
-              (!isStreaming && (!isValid || isSubmitting)) ||
-              status === 'submitted'
-            }
-            onClick={isStreaming ? stop : handleSubmit(submitHandler)}
-          >
-            <ButtonContent>
-              <Icon
-                icon={
-                  isLoading && !isStreaming
-                    ? IconSpinner
-                    : isStreaming
-                      ? IconPlayerStop
-                      : IconArrowUp
-                }
-              />
-            </ButtonContent>
-          </Button>
+          </div>
         </div>
       </div>
     </motion.div>
