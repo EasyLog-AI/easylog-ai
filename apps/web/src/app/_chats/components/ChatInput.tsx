@@ -42,7 +42,7 @@ const ChatInput = () => {
     connectionState,
     isEnabled,
     isMuted,
-    toggleMute
+    setIsMuted
   } = useRealTime();
 
   const {
@@ -80,8 +80,6 @@ const ChatInput = () => {
     isSubmitting || status === 'submitted' || status === 'streaming';
 
   const isStreaming = status === 'streaming';
-
-  // No local mute state; rely on provider isMuted entirely
 
   return (
     <motion.div
@@ -173,7 +171,7 @@ const ChatInput = () => {
                 }
 
                 if (connectionState === 'connected' && session) {
-                  void toggleMute();
+                  setIsMuted(!isMuted);
                 } else if (connectionState === 'disconnected') {
                   connect();
                 }

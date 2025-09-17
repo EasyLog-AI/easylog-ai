@@ -2,13 +2,14 @@ import * as Sentry from '@sentry/nextjs';
 import {
   UIMessage,
   convertToModelMessages,
-  createIdGenerator,
   createUIMessageStream,
   createUIMessageStreamResponse,
+  generateId,
   hasToolCall,
   stepCountIs,
   streamText,
-  tool
+  tool,
+  validateUIMessages
 } from 'ai';
 import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
@@ -79,6 +80,10 @@ export const POST = async (
   ) {
     return new NextResponse('Chat not found', { status: 404 });
   }
+
+  const validatedMessages = await validateUIMessages({
+    messages: [...chat.messages, message]
+  });
 
   const activeRole =
     chat.activeRole ?? chat.agent.roles.find((r) => r.isDefault);
@@ -162,7 +167,7 @@ export const POST = async (
           reasoning
         }),
         system: promptWithContext,
-        messages: convertToModelMessages(messages),
+        messages: convertToModelMessages(validatedMessages),
         tools: {
           createChart: toolCreateChart(writer),
           getDatasources: toolGetDataSources(user.id),
@@ -259,12 +264,13 @@ export const POST = async (
         stopWhen: [stepCountIs(20), hasToolCall('createMultipleChoice')]
       });
 
-      writer.merge(result.toUIMessageStream());
+      writer.write({
+        type: 'start',
+        messageId: generateId()
+      });
+
+      writer.merge(result.toUIMessageStream({ sendStart: false }));
     },
-    generateId: createIdGenerator({
-      prefix: 'msg',
-      size: 16
-    }),
     originalMessages: messages,
     onFinish: async ({ messages }) => {
       await db
