@@ -10,6 +10,7 @@ import internalChartConfigSchema from '@/app/_charts/schemas/internalChartConfig
 import useTRPC from '@/lib/trpc/browser';
 import lastAssistantMessageIsCompleteWithToolCalls from '@/utils/lastAssistantMessageIsCompleteWithToolCalls';
 
+import useChatMode from '../hooks/useChatMode';
 import multipleChoiceSchema from '../schemas/multipleChoiceSchema';
 import researchSchema from '../schemas/researchSchema';
 
@@ -22,12 +23,7 @@ type ChatMessage = UIMessage<
   }
 >;
 
-interface ChatContextType extends UseChatHelpers<ChatMessage> {
-  mode: 'chat' | 'awaiting-tool-call' | 'chat-finished' | 'realtime';
-  setMode: (
-    mode: 'chat' | 'awaiting-tool-call' | 'chat-finished' | 'realtime'
-  ) => void;
-}
+interface ChatContextType extends UseChatHelpers<ChatMessage> {}
 
 export const ChatContext = createContext<ChatContextType | undefined>(
   undefined
@@ -42,11 +38,9 @@ const ChatProvider = ({
   agentSlug
 }: React.PropsWithChildren<ChatProviderProps>) => {
   const api = useTRPC();
+  const { setMode } = useChatMode();
 
   const [didStartChat, setDidStartChat] = useState(false);
-  const [mode, setMode] = useState<
-    'chat' | 'awaiting-tool-call' | 'chat-finished' | 'realtime'
-  >('chat');
 
   const { data: dbChat, refetch } = useSuspenseQuery(
     api.chats.getOrCreate.queryOptions({
@@ -108,12 +102,7 @@ const ChatProvider = ({
   return (
     <ChatContext.Provider
       value={{
-        ...chat,
-        mode,
-        setMode: (newMode) => {
-          console.log(`🔄 Mode change: ${mode} → ${newMode}`);
-          return setMode(newMode);
-        }
+        ...chat
       }}
     >
       {children}
