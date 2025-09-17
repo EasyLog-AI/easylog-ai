@@ -44,7 +44,9 @@ const ChatInput = () => {
     isEnabled,
     isLoading: isRealTimeLoading,
     isMuted,
-    setIsMuted
+    setIsMuted,
+    isAgentTurn,
+    interrupt
   } = useRealTime();
 
   const {
@@ -202,17 +204,28 @@ const ChatInput = () => {
             size="lg"
             type="submit"
             isDisabled={
-              (!isStreaming && (!isValid || isSubmitting)) ||
+              (!isStreaming &&
+                (!isValid || isSubmitting) &&
+                !(connectionState === 'connected' && isAgentTurn && session)) ||
               status === 'submitted'
             }
-            onClick={isStreaming ? stop : handleSubmit(submitHandler)}
+            onClick={
+              isStreaming
+                ? stop
+                : connectionState === 'connected' && isAgentTurn && session
+                  ? () => interrupt()
+                  : handleSubmit(submitHandler)
+            }
           >
             <ButtonContent>
               <Icon
                 icon={
                   isLoading && !isStreaming
                     ? IconSpinner
-                    : isStreaming
+                    : isStreaming ||
+                        (connectionState === 'connected' &&
+                          isAgentTurn &&
+                          session)
                       ? IconPlayerStop
                       : IconArrowUp
                 }

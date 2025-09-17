@@ -1,6 +1,11 @@
 'use client';
 
-import { RealtimeAgent, RealtimeSession, tool } from '@openai/agents-realtime';
+import {
+  RealtimeAgent,
+  RealtimeSession,
+  TransportEvent,
+  tool
+} from '@openai/agents-realtime';
 import * as Sentry from '@sentry/nextjs';
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { UIMessage } from 'ai';
@@ -30,6 +35,7 @@ interface RealTimeContextType {
   disconnect: () => void;
   isMuted: boolean;
   setIsMuted: (next: boolean) => void;
+  isAgentTurn: boolean;
   connectionState:
     | 'disconnected'
     | 'connecting'
@@ -38,6 +44,7 @@ interface RealTimeContextType {
   canConnect: boolean;
   isEnabled: boolean;
   isLoading: boolean;
+  interrupt: () => void;
 }
 
 export const RealTimeContext = createContext<RealTimeContextType | undefined>(
@@ -58,6 +65,7 @@ const RealTimeProvider = ({
   const api = useTRPC();
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isAgentTurn, setIsAgentTurn] = useState(false);
   const [syncedMessageIds, setSyncedMessageIds] = useState<Set<string>>(
     new Set()
   );
@@ -231,16 +239,26 @@ const RealTimeProvider = ({
   }, [session, messages, setMessages]);
 
   useEffect(() => {
-    const handleTurnDone = () => {
+    const handleAgentStart = () => {
+      setIsAgentTurn(true);
+
       if (isAutoMuted) {
         setIsMuted(true);
       }
     };
 
-    session?.on('agent_start', handleTurnDone);
+    const handleTransportEvent = (event: TransportEvent) => {
+      if (event.type === 'output_audio_buffer.stopped') {
+        setIsAgentTurn(false);
+      }
+    };
+
+    session?.on('agent_start', handleAgentStart);
+    session?.on('transport_event', handleTransportEvent);
 
     return () => {
-      session?.off('agent_start', handleTurnDone);
+      session?.off('agent_start', handleAgentStart);
+      session?.off('transport_event', handleTransportEvent);
     };
   }, [isAutoMuted, session, setIsMuted]);
 
@@ -306,6 +324,12 @@ const RealTimeProvider = ({
       setIsLoading(false);
     }
   }, [session, setIsMuted, setMode]);
+
+  const interrupt = useCallback(() => {
+    session?.interrupt();
+    setIsAgentTurn(false);
+    setIsLoading(false);
+  }, [session]);
 
   useEffect(() => {
     if (
@@ -433,7 +457,9 @@ const RealTimeProvider = ({
         canConnect:
           !!realTimeSessionToken?.value && !tokenLoading && !tokenError,
         isLoading,
-        isEnabled
+        isEnabled,
+        isAgentTurn,
+        interrupt
       }}
     >
       {children}
