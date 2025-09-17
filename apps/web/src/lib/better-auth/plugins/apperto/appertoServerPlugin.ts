@@ -1,14 +1,16 @@
+import * as Sentry from '@sentry/nextjs';
 import type { BetterAuthPlugin } from 'better-auth';
 import { APIError, createAuthEndpoint } from 'better-auth/api';
 import { setSessionCookie } from 'better-auth/cookies';
 import { z } from 'zod';
 
-export interface AppertoUserInfo {
-  id: string;
-  email: string;
-  name?: string;
-  picture?: string;
-}
+import tryCatch from '@/utils/try-catch';
+
+const appertoUserInfoSchema = z.object({
+  sub: z.number(),
+  email: z.string().email(),
+  name: z.string()
+});
 
 export interface AppertoPluginOptions {
   /**
@@ -24,12 +26,6 @@ export interface AppertoPluginOptions {
    * @default true
    */
   autoCreateUser?: boolean;
-
-  /**
-   * Custom redirect URI.
-   * If not provided, a default URI will be constructed.
-   */
-  redirectURI?: string;
 }
 
 const defaultOptions: Omit<Required<AppertoPluginOptions>, 'redirectURI'> = {
@@ -51,11 +47,11 @@ const appertoServerPlugin = (
           method: 'GET',
           query: z.object({
             token: z.string().min(1),
-            redirectURI: z.string().optional()
+            redirect_uri: z.string().optional()
           })
         },
         async (ctx) => {
-          const { token, redirectURI } = ctx.query;
+          const { token, redirect_uri: redirectURI } = ctx.query;
 
           try {
             // Call Apperto userinfo endpoint using the token from query params
@@ -69,40 +65,58 @@ const appertoServerPlugin = (
 
             if (!response.ok) {
               throw new APIError('UNAUTHORIZED', {
-                message: 'Failed to verify token with Apperto'
+                message: 'Failed to verify token with Apperto',
+                code: 'INVALID_TOKEN'
               });
             }
 
-            const userInfo: AppertoUserInfo = await response.json();
+            const [jsonResponse, jsonResponseError] = await tryCatch(
+              response.json()
+            );
 
-            if (!userInfo.id || !userInfo.email) {
+            if (jsonResponseError) {
+              throw new APIError('UNAUTHORIZED', {
+                message: 'Invalid response from Apperto',
+                code: 'INVALID_TOKEN'
+              });
+            }
+
+            const userInfoResult =
+              appertoUserInfoSchema.safeParse(jsonResponse);
+
+            if (!userInfoResult.success) {
               throw new APIError('BAD_REQUEST', {
-                message: 'Invalid user info from Apperto'
+                message: 'Invalid user info from Apperto',
+                code: 'INVALID_USER_INFO'
               });
             }
+
+            console.log('userInfo', userInfoResult.data);
 
             // Check if user exists
             let user = await ctx.context.internalAdapter.findUserByEmail(
-              userInfo.email
+              userInfoResult.data.email
             );
 
             if (!user && !config.autoCreateUser) {
               throw new APIError('NOT_FOUND', {
-                message: 'User not found and auto-creation is disabled'
+                message: 'User not found and auto-creation is disabled',
+                code: 'USER_NOT_FOUND'
               });
             }
 
-            // Create new user
-            user = await ctx.context.internalAdapter.createUser({
-              email: userInfo.email,
-              emailVerified: true,
-              name: userInfo.name || userInfo.email.split('@')[0],
-              image: userInfo.picture || null
-            });
+            if (!user) {
+              user = await ctx.context.internalAdapter.createUser({
+                email: userInfoResult.data.email,
+                emailVerified: true,
+                name: userInfoResult.data.name
+              });
+            }
 
             if (!user) {
               throw new APIError('NOT_FOUND', {
-                message: 'User not found or not created'
+                message: 'User not found or not created',
+                code: 'USER_NOT_FOUND'
               });
             }
 
@@ -118,10 +132,8 @@ const appertoServerPlugin = (
               user: user.user
             });
 
-            // Handle redirect
-            const finalRedirectURI = redirectURI || config.redirectURI;
-            if (finalRedirectURI) {
-              return ctx.redirect(finalRedirectURI);
+            if (redirectURI) {
+              return ctx.redirect(redirectURI);
             }
 
             return ctx.json({
@@ -129,11 +141,15 @@ const appertoServerPlugin = (
               session
             });
           } catch (error) {
+            console.error('Error processing Apperto token', error);
+            Sentry.captureException(error);
+
             if (error instanceof APIError) {
               throw error;
             }
 
             throw new APIError('INTERNAL_SERVER_ERROR', {
+              code: 'FAILED_TO_PROCESS_APPERTO_TOKEN',
               message: 'Failed to process Apperto token'
             });
           }
