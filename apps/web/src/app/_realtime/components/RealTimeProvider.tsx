@@ -36,6 +36,7 @@ interface RealTimeContextType {
     | 'disconnecting';
   canConnect: boolean;
   isEnabled: boolean;
+  isLoading: boolean;
 }
 
 export const RealTimeContext = createContext<RealTimeContextType | undefined>(
@@ -55,6 +56,11 @@ const RealTimeProvider = ({
 
   const api = useTRPC();
 
+  const [isLoading, setIsLoading] = useState(false);
+  const [syncedMessageIds, setSyncedMessageIds] = useState<Set<string>>(
+    new Set()
+  );
+
   const { data: dbChat } = useSuspenseQuery(
     api.chats.getOrCreate.queryOptions({
       agentId: agentSlug
@@ -62,6 +68,7 @@ const RealTimeProvider = ({
   );
 
   const isEnabled = dbChat.agent.voiceChatEnabled;
+  const isAutoMuted = dbChat.agent.voiceChatAutoMute;
 
   const {
     data: realTimeSessionToken,
@@ -167,7 +174,7 @@ const RealTimeProvider = ({
   const session = useMemo(() => {
     if (isEnabled) {
       return new RealtimeSession(agent, {
-        model: 'gpt-realtime'
+        model: 'gpt-realtime-2025-08-28'
       });
     }
     return null;
@@ -184,6 +191,8 @@ const RealTimeProvider = ({
   const setIsMuted = useCallback(
     (next: boolean) => {
       if (!session || session.transport.status !== 'connected') return;
+      console.log('🔧 Muting realtime:', next);
+      setIsLoading(true);
       session.mute(next);
     },
     [session]
@@ -203,6 +212,8 @@ const RealTimeProvider = ({
       const newRealtimeMessages = filterNewMessages(history, messages);
       const newUIMessages = convertRealtimeToUI(newRealtimeMessages);
 
+      console.log('🔧 New UI messages:', newUIMessages);
+
       if (newUIMessages.length > 0) {
         setMessages([...messages, ...newUIMessages] as UIMessage<
           unknown,
@@ -218,9 +229,19 @@ const RealTimeProvider = ({
     };
   }, [session, messages, setMessages]);
 
-  const [syncedMessageIds, setSyncedMessageIds] = useState<Set<string>>(
-    new Set()
-  );
+  useEffect(() => {
+    const handleTurnDone = () => {
+      if (isAutoMuted) {
+        setIsMuted(true);
+      }
+    };
+
+    session?.on('agent_start', handleTurnDone);
+
+    return () => {
+      session?.off('agent_start', handleTurnDone);
+    };
+  }, [isAutoMuted, session, setIsMuted]);
 
   const connect = useCallback(async () => {
     if (!isEnabled) {
@@ -233,6 +254,8 @@ const RealTimeProvider = ({
         console.error('❌ No ephemeral token available');
         throw new Error('No ephemeral token found');
       }
+
+      setIsLoading(true);
 
       await session?.connect({
         apiKey: realTimeSessionToken?.value
@@ -252,6 +275,8 @@ const RealTimeProvider = ({
       );
       Sentry.captureException(error);
       setMode('chat');
+    } finally {
+      setIsLoading(false);
     }
   }, [
     isEnabled,
@@ -264,6 +289,7 @@ const RealTimeProvider = ({
 
   const disconnect = useCallback(async () => {
     try {
+      setIsLoading(true);
       session?.close();
       setSyncedMessageIds(new Set());
       setMode('chat');
@@ -275,6 +301,8 @@ const RealTimeProvider = ({
         `Failed to disconnect from realtime session: ${(error as Error).message}`
       );
       Sentry.captureException(error);
+    } finally {
+      setIsLoading(false);
     }
   }, [session, setIsMuted, setMode]);
 
@@ -332,7 +360,7 @@ const RealTimeProvider = ({
 
     if (mode === 'awaiting-tool-call' && !session?.transport.muted) {
       console.log('🔌 Muting realtime...');
-      session.mute(true);
+      setIsMuted(true);
       return;
     }
 
@@ -342,7 +370,7 @@ const RealTimeProvider = ({
       session?.updateHistory(realtimeHistory);
 
       console.log('🔧 Unmuting realtime...');
-      session.mute(false);
+      setIsMuted(false);
 
       console.log('🔧 Sending message to continue conversation');
 
@@ -359,7 +387,36 @@ const RealTimeProvider = ({
 
       setMode('realtime');
     }
-  }, [mode, session?.transport.status, session, messages, setMode]);
+  }, [mode, session?.transport.status, session, messages, setMode, setIsMuted]);
+
+  useEffect(() => {
+    console.log('🔧 Session transport status:', session?.transport.status);
+    console.log('🔧 Session transport muted:', session?.transport.muted);
+
+    if (session?.transport.status === 'connected') {
+      setIsLoading(false);
+    }
+
+    if (session?.transport.status === 'disconnected') {
+      setIsLoading(false);
+    }
+
+    if (session?.transport.status === 'connecting') {
+      setIsLoading(true);
+    }
+
+    if (session?.transport.status === 'disconnecting') {
+      setIsLoading(true);
+    }
+
+    if (session?.transport.muted === true) {
+      setIsLoading(false);
+    }
+
+    if (session?.transport.muted === false) {
+      setIsLoading(false);
+    }
+  }, [session?.transport.status, session?.transport.muted]);
 
   return (
     <RealTimeContext.Provider
@@ -373,6 +430,7 @@ const RealTimeProvider = ({
         disconnect,
         canConnect:
           !!realTimeSessionToken?.value && !tokenLoading && !tokenError,
+        isLoading,
         isEnabled
       }}
     >

@@ -170,6 +170,7 @@ export const agents = pgTable('agents', {
   ).notNull(),
   autoStartMessage: text('auto_start_message').default('[hello]'),
   voiceChatEnabled: boolean('voice_chat_enabled').notNull().default(false),
+  voiceChatAutoMute: boolean('voice_chat_auto_mute').notNull().default(false),
   voiceChatVoice: voiceChatVoiceEnum('voice_chat_voice')
     .notNull()
     .default('marin'),
