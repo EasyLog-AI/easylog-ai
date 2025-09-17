@@ -7,6 +7,8 @@ import db from '@/database/client';
 import * as schema from '@/database/schema';
 import serverConfig from '@/server.config';
 
+import appertoServerPlugin from './plugins/apperto/appertoServerPlugin';
+
 const authServerClient = betterAuth({
   baseURL: serverConfig.appUrl.toString(),
   secret: serverConfig.betterAuthSecret,
@@ -15,6 +17,10 @@ const authServerClient = betterAuth({
   },
   plugins: [
     nextCookies(),
+    appertoServerPlugin({
+      baseUrl: 'https://staging2.easylog.nu',
+      autoCreateUser: true
+    }),
     genericOAuth({
       config: [
         {

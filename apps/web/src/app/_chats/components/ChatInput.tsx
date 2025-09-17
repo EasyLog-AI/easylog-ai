@@ -3,6 +3,7 @@
 import {
   IconArrowUp,
   IconMicrophone,
+  IconMicrophoneFilled,
   IconMicrophoneOff,
   IconPlayerStop
 } from '@tabler/icons-react';
@@ -41,6 +42,7 @@ const ChatInput = () => {
     disconnect: _disconnect,
     connectionState,
     isEnabled,
+    isLoading: isRealTimeLoading,
     isMuted,
     setIsMuted
   } = useRealTime();
@@ -138,7 +140,8 @@ const ChatInput = () => {
                 connectionState === 'connecting' ||
                 connectionState === 'disconnecting' ||
                 !isEnabled ||
-                (connectionState === 'disconnected' && !canConnect)
+                (connectionState === 'disconnected' && !canConnect) ||
+                isRealTimeLoading
               }
               onPointerDown={() => {
                 longPressTriggeredRef.current = false;
@@ -181,13 +184,14 @@ const ChatInput = () => {
                 <Icon
                   icon={
                     connectionState === 'connecting' ||
-                    connectionState === 'disconnecting'
+                    connectionState === 'disconnecting' ||
+                    isRealTimeLoading
                       ? IconSpinner
                       : connectionState === 'connected'
                         ? isMuted
                           ? IconMicrophoneOff
-                          : IconMicrophone
-                        : IconMicrophoneOff
+                          : IconMicrophoneFilled
+                        : IconMicrophone
                   }
                 />
               </ButtonContent>
