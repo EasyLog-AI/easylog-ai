@@ -91,8 +91,6 @@ const appertoServerPlugin = (
               });
             }
 
-            console.log('userInfo', userInfoResult.data);
-
             // Check if user exists
             let user = await ctx.context.internalAdapter.findUserByEmail(
               userInfoResult.data.email
