@@ -250,15 +250,23 @@ const RealTimeProvider = ({
     const handleTransportEvent = (event: TransportEvent) => {
       if (event.type === 'output_audio_buffer.stopped') {
         setIsAgentTurn(false);
+        setIsLoading(false);
       }
+    };
+
+    const handleInterrupted = () => {
+      setIsAgentTurn(false);
+      setIsLoading(false);
     };
 
     session?.on('agent_start', handleAgentStart);
     session?.on('transport_event', handleTransportEvent);
+    session?.on('audio_interrupted', handleInterrupted);
 
     return () => {
       session?.off('agent_start', handleAgentStart);
       session?.off('transport_event', handleTransportEvent);
+      session?.off('audio_interrupted', handleInterrupted);
     };
   }, [isAutoMuted, session, setIsMuted]);
 
