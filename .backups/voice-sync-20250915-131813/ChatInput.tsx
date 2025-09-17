@@ -7,7 +7,7 @@ import {
   IconPlayerStop
 } from '@tabler/icons-react';
 import { motion } from 'motion/react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { SubmitHandler } from 'react-hook-form';
 import TextareaAutosize from 'react-textarea-autosize';
 import { z } from 'zod';
@@ -32,6 +32,7 @@ const ChatInput = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressTriggeredRef = useRef<boolean>(false);
+  const [uiMuted, setUiMuted] = useState(false);
 
   const { sendMessage, status, stop } = useChatContext();
   const {
@@ -41,8 +42,7 @@ const ChatInput = () => {
     disconnect: _disconnect,
     connectionState,
     isEnabled,
-    isMuted,
-    toggleMute
+    isMuted
   } = useRealTime();
 
   const {
@@ -81,7 +81,10 @@ const ChatInput = () => {
 
   const isStreaming = status === 'streaming';
 
-  // No local mute state; rely on provider isMuted entirely
+  useEffect(() => {
+    // Sync UI icon with provider-level mute state, including auto-mute
+    setUiMuted(Boolean(isMuted));
+  }, [isMuted]);
 
   return (
     <motion.div
@@ -173,7 +176,9 @@ const ChatInput = () => {
                 }
 
                 if (connectionState === 'connected' && session) {
-                  void toggleMute();
+                  const nextMuted = !uiMuted;
+                  setUiMuted(nextMuted);
+                  session.mute(nextMuted);
                 } else if (connectionState === 'disconnected') {
                   connect();
                 }
@@ -186,7 +191,7 @@ const ChatInput = () => {
                     connectionState === 'disconnecting'
                       ? IconSpinner
                       : connectionState === 'connected'
-                        ? isMuted
+                        ? uiMuted
                           ? IconMicrophoneOff
                           : IconMicrophone
                         : IconMicrophoneOff

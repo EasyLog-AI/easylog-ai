@@ -28,8 +28,6 @@ interface RealTimeContextType {
   connect: () => void;
   disconnect: () => void;
   isMuted: boolean;
-  mute: (next: boolean) => Promise<void> | void;
-  toggleMute: () => Promise<void> | void;
   connectionState:
     | 'disconnected'
     | 'connecting'
@@ -183,31 +181,6 @@ const RealTimeProvider = ({
     };
   }, [session]);
 
-  const mute = useCallback(
-    async (next: boolean) => {
-      if (!session || session.transport.status !== 'connected') return;
-      // optimistic update
-      setIsMuted(next);
-      try {
-        await session.mute(next);
-      } finally {
-        // reconcile after a tick
-        setTimeout(() => {
-          const transportMuted = Boolean(session.transport.muted);
-          if (transportMuted !== next) {
-            setIsMuted(transportMuted);
-          }
-        }, 50);
-      }
-    },
-    [session]
-  );
-
-  const toggleMute = useCallback(async () => {
-    if (!session || session.transport.status !== 'connected') return;
-    await mute(!isMuted);
-  }, [isMuted, mute, session]);
-
   const { mutate: syncMessages, isPending } = useMutation(
     api.realtime.syncMessages.mutationOptions({
       onError: (error) => {
@@ -215,13 +188,6 @@ const RealTimeProvider = ({
         Sentry.captureException(error);
       }
     })
-  );
-
-  const [lastAiAudioItemId, setLastAiAudioItemId] = useState<string | null>(
-    null
-  );
-  const [lastAssistantStartId, setLastAssistantStartId] = useState<string | null>(
-    null
   );
 
   useEffect(() => {
@@ -236,56 +202,29 @@ const RealTimeProvider = ({
         >[]);
       }
 
-      // Early auto-mute: assistant has started speaking (status in_progress)
-      const latestAssistantStart = [...(session?.history ?? [])]
-        .reverse()
-        .find(
-          (item) =>
-            item.type === 'message' &&
-            'role' in item &&
-            item.role === 'assistant' &&
-            'status' in item &&
-            (item as { status?: string }).status === 'in_progress'
-        );
+      // Auto-mute mic when assistant is speaking (output_audio present)
+      const aiSpeaking = newRealtimeMessages.some(
+        (item) =>
+          item.type === 'message' &&
+          'role' in item &&
+          item.role === 'assistant' &&
+          Array.isArray(item.content) &&
+          item.content.some(
+            (c) =>
+              typeof c === 'object' &&
+              c !== null &&
+              'type' in c &&
+              (c as { type: string }).type === 'output_audio'
+          )
+      );
 
       if (
-        latestAssistantStart &&
-        latestAssistantStart.itemId !== lastAssistantStartId &&
-        session?.transport.status === 'connected'
+        aiSpeaking &&
+        session?.transport.status === 'connected' &&
+        !session.transport.muted
       ) {
-        setLastAssistantStartId(latestAssistantStart.itemId);
-        if (!session.transport.muted) {
-          void mute(true);
-        }
-      }
-
-      // Auto-mute when assistant outputs audio; scan entire history and de-dup by last audio item id
-      const latestAiAudio = [...(session?.history ?? [])]
-        .reverse()
-        .find(
-          (item) =>
-            item.type === 'message' &&
-            'role' in item &&
-            item.role === 'assistant' &&
-            Array.isArray(item.content) &&
-            item.content.some(
-              (c) =>
-                typeof c === 'object' &&
-                c !== null &&
-                'type' in c &&
-                (c as { type: string }).type === 'output_audio'
-            )
-        );
-
-      if (
-        latestAiAudio &&
-        latestAiAudio.itemId !== lastAiAudioItemId &&
-        session?.transport.status === 'connected'
-      ) {
-        setLastAiAudioItemId(latestAiAudio.itemId);
-        if (!session.transport.muted) {
-          void mute(true);
-        }
+        session.mute(true);
+        setIsMuted(true);
       }
     };
 
@@ -294,7 +233,7 @@ const RealTimeProvider = ({
     return () => {
       session?.off('history_updated', handleHistoryUpdate);
     };
-  }, [session, messages, setMessages, mute, lastAiAudioItemId, lastAssistantStartId]);
+  }, [session, messages, setMessages]);
 
   const [syncedMessageIds, setSyncedMessageIds] = useState<Set<string>>(
     new Set()
@@ -403,7 +342,8 @@ const RealTimeProvider = ({
 
     if (mode === 'awaiting-tool-call' && !session?.transport.muted) {
       console.log('🔌 Muting realtime...');
-      void mute(true);
+      session?.mute(true);
+      setIsMuted(true);
       return;
     }
 
@@ -413,7 +353,8 @@ const RealTimeProvider = ({
       session?.updateHistory(realtimeHistory);
 
       console.log('🔧 Unmuting realtime...');
-      void mute(false);
+      session?.mute(false);
+      setIsMuted(false);
 
       console.log('🔧 Sending message to continue conversation');
 
@@ -438,8 +379,6 @@ const RealTimeProvider = ({
         agent,
         session,
         isMuted,
-        mute,
-        toggleMute,
         connectionState: session?.transport.status ?? 'disconnected',
         connect,
         disconnect,
