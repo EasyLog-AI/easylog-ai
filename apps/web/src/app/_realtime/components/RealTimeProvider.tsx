@@ -373,21 +373,20 @@ const RealTimeProvider = ({
 
       console.log('🔧 Sending message to continue conversation');
 
-      setTimeout(() => {
-        session?.sendMessage({
-          type: 'message',
-          role: 'user',
-          content: [
-            {
-              type: 'input_text',
-              text: '[naturally continue our conversation]'
-            }
-          ]
-        });
-      }, 1000);
+      session?.sendMessage({
+        type: 'message',
+        role: 'user',
+        content: [
+          {
+            type: 'input_text',
+            text: '[naturally continue our conversation]'
+          }
+        ]
+      });
 
       console.log('🔧 Unmuting realtime...');
       setIsMuted(false);
+
       setMode('realtime');
     }
   }, [mode, session?.transport.status, session, messages, setMode, setIsMuted]);
