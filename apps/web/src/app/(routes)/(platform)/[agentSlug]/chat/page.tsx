@@ -5,6 +5,7 @@ import { forbidden } from 'next/navigation';
 import getCurrentUser from '@/app/_auth/data/getCurrentUser';
 import ChatHistory from '@/app/_chats/components/ChatHistory';
 import ChatInput from '@/app/_chats/components/ChatInput';
+import ChatModeProvider from '@/app/_chats/components/ChatModeProvider';
 import ChatProvider from '@/app/_chats/components/ChatProvider';
 import RealTimeProvider from '@/app/_realtime/components/RealTimeProvider';
 import getQueryClient from '@/lib/react-query';
@@ -35,12 +36,14 @@ const ChatPage = async ({
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <ChatProvider agentSlug={agentSlug}>
-        <RealTimeProvider agentSlug={agentSlug}>
-          <ChatHistory />
-          <ChatInput />
-        </RealTimeProvider>
-      </ChatProvider>
+      <ChatModeProvider>
+        <ChatProvider agentSlug={agentSlug}>
+          <RealTimeProvider agentSlug={agentSlug}>
+            <ChatHistory />
+            <ChatInput />
+          </RealTimeProvider>
+        </ChatProvider>
+      </ChatModeProvider>
     </HydrationBoundary>
   );
 };

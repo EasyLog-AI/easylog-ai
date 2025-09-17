@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import z from 'zod';
 
 import useChatContext from '@/app/_chats/hooks/useChatContext';
+import useChatMode from '@/app/_chats/hooks/useChatMode';
 import useTRPC from '@/lib/trpc/browser';
 
 import { RealtimeItem } from '../schemas/realtimeItemSchema';
@@ -51,8 +52,8 @@ const RealTimeProvider = ({
   children,
   agentSlug
 }: React.PropsWithChildren<RealTimeProviderProps>) => {
-  const { setMode, messages, setMessages, sendMessage, mode } =
-    useChatContext();
+  const { messages, setMessages, sendMessage } = useChatContext();
+  const { mode, setMode } = useChatMode();
 
   const api = useTRPC();
 
@@ -365,12 +366,10 @@ const RealTimeProvider = ({
     }
 
     if (mode === 'chat-finished' && session?.transport.muted) {
-      const realtimeHistory = convertUIToRealtime(messages);
-      console.log('🔧 Realtime history:', realtimeHistory);
-      session?.updateHistory(realtimeHistory);
+      console.log('🔧 Realtime history:', messages);
 
-      console.log('🔧 Unmuting realtime...');
-      setIsMuted(false);
+      const realtimeHistory = convertUIToRealtime(messages);
+      session?.updateHistory(realtimeHistory);
 
       console.log('🔧 Sending message to continue conversation');
 
@@ -384,6 +383,9 @@ const RealTimeProvider = ({
           }
         ]
       });
+
+      console.log('🔧 Unmuting realtime...');
+      setIsMuted(false);
 
       setMode('realtime');
     }
