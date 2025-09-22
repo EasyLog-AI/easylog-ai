@@ -6,6 +6,7 @@ import {
   YAxis
 } from 'recharts';
 
+import { LineChartConfig } from '@/app/_chats/tools/charts/schemas';
 import ChartContainer from '@/app/_ui/components/Chart/ChartContainer';
 import ChartLegend from '@/app/_ui/components/Chart/ChartLegend';
 import ChartLegendContent from '@/app/_ui/components/Chart/ChartLegendContent';
@@ -13,46 +14,58 @@ import ChartTooltip from '@/app/_ui/components/Chart/ChartTooltip';
 import ChartTooltipContent from '@/app/_ui/components/Chart/ChartTooltipContent';
 import { ChartConfig } from '@/app/_ui/components/Chart/utils/chartConfig';
 
-import { InternalChartConfig } from '../schemas/internalChartConfigSchema';
-
 export interface LineChartProps {
-  config: InternalChartConfig;
+  config: LineChartConfig;
 }
 
 const LineChart = ({ config }: LineChartProps) => {
-  const { values, xAxisKey, data } = config;
+  const { categories, series } = config;
 
-  const chartConfig = values.reduce((acc, item) => {
-    acc[item.dataKey] = {
-      label: item.label,
-      color: item.color
+  const availableColors = [
+    'var(--color-chart-1)',
+    'var(--color-chart-2)',
+    'var(--color-chart-3)',
+    'var(--color-chart-4)',
+    'var(--color-chart-5)'
+  ];
+
+  // Transform simplified format to chart data
+  const data = categories.map((category: string, categoryIndex: number) => {
+    const dataObj: Record<string, string | number> = { category };
+    series.forEach((s, seriesIndex: number) => {
+      dataObj[`series_${seriesIndex}`] = s.data[categoryIndex] || 0;
+    });
+    return dataObj;
+  });
+
+  // Create chart config for legend
+  const chartConfig = series.reduce((acc, s, index: number) => {
+    acc[`series_${index}`] = {
+      label: s.name,
+      color: s.color || availableColors[index % availableColors.length]
     };
     return acc;
   }, {} as ChartConfig);
 
   return (
-    <ChartContainer config={chartConfig} className="aspect-[4/3] my-4">
+    <ChartContainer config={chartConfig} className="my-4 aspect-[4/3]">
       <RechartsLineChart accessibilityLayer data={data}>
         <CartesianGrid vertical={false} />
         <XAxis
-          dataKey={xAxisKey}
+          dataKey="category"
           tickLine={false}
           tickMargin={10}
           axisLine={false}
           tickFormatter={(value) => value.slice(0, 3)}
         />
-        <YAxis
-          tickLine={false}
-          axisLine={false}
-          tickMargin={8}
-        />
+        <YAxis tickLine={false} axisLine={false} tickMargin={8} />
         <ChartTooltip content={<ChartTooltipContent hideLabel />} />
         <ChartLegend content={<ChartLegendContent />} />
-        {values.map((s) => (
+        {series.map((s, index: number) => (
           <Line
-            key={s.dataKey}
-            dataKey={s.dataKey}
-            stroke={s.color}
+            key={`series_${index}`}
+            dataKey={`series_${index}`}
+            stroke={s.color || availableColors[index % availableColors.length]}
             strokeWidth={2}
             dot={false}
           />

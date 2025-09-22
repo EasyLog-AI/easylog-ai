@@ -3,8 +3,12 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import BarChart from '@/app/_charts/components/BarChart';
+import LineChart from '@/app/_charts/components/LineChart';
+import PieChart from '@/app/_charts/components/PieChart';
+import StackedBarChart from '@/app/_charts/components/StackedBarChart';
+
 import ChatMessageAssistant from './ChatMessageAssistant';
-import ChatMessageAssistantChart from './ChatMessageAssistantChart';
 import ChatMessageAssistantMarkdownContent from './ChatMessageAssistantMarkdownContent';
 import ChatMessageAssistantMultipleChoice from './ChatMessageAssistantMultipleChoice';
 import ChatMessageAssistantReasoning from './ChatMessageAssistantReasoning';
@@ -76,12 +80,14 @@ const ChatHistory = () => {
                       key={`${message.id}-${i}`}
                       text={part.text}
                     />
-                  ) : part.type === 'data-chart' ||
-                       part.type === 'data-bar-chart' ||
-                       part.type === 'data-line-chart' ||
-                       part.type === 'data-pie-chart' ||
-                       part.type === 'data-stacked-bar-chart' ? (
-                    <ChatMessageAssistantChart
+                  ) : part.type === 'data-bar-chart' ? (
+                    <BarChart key={`${message.id}-${i}`} config={part.data} />
+                  ) : part.type === 'data-line-chart' ? (
+                    <LineChart key={`${message.id}-${i}`} config={part.data} />
+                  ) : part.type === 'data-pie-chart' ? (
+                    <PieChart key={`${message.id}-${i}`} config={part.data} />
+                  ) : part.type === 'data-stacked-bar-chart' ? (
+                    <StackedBarChart
                       key={`${message.id}-${i}`}
                       config={part.data}
                     />
