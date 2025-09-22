@@ -1,17 +1,14 @@
 import * as Sentry from '@sentry/nextjs';
 import { tool } from 'ai';
-import { z } from 'zod';
 
 import tryCatch from '@/utils/try-catch';
 
+import { deleteAllocationConfig } from './config';
 import getEasylogClient from './utils/getEasylogClient';
 
 const toolDeleteAllocation = (userId: string) => {
   return tool({
-    description: 'Delete an allocation',
-    inputSchema: z.object({
-      allocationId: z.number().describe('The ID of the allocation to delete')
-    }),
+    ...deleteAllocationConfig,
     execute: async ({ allocationId }) => {
       const client = await getEasylogClient(userId);
 

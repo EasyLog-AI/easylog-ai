@@ -17,10 +17,10 @@ import {
   useState
 } from 'react';
 import { toast } from 'sonner';
-import z from 'zod';
 
 import useChatContext from '@/app/_chats/hooks/useChatContext';
 import useChatMode from '@/app/_chats/hooks/useChatMode';
+import toolsConfig from '@/app/_chats/tools/tools.config';
 import useTRPC from '@/lib/trpc/browser';
 
 import { RealtimeItem } from '../schemas/realtimeItemSchema';
@@ -118,66 +118,41 @@ const RealTimeProvider = ({
         instructions: dbChat.agent.prompt,
         voice: dbChat.agent.voiceChatVoice,
         tools: [
-          tool({
-            name: 'search_knowledge_base',
-            description: 'Search the knowledge base for information',
-            parameters: z.object({
-              query: z.string()
-            }),
-            execute: async ({ query }) => {
-              console.log('🔧 Tool called - initiating handover');
+          ...Object.values(toolsConfig).map((toolConfig) =>
+            tool({
+              name: toolConfig.name,
+              description: toolConfig.description,
+              parameters: toolConfig.inputSchema,
+              execute: async (args) => {
+                console.log(
+                  `🔧 Tool called: ${toolConfig.name} - initiating handover`
+                );
 
-              console.log('🔧 Tool handover: realtime → chat');
+                setMode('awaiting-tool-call');
 
-              setMode('awaiting-tool-call');
+                await sendMessage({
+                  parts: [
+                    {
+                      type: 'text',
+                      text: `[execute the tool ${toolConfig.name} with the arguments of ${JSON.stringify(args)}]`
+                    }
+                  ],
+                  role: 'user'
+                });
 
-              // Send the tool execution message to normal chat
-              await sendMessage({
-                parts: [
-                  {
-                    type: 'text',
-                    text: `[execute the tool searchKnowledgeBase with the query of "${query}"]`
-                  }
-                ],
-                role: 'user'
-              });
-
-              return 'Tool execution initiated, switching to chat mode...';
-            }
-          }),
-          tool({
-            name: 'execute_sql',
-            description: 'Execute a SQL query on the Easylog database',
-            parameters: z.object({
-              queryIntent: z.string(),
-              proposedQuery: z.string().nullable()
-            }),
-            execute: async ({ queryIntent, proposedQuery }) => {
-              console.log('🔧 Tool called - initiating handover');
-
-              console.log('🔧 Tool handover: realtime → chat');
-
-              setMode('awaiting-tool-call');
-
-              // Send the tool execution message to normal chat
-              await sendMessage({
-                parts: [
-                  {
-                    type: 'text',
-                    text: `[execute the tool executeSql with the query intent of "${queryIntent}" and the proposed query of "${proposedQuery}"]`
-                  }
-                ],
-                role: 'user'
-              });
-
-              return 'Tool execution initiated, switching to chat mode...';
-            }
-          })
+                return '[done]';
+              }
+            })
+          )
         ]
       }),
-    // eslint-disable-next-line react-compiler/react-compiler
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [dbChat.agent]
+    [
+      dbChat.agent.name,
+      dbChat.agent.prompt,
+      dbChat.agent.voiceChatVoice,
+      sendMessage,
+      setMode
+    ]
   );
 
   const session = useMemo(() => {

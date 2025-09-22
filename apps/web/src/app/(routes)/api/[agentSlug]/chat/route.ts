@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import z from 'zod';
 
 import getCurrentUser from '@/app/_auth/data/getCurrentUser';
+import toolCreateChart from '@/app/_chats/tools/charts/toolCreateChart';
 import toolCreateMultipleAllocations from '@/app/_chats/tools/easylog-backend/toolCreateMultipleAllocations';
 import toolCreatePlanningPhase from '@/app/_chats/tools/easylog-backend/toolCreatePlanningPhase';
 import toolCreatePlanningProject from '@/app/_chats/tools/easylog-backend/toolCreatePlanningProject';
@@ -32,11 +33,10 @@ import toolUpdateMultipleAllocations from '@/app/_chats/tools/easylog-backend/to
 import toolUpdatePlanningPhase from '@/app/_chats/tools/easylog-backend/toolUpdatePlanningPhase';
 import toolUpdatePlanningProject from '@/app/_chats/tools/easylog-backend/toolUpdatePlanningProject';
 import toolExecuteSQL from '@/app/_chats/tools/execute-sql/toolExecuteSQL';
+import toolLoadDocument from '@/app/_chats/tools/knowledge-base/toolLoadDocument';
+import toolSearchKnowledgeBase from '@/app/_chats/tools/knowledge-base/toolSearchKnowledgeBase';
 import toolAnswerMultipleChoice from '@/app/_chats/tools/multiple-choice/toolAnswerMultipleChoice';
 import toolCreateMultipleChoice from '@/app/_chats/tools/multiple-choice/toolCreateMultipleChoice';
-import toolCreateChart from '@/app/_chats/tools/toolCreateChart';
-import toolLoadDocument from '@/app/_chats/tools/toolLoadDocument';
-import toolSearchKnowledgeBase from '@/app/_chats/tools/toolSearchKnowledgeBase';
 import db from '@/database/client';
 import { chats, memories } from '@/database/schema';
 import openrouter from '@/lib/ai-providers/openrouter';

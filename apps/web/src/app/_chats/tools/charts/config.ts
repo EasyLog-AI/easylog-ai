@@ -1,10 +1,8 @@
-import { UIMessageStreamWriter, tool } from 'ai';
-
 import internalChartConfigSchema from '@/app/_charts/schemas/internalChartConfigSchema';
 
-const toolCreateChart = (messageStreamWriter: UIMessageStreamWriter) => {
-  return tool({
-    description: `Create charts from data. Types: 'bar', 'stacked-bar', 'line', 'pie'.
+export const createChartConfig = {
+  name: 'createChart',
+  description: `Create charts from data. Types: 'bar', 'stacked-bar', 'line', 'pie'.
 
 CRITICAL: Each value entry needs a UNIQUE dataKey that exists in your data.
 
@@ -24,17 +22,5 @@ Bar (multiple series): {"type": "bar", "xAxisKey": "month", "data": [{"month": "
 Multi-color Pie (CRITICAL - each segment needs unique dataKey): {"type": "pie", "xAxisKey": "browser", "data": [{"browser": "Chrome", "chrome_users": 65}, {"browser": "Safari", "safari_users": 18}], "values": [{"dataKey": "chrome_users", "label": "Chrome", "color": "#ff6b6b"}, {"dataKey": "safari_users", "label": "Safari", "color": "#4ecdc4"}]}
 
 Single-color Pie (all segments same dataKey): {"type": "pie", "xAxisKey": "browser", "data": [{"browser": "Chrome", "users": 65}, {"browser": "Safari", "users": 18}], "values": [{"dataKey": "users", "label": "Users", "color": "#ff6b6b"}]}`,
-    inputSchema: internalChartConfigSchema,
-    execute: async (config, opts) => {
-      messageStreamWriter.write({
-        type: 'data-chart',
-        id: opts.toolCallId,
-        data: config
-      });
-
-      return 'Chart created successfully';
-    }
-  });
-};
-
-export default toolCreateChart;
+  inputSchema: internalChartConfigSchema
+} as const;

@@ -1,17 +1,14 @@
 import * as Sentry from '@sentry/nextjs';
 import { tool } from 'ai';
-import { z } from 'zod';
 
 import tryCatch from '@/utils/try-catch';
 
+import { getDataSourcesConfig } from './config';
 import getEasylogClient from './utils/getEasylogClient';
 
 const toolGetDataSources = (userId: string) => {
   return tool({
-    description: 'Get all datasources from Easylog',
-    inputSchema: z.object({
-      types: z.array(z.string()).describe('Empty array to get all datasources')
-    }),
+    ...getDataSourcesConfig,
     execute: async ({ types }) => {
       const client = await getEasylogClient(userId);
 

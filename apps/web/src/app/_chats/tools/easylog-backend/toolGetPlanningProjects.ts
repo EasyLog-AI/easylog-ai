@@ -1,25 +1,14 @@
 import * as Sentry from '@sentry/nextjs';
 import { tool } from 'ai';
-import { z } from 'zod';
 
 import tryCatch from '@/utils/try-catch';
 
+import { getPlanningProjectsConfig } from './config';
 import getEasylogClient from './utils/getEasylogClient';
 
 const toolGetPlanningProjects = (userId: string) => {
   return tool({
-    description:
-      'Retrieve all planning projects available for allocation within a date range.',
-    inputSchema: z.object({
-      startDate: z
-        .string()
-        .nullable()
-        .describe('Optional start date in YYYY-MM-DD format'),
-      endDate: z
-        .string()
-        .nullable()
-        .describe('Optional end date in YYYY-MM-DD format')
-    }),
+    ...getPlanningProjectsConfig,
     execute: async ({ startDate, endDate }) => {
       const client = await getEasylogClient(userId);
 

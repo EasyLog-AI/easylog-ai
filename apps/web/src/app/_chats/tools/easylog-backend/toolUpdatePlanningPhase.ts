@@ -1,22 +1,15 @@
 import * as Sentry from '@sentry/nextjs';
 import { tool } from 'ai';
-import { z } from 'zod';
 
 import { PhaseUpdateBody } from '@/lib/easylog/generated-client/models';
 import tryCatch from '@/utils/try-catch';
 
+import { updatePlanningPhaseConfig } from './config';
 import getEasylogClient from './utils/getEasylogClient';
 
 const toolUpdatePlanningPhase = (userId: string) => {
   return tool({
-    description: 'Update the date range of an existing planning phase.',
-    inputSchema: z.object({
-      phaseId: z.number().describe('The ID of the phase to update'),
-      start: z
-        .string()
-        .describe('New start date (accepts various date formats)'),
-      end: z.string().describe('New end date (accepts various date formats)')
-    }),
+    ...updatePlanningPhaseConfig,
     execute: async ({ phaseId, start, end }) => {
       const client = await getEasylogClient(userId);
 
