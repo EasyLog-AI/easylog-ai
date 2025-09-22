@@ -16,7 +16,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import z from 'zod';
 
 import getCurrentUser from '@/app/_auth/data/getCurrentUser';
-import toolCreateChart from '@/app/_chats/tools/charts/toolCreateChart';
+import toolCreateBarChart from '@/app/_chats/tools/charts/toolCreateBarChart';
+import toolCreateLineChart from '@/app/_chats/tools/charts/toolCreateLineChart';
+import toolCreatePieChart from '@/app/_chats/tools/charts/toolCreatePieChart';
+import toolCreateStackedBarChart from '@/app/_chats/tools/charts/toolCreateStackedBarChart';
 import toolCreateMultipleAllocations from '@/app/_chats/tools/easylog-backend/toolCreateMultipleAllocations';
 import toolCreatePlanningPhase from '@/app/_chats/tools/easylog-backend/toolCreatePlanningPhase';
 import toolCreatePlanningProject from '@/app/_chats/tools/easylog-backend/toolCreatePlanningProject';
@@ -169,7 +172,10 @@ export const POST = async (
         system: promptWithContext,
         messages: convertToModelMessages(validatedMessages),
         tools: {
-          createChart: toolCreateChart(writer),
+          createBarChart: toolCreateBarChart(writer),
+          createLineChart: toolCreateLineChart(writer),
+          createPieChart: toolCreatePieChart(writer),
+          createStackedBarChart: toolCreateStackedBarChart(writer),
           getDatasources: toolGetDataSources(user.id),
           getPlanningProjects: toolGetPlanningProjects(user.id),
           getPlanningProject: toolGetPlanningProject(user.id),

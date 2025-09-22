@@ -1,26 +1,57 @@
-import internalChartConfigSchema from '@/app/_charts/schemas/internalChartConfigSchema';
+import {
+  barChartSchema,
+  lineChartSchema,
+  pieChartSchema,
+  stackedBarChartSchema
+} from './schemas';
 
-export const createChartConfig = {
-  name: 'createChart',
-  description: `Create charts from data. Types: 'bar', 'stacked-bar', 'line', 'pie'.
-
-CRITICAL: Each value entry needs a UNIQUE dataKey that exists in your data.
-
-BAR/LINE/STACKED-BAR: Each value = different data series (different dataKeys)
-PIE: For multi-color, each segment needs its OWN dataKey in data (e.g., "chrome_users", "safari_users")
+export const createBarChartConfig = {
+  name: 'createBarChart',
+  description: `Create a bar chart with simple categories and series.
 
 STRUCTURE:
-- data: Array of objects with xAxisKey + all dataKeys from values
-- xAxisKey: Field for categories/labels  
-- values: [{dataKey, label, color}] - all dataKeys must be unique
+- categories: Array of x-axis labels
+- series: Array of data series, each with name, data values, and optional color
 
-COLORS: var(--color-chart-1) to var(--color-chart-5) OR hex like "#ffb3ba"
+EXAMPLE:
+{"type": "bar", "categories": ["Jan", "Feb", "Mar"], "series": [{"name": "Sales", "data": [100, 120, 90], "color": "#ff6b6b"}, {"name": "Profit", "data": [20, 30, 15], "color": "#4ecdc4"}]}`,
+  inputSchema: barChartSchema
+} as const;
 
-EXAMPLES:
-Bar (multiple series): {"type": "bar", "xAxisKey": "month", "data": [{"month": "Jan", "sales": 100, "profit": 20}], "values": [{"dataKey": "sales", "label": "Sales", "color": "#ff6b6b"}, {"dataKey": "profit", "label": "Profit", "color": "#4ecdc4"}]}
+export const createLineChartConfig = {
+  name: 'createLineChart',
+  description: `Create a line chart with simple categories and series.
 
-Multi-color Pie (CRITICAL - each segment needs unique dataKey): {"type": "pie", "xAxisKey": "browser", "data": [{"browser": "Chrome", "chrome_users": 65}, {"browser": "Safari", "safari_users": 18}], "values": [{"dataKey": "chrome_users", "label": "Chrome", "color": "#ff6b6b"}, {"dataKey": "safari_users", "label": "Safari", "color": "#4ecdc4"}]}
+STRUCTURE:
+- categories: Array of x-axis labels (often dates/times)
+- series: Array of lines, each with name, data points, and optional color
 
-Single-color Pie (all segments same dataKey): {"type": "pie", "xAxisKey": "browser", "data": [{"browser": "Chrome", "users": 65}, {"browser": "Safari", "users": 18}], "values": [{"dataKey": "users", "label": "Users", "color": "#ff6b6b"}]}`,
-  inputSchema: internalChartConfigSchema
+EXAMPLE:
+{"type": "line", "categories": ["Jan", "Feb", "Mar"], "series": [{"name": "Users", "data": [1200, 1400, 1100], "color": "#ff6b6b"}, {"name": "Sessions", "data": [1800, 2100, 1600], "color": "#4ecdc4"}]}`,
+  inputSchema: lineChartSchema
+} as const;
+
+export const createStackedBarChartConfig = {
+  name: 'createStackedBarChart',
+  description: `Create a stacked bar chart with categories and stack layers.
+
+STRUCTURE:
+- categories: Array of x-axis labels
+- series: Array of stack layers, each with name, data values, and optional color
+
+EXAMPLE:
+{"type": "stacked-bar", "categories": ["Q1", "Q2", "Q3"], "series": [{"name": "Product A", "data": [50, 60, 45], "color": "#ff6b6b"}, {"name": "Product B", "data": [30, 40, 35], "color": "#4ecdc4"}]}`,
+  inputSchema: stackedBarChartSchema
+} as const;
+
+export const createPieChartConfig = {
+  name: 'createPieChart',
+  description: `Create a pie chart with simple segments.
+
+STRUCTURE:
+- segments: Array of pie slices, each with label, value, and optional color
+
+EXAMPLE:
+{"type": "pie", "segments": [{"label": "Chrome", "value": 65, "color": "#ff6b6b"}, {"label": "Safari", "value": 18, "color": "#4ecdc4"}, {"label": "Firefox", "value": 17}]}`,
+  inputSchema: pieChartSchema
 } as const;

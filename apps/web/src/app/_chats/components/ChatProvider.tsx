@@ -7,6 +7,7 @@ import { createContext, useEffect, useState } from 'react';
 import z from 'zod';
 
 import internalChartConfigSchema from '@/app/_charts/schemas/internalChartConfigSchema';
+import { barChartSchema, lineChartSchema, stackedBarChartSchema, pieChartSchema } from '../tools/charts/schemas';
 import useTRPC from '@/lib/trpc/browser';
 import lastAssistantMessageIsCompleteWithToolCalls from '@/utils/lastAssistantMessageIsCompleteWithToolCalls';
 
@@ -18,6 +19,10 @@ type ChatMessage = UIMessage<
   unknown,
   {
     chart: z.infer<typeof internalChartConfigSchema>;
+    'bar-chart': z.infer<typeof barChartSchema>;
+    'line-chart': z.infer<typeof lineChartSchema>;
+    'stacked-bar-chart': z.infer<typeof stackedBarChartSchema>;
+    'pie-chart': z.infer<typeof pieChartSchema>;
     research: z.infer<typeof researchSchema>;
     'multiple-choice': z.infer<typeof multipleChoiceSchema>;
   }
@@ -61,6 +66,10 @@ const ChatProvider = ({
     messages: dbChat.messages as ChatMessage[],
     dataPartSchemas: {
       chart: internalChartConfigSchema,
+      'bar-chart': barChartSchema,
+      'line-chart': lineChartSchema,
+      'stacked-bar-chart': stackedBarChartSchema,
+      'pie-chart': pieChartSchema,
       research: researchSchema,
       'multiple-choice': multipleChoiceSchema
     },

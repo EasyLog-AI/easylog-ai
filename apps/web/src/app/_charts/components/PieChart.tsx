@@ -52,14 +52,25 @@ const PieChart = ({ config }: PieChartProps) => {
   /** Assuming the first value entry is the one to display in the pie chart */
   const pieValue = values[0];
 
-  function getAutoContrastColor(hexOrCss: string | undefined, fallback: string): string {
+  function getAutoContrastColor(
+    hexOrCss: string | undefined,
+    fallback: string
+  ): string {
     if (!hexOrCss) return fallback;
     if (hexOrCss.startsWith('var(')) {
       return fallback;
     }
     if (hexOrCss.startsWith('#')) {
       const hex = hexOrCss.replace('#', '');
-      const bigint = parseInt(hex.length === 3 ? hex.split('').map((c) => c + c).join('') : hex, 16);
+      const bigint = parseInt(
+        hex.length === 3
+          ? hex
+              .split('')
+              .map((c) => c + c)
+              .join('')
+          : hex,
+        16
+      );
       const r = (bigint >> 16) & 255;
       const g = (bigint >> 8) & 255;
       const b = bigint & 255;

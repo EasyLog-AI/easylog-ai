@@ -76,7 +76,11 @@ const ChatHistory = () => {
                       key={`${message.id}-${i}`}
                       text={part.text}
                     />
-                  ) : part.type === 'data-chart' ? (
+                  ) : part.type === 'data-chart' ||
+                       part.type === 'data-bar-chart' ||
+                       part.type === 'data-line-chart' ||
+                       part.type === 'data-pie-chart' ||
+                       part.type === 'data-stacked-bar-chart' ? (
                     <ChatMessageAssistantChart
                       key={`${message.id}-${i}`}
                       config={part.data}

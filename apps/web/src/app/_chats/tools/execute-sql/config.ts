@@ -5,6 +5,6 @@ export const executeSQLConfig = {
   description: 'Execute a query on the Easylog database.',
   inputSchema: z.object({
     queryIntent: z.string().describe('What are you trying to achieve?'),
-    proposedQuery: z.string().optional()
+    proposedQuery: z.string().nullable()
   })
 } as const;
