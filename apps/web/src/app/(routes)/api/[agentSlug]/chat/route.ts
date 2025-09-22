@@ -215,7 +215,11 @@ export const POST = async (
             chatId: chat.id
           })
         },
-        stopWhen: [stepCountIs(20), hasToolCall('createMultipleChoice')]
+        stopWhen: [
+          stepCountIs(20),
+          hasToolCall('createMultipleChoice'),
+          hasToolCall('clearChat')
+        ]
       });
 
       writer.write({
