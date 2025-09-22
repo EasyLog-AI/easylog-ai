@@ -146,13 +146,9 @@ const RealTimeProvider = ({
           )
         ]
       }),
-    [
-      dbChat.agent.name,
-      dbChat.agent.prompt,
-      dbChat.agent.voiceChatVoice,
-      sendMessage,
-      setMode
-    ]
+    // eslint-disable-next-line react-compiler/react-compiler
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [dbChat.agent.name, dbChat.agent.prompt, dbChat.agent.voiceChatVoice]
   );
 
   const session = useMemo(() => {
