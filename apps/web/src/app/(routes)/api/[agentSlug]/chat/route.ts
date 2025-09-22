@@ -225,9 +225,12 @@ export const POST = async (
                 return 'Role not found';
               }
 
-              await db.update(chats).set({
-                activeRoleId: role.id
-              });
+              await db
+                .update(chats)
+                .set({
+                  activeRoleId: role.id
+                })
+                .where(eq(chats.id, chat.id));
 
               return `Role changed to ${role.name}`;
             }
