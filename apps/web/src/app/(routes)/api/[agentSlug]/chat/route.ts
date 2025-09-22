@@ -8,18 +8,20 @@ import {
   hasToolCall,
   stepCountIs,
   streamText,
-  tool,
   validateUIMessages
 } from 'ai';
 import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
-import z from 'zod';
 
 import getCurrentUser from '@/app/_auth/data/getCurrentUser';
 import toolCreateBarChart from '@/app/_chats/tools/charts/toolCreateBarChart';
 import toolCreateLineChart from '@/app/_chats/tools/charts/toolCreateLineChart';
 import toolCreatePieChart from '@/app/_chats/tools/charts/toolCreatePieChart';
 import toolCreateStackedBarChart from '@/app/_chats/tools/charts/toolCreateStackedBarChart';
+import toolChangeRole from '@/app/_chats/tools/core/toolChangeRole';
+import toolClearChat from '@/app/_chats/tools/core/toolClearChat';
+import toolCreateMemory from '@/app/_chats/tools/core/toolCreateMemory';
+import toolDeleteMemory from '@/app/_chats/tools/core/toolDeleteMemory';
 import toolCreateMultipleAllocations from '@/app/_chats/tools/easylog-backend/toolCreateMultipleAllocations';
 import toolCreatePlanningPhase from '@/app/_chats/tools/easylog-backend/toolCreatePlanningPhase';
 import toolCreatePlanningProject from '@/app/_chats/tools/easylog-backend/toolCreatePlanningProject';
@@ -41,7 +43,7 @@ import toolSearchKnowledgeBase from '@/app/_chats/tools/knowledge-base/toolSearc
 import toolAnswerMultipleChoice from '@/app/_chats/tools/multiple-choice/toolAnswerMultipleChoice';
 import toolCreateMultipleChoice from '@/app/_chats/tools/multiple-choice/toolCreateMultipleChoice';
 import db from '@/database/client';
-import { chats, memories } from '@/database/schema';
+import { chats } from '@/database/schema';
 import openrouter from '@/lib/ai-providers/openrouter';
 import isUUID from '@/utils/is-uuid';
 
@@ -199,67 +201,10 @@ export const POST = async (
             writer
           ),
           loadDocument: toolLoadDocument(),
-          clearChat: tool({
-            description: 'Clear the chat',
-            inputSchema: z.object({}),
-            execute: async () => {
-              await db.insert(chats).values({
-                agentId: chat.agentId,
-                userId: user.id
-              });
-
-              return 'Chat cleared';
-            }
-          }),
-          changeRole: tool({
-            description: 'Change the active role',
-            inputSchema: z.object({
-              roleName: z.string()
-            }),
-            execute: async (input) => {
-              const role = chat.agent.roles.find(
-                (role) => role.name === input.roleName
-              );
-
-              if (!role) {
-                return 'Role not found';
-              }
-
-              await db
-                .update(chats)
-                .set({
-                  activeRoleId: role.id
-                })
-                .where(eq(chats.id, chat.id));
-
-              return `Role changed to ${role.name}`;
-            }
-          }),
-          createMemory: tool({
-            description: 'Create a memory',
-            inputSchema: z.object({
-              memory: z.string()
-            }),
-            execute: async (input) => {
-              await db.insert(memories).values({
-                userId: user.id,
-                content: input.memory
-              });
-
-              return 'Memory created';
-            }
-          }),
-          deleteMemory: tool({
-            description: 'Delete a memory',
-            inputSchema: z.object({
-              memoryId: z.string()
-            }),
-            execute: async (input) => {
-              await db.delete(memories).where(eq(memories.id, input.memoryId));
-
-              return 'Memory deleted';
-            }
-          }),
+          clearChat: toolClearChat(chat.id, chat.agentId, user.id),
+          changeRole: toolChangeRole(chat.id, chat.agent.roles),
+          createMemory: toolCreateMemory(user.id),
+          deleteMemory: toolDeleteMemory(),
           createMultipleChoice: toolCreateMultipleChoice(
             {
               chatId: chat.id
