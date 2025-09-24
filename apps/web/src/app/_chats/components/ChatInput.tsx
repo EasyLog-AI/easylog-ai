@@ -26,7 +26,13 @@ import useChatContext from '../hooks/useChatContext';
 
 const schema = z.object({
   content: z.string().min(1),
-  files: z.instanceof(FileList).optional()
+  // Looks a bit hacky, but it's the only way to get the FileList type in SSR mode that i could think of.
+  files: z
+    .unknown()
+    .optional()
+    .refine((files) => files === undefined || files instanceof FileList, {
+      message: 'Files must be a FileList or undefined'
+    })
 });
 
 const ChatInput = () => {
@@ -74,9 +80,7 @@ const ChatInput = () => {
       });
     } else {
       await sendMessage({
-        // parts: [{ type: 'text', text: data.content }],
-        text: '',
-        // role: 'user',
+        text: data.content,
         files: data.files
       });
     }
@@ -127,62 +131,70 @@ const ChatInput = () => {
       }}
     >
       <div className="bg-surface-primary shadow-short mx-auto w-full max-w-2xl overflow-clip rounded-2xl bg-clip-padding contain-inline-size">
-        <div
-          className="cursor-text px-5 pt-5 data-[disabled=true]:cursor-not-allowed data-[disabled=true]:opacity-50"
-          data-disabled={isLoading}
-          onClick={() => {
-            textareaRef.current?.focus();
-          }}
-        >
-          <TextareaAutosize
-            disabled={isLoading}
-            autoFocus
-            className="decoration-none placeholder:text-text-muted text-text-primary w-full resize-none focus:outline-none"
-            ref={(e) => {
-              textareaFormRef(e);
-              textareaRef.current = e;
-            }}
-            onKeyDown={(e) => {
-              if (!e.shiftKey && e.key === 'Enter') {
-                e.preventDefault();
-                void handleSubmit(submitHandler)();
-              }
-            }}
-            minRows={1}
-            maxRows={6}
-            placeholder="Ask me anything..."
-            {...rest}
-          />
-        </div>
-
-        {watchedFiles && watchedFiles.length > 0 && (
-          <div className="flex flex-wrap gap-2 px-5 pb-3">
-            {Array.from(watchedFiles).map((file, index) => (
-              <div
-                key={index}
-                className="bg-surface-secondary flex items-center gap-2 rounded-lg px-3 py-2 text-sm"
-              >
-                <span className="max-w-[200px] truncate">{file.name}</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const dt = new DataTransfer();
-                    Array.from(watchedFiles).forEach((f, i) => {
-                      if (i !== index) dt.items.add(f);
-                    });
-                    setValue(
-                      'files',
-                      dt.files.length > 0 ? dt.files : undefined
-                    );
-                  }}
-                  className="text-text-muted hover:text-text-primary"
+        <div className="space-y-5 px-5 pt-5">
+          {watchedFiles && watchedFiles.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {Array.from(watchedFiles).map((file, index) => (
+                <div
+                  key={index}
+                  className="bg-fill-muted flex items-center gap-0.5 rounded-full py-1 pl-2.5 pr-1 text-sm"
                 >
-                  <Icon icon={IconX} size="sm" />
-                </button>
-              </div>
-            ))}
+                  <span className="max-w-[200px] truncate">{file.name}</span>
+                  <Button
+                    type="button"
+                    size="xs"
+                    variant="ghost"
+                    shape="circle"
+                    onClick={() => {
+                      const dt = new DataTransfer();
+
+                      Array.from(watchedFiles).forEach((f, i) => {
+                        if (i !== index) dt.items.add(f);
+                      });
+
+                      setValue(
+                        'files',
+                        dt.files.length > 0 ? dt.files : undefined
+                      );
+                    }}
+                  >
+                    <ButtonContent>
+                      <Icon icon={IconX} size="sm" />
+                    </ButtonContent>
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div
+            className="cursor-text data-[disabled=true]:cursor-not-allowed data-[disabled=true]:opacity-50"
+            data-disabled={isLoading}
+            onClick={() => {
+              textareaRef.current?.focus();
+            }}
+          >
+            <TextareaAutosize
+              disabled={isLoading}
+              autoFocus
+              className="decoration-none placeholder:text-text-muted text-text-primary w-full resize-none focus:outline-none"
+              ref={(e) => {
+                textareaFormRef(e);
+                textareaRef.current = e;
+              }}
+              onKeyDown={(e) => {
+                if (!e.shiftKey && e.key === 'Enter') {
+                  e.preventDefault();
+                  void handleSubmit(submitHandler)();
+                }
+              }}
+              minRows={1}
+              maxRows={6}
+              placeholder="Ask me anything..."
+              {...rest}
+            />
           </div>
-        )}
+        </div>
 
         <input
           type="file"
