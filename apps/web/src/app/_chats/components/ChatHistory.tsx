@@ -13,6 +13,7 @@ import ChatMessageAssistantMarkdownContent from './ChatMessageAssistantMarkdownC
 import ChatMessageAssistantMultipleChoice from './ChatMessageAssistantMultipleChoice';
 import ChatMessageAssistantReasoning from './ChatMessageAssistantReasoning';
 import ChatMessageAssistantResearch from './ChatMessageAssistantResearch';
+import ChatMessageFileContent from './ChatMessageFileContent';
 import ChatMessageUser from './ChatMessageUser';
 import ChatMessageUserTextContent from './ChatMessageUserTextContent';
 import useChatContext from '../hooks/useChatContext';
@@ -62,14 +63,18 @@ const ChatHistory = () => {
           {messages.map((message) =>
             message.role === 'user' ? (
               <ChatMessageUser key={message.id}>
-                {message.parts.map(
-                  (part, i) =>
-                    part.type === 'text' && (
-                      <ChatMessageUserTextContent
-                        key={`${message.id}-${i}`}
-                        text={part.text}
-                      />
-                    )
+                {message.parts.map((part, i) =>
+                  part.type === 'text' ? (
+                    <ChatMessageUserTextContent
+                      key={`${message.id}-${i}`}
+                      text={part.text}
+                    />
+                  ) : part.type === 'file' ? (
+                    <ChatMessageFileContent
+                      key={`${message.id}-${i}`}
+                      file={part}
+                    />
+                  ) : null
                 )}
               </ChatMessageUser>
             ) : message.role === 'assistant' ? (
@@ -113,6 +118,11 @@ const ChatHistory = () => {
                       multipleChoiceQuestionId={part.data.id}
                       chatId={id}
                       messageId={message.id}
+                    />
+                  ) : part.type === 'file' ? (
+                    <ChatMessageFileContent
+                      key={`${message.id}-${i}`}
+                      file={part}
                     />
                   ) : null
                 )}
