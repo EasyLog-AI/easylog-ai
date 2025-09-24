@@ -1,3 +1,4 @@
+import { ORPCMeta } from '@orpc/trpc';
 import { initTRPC } from '@trpc/server';
 import superjson from 'superjson';
 import { OpenApiMeta } from 'trpc-openapi';
@@ -13,6 +14,7 @@ export type Meta = TrpcMeta;
 
 export const t = initTRPC
   .meta<TrpcMeta>()
+  .meta<ORPCMeta>()
   .context<Context>()
   .create({
     transformer: superjson,
