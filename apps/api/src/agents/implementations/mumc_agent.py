@@ -1349,7 +1349,7 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
             "current_role": role_config.name,
             "current_role_prompt": formatted_current_role_prompt,
             "available_roles": "\n".join([f"- {role.name}" for role in self.config.roles]),
-            "current_time": datetime.now(pytz.timezone("Europe/Amsterdam")).strftime("%Y-%m-%d %H:%M:%S"),
+            "current_time": datetime.now(pytz.timezone("Europe/Amsterdam")).strftime("%A %Y-%m-%d %H:%M:%S"),
             "recurring_tasks": "\n".join(
                 [f"- {task['id']}: {task['cron_expression']} - {task['task']}" for task in recurring_tasks]
             )
@@ -1469,7 +1469,7 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
 You are the notification management system responsible for delivering timely alerts without duplication. Your task is to analyze pending notifications and determine which ones need to be sent.
 
 ## Current Time
-Current system time: {current_time.strftime("%Y-%m-%d %H:%M:%S")} (Hour: {current_hour}, Minute: {current_minute}, Weekday: {current_weekday} where 0=Monday, Day: {current_day}, Month: {current_month})
+Current system time: {current_time.strftime("%A %Y-%m-%d %H:%M:%S")} (Hour: {current_hour}, Minute: {current_minute}, Weekday: {current_weekday} where 0=Monday, Day: {current_day}, Month: {current_month})
 
 ## Previously Sent Notifications
 The following notifications have already been sent and MUST NOT be resent:
