@@ -1,5 +1,6 @@
 import { headers } from 'next/headers';
 import { forbidden } from 'next/navigation';
+import { Suspense } from 'react';
 
 import getCurrentUser from '@/app/_auth/data/getCurrentUser';
 import Header from '@/app/_shared/components/Header';
@@ -18,7 +19,9 @@ const PlatformLayout = async ({
 
   return (
     <main className="flex h-svh flex-col">
-      <Header user={user} agentSlug={agentSlug} />
+      <Suspense>
+        <Header user={user} agentSlug={agentSlug} />
+      </Suspense>
       {children}
     </main>
   );

@@ -6,28 +6,32 @@ import { DefaultChatTransport, UIMessage } from 'ai';
 import { createContext, useEffect, useState } from 'react';
 import z from 'zod';
 
-import internalChartConfigSchema from '@/app/_charts/schemas/internalChartConfigSchema';
 import useTRPC from '@/lib/trpc/browser';
 import lastAssistantMessageIsCompleteWithToolCalls from '@/utils/lastAssistantMessageIsCompleteWithToolCalls';
 
+import useChatMode from '../hooks/useChatMode';
 import multipleChoiceSchema from '../schemas/multipleChoiceSchema';
 import researchSchema from '../schemas/researchSchema';
+import {
+  barChartSchema,
+  lineChartSchema,
+  pieChartSchema,
+  stackedBarChartSchema
+} from '../tools/charts/schemas';
 
 type ChatMessage = UIMessage<
   unknown,
   {
-    chart: z.infer<typeof internalChartConfigSchema>;
+    'bar-chart': z.infer<typeof barChartSchema>;
+    'line-chart': z.infer<typeof lineChartSchema>;
+    'stacked-bar-chart': z.infer<typeof stackedBarChartSchema>;
+    'pie-chart': z.infer<typeof pieChartSchema>;
     research: z.infer<typeof researchSchema>;
     'multiple-choice': z.infer<typeof multipleChoiceSchema>;
   }
 >;
 
-interface ChatContextType extends UseChatHelpers<ChatMessage> {
-  mode: 'chat' | 'awaiting-tool-call' | 'chat-finished' | 'realtime';
-  setMode: (
-    mode: 'chat' | 'awaiting-tool-call' | 'chat-finished' | 'realtime'
-  ) => void;
-}
+interface ChatContextType extends UseChatHelpers<ChatMessage> {}
 
 export const ChatContext = createContext<ChatContextType | undefined>(
   undefined
@@ -42,11 +46,9 @@ const ChatProvider = ({
   agentSlug
 }: React.PropsWithChildren<ChatProviderProps>) => {
   const api = useTRPC();
+  const { setMode } = useChatMode();
 
   const [didStartChat, setDidStartChat] = useState(false);
-  const [mode, setMode] = useState<
-    'chat' | 'awaiting-tool-call' | 'chat-finished' | 'realtime'
-  >('chat');
 
   const { data: dbChat, refetch } = useSuspenseQuery(
     api.chats.getOrCreate.queryOptions({
@@ -66,7 +68,10 @@ const ChatProvider = ({
     }),
     messages: dbChat.messages as ChatMessage[],
     dataPartSchemas: {
-      chart: internalChartConfigSchema,
+      'bar-chart': barChartSchema,
+      'line-chart': lineChartSchema,
+      'stacked-bar-chart': stackedBarChartSchema,
+      'pie-chart': pieChartSchema,
       research: researchSchema,
       'multiple-choice': multipleChoiceSchema
     },
@@ -108,12 +113,7 @@ const ChatProvider = ({
   return (
     <ChatContext.Provider
       value={{
-        ...chat,
-        mode,
-        setMode: (newMode) => {
-          console.log(`🔄 Mode change: ${mode} → ${newMode}`);
-          return setMode(newMode);
-        }
+        ...chat
       }}
     >
       {children}

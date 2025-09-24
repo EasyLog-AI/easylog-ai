@@ -7,15 +7,12 @@ import openrouterProvider from '@/lib/ai-providers/openrouter';
 import easylogDb from '@/lib/easylog/db';
 import tryCatch from '@/utils/try-catch';
 
+import { executeSQLConfig } from './config';
 import truncateStrings from './utils/truncateStrings';
 
 const toolExecuteSQL = (messageStreamWriter: UIMessageStreamWriter) => {
   return tool({
-    description: 'Execute a query on the Easylog database.',
-    inputSchema: z.object({
-      queryIntent: z.string().describe('What are you trying to achieve?'),
-      proposedQuery: z.string().optional()
-    }),
+    ...executeSQLConfig,
     execute: async (query) => {
       const id = uuidv4();
 

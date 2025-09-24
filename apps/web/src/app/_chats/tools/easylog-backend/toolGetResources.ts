@@ -1,15 +1,14 @@
 import * as Sentry from '@sentry/nextjs';
 import { tool } from 'ai';
-import { z } from 'zod';
 
 import tryCatch from '@/utils/try-catch';
 
+import { getResourcesConfig } from './config';
 import getEasylogClient from './utils/getEasylogClient';
 
 const toolGetResources = (userId: string) => {
   return tool({
-    description: 'Retrieve all available resources in the system.',
-    inputSchema: z.object({}),
+    ...getResourcesConfig,
     execute: async () => {
       const client = await getEasylogClient(userId);
 

@@ -1,9 +1,10 @@
 import { tool } from 'ai';
-import { z } from 'zod';
 
 import createTRPCContext from '@/lib/trpc/context';
 import { createCallerFactory } from '@/lib/trpc/trpc';
 import { appRouter } from '@/trpc-router';
+
+import { answerMultipleChoiceConfig } from './config';
 
 export interface ToolAnswerMultipleChoiceProps {
   chatId: string;
@@ -13,13 +14,7 @@ const toolAnswerMultipleChoice = ({
   chatId
 }: ToolAnswerMultipleChoiceProps) => {
   return tool({
-    description: 'Answer a multiple choice question',
-    inputSchema: z.object({
-      multipleChoiceId: z
-        .string()
-        .describe('The id of the multiple choice question'),
-      answer: z.string().describe('The answer to the multiple choice question')
-    }),
+    ...answerMultipleChoiceConfig,
     execute: async ({ multipleChoiceId, answer }) => {
       const ctx = await createTRPCContext();
       const caller = createCallerFactory(appRouter)(ctx);

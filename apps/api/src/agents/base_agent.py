@@ -39,7 +39,6 @@ from src.models.multiple_choice_widget import MultipleChoiceWidget
 from src.models.stream_tool_call import StreamToolCall
 from src.services.one_signal.one_signal_service import OneSignalService
 from src.utils.image_to_base64 import image_to_base64
-from src.settings import settings
 
 TConfig = TypeVar("TConfig", bound=BaseModel)
 

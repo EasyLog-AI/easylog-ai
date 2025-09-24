@@ -1,23 +1,14 @@
 import * as Sentry from '@sentry/nextjs';
 import { tool } from 'ai';
-import { z } from 'zod';
 
 import tryCatch from '@/utils/try-catch';
 
+import { getProjectsOfResourceConfig } from './config';
 import getEasylogClient from './utils/getEasylogClient';
 
 const toolGetProjectsOfResource = (userId: string) => {
   return tool({
-    description:
-      'Retrieve all projects associated with a specific resource and allocation type.',
-    inputSchema: z.object({
-      resourceId: z.number().describe('The ID of the resource group'),
-      datasourceSlug: z
-        .string()
-        .describe(
-          'The slug of the allocation type (e.g., "td", "modificaties")'
-        )
-    }),
+    ...getProjectsOfResourceConfig,
     execute: async ({ resourceId, datasourceSlug }) => {
       const client = await getEasylogClient(userId);
 

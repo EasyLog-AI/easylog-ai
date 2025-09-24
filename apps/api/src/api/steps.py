@@ -46,8 +46,8 @@ async def last_synced(
         logger.info(f"No last synced date found for user {user_id}, returning las sync date {default_date}")
         return LastSyncedResponse(last_synced=datetime.datetime.now() - datetime.timedelta(days=30))
 
-    logger.info(f"Last synced date found for user {user_id}, returning last sync date {last_synced.created_at}")
-    return LastSyncedResponse(last_synced=last_synced.created_at)
+    logger.info(f"Last synced date found for user {user_id}, returning last sync date {last_synced.date_to}")
+    return LastSyncedResponse(last_synced=last_synced.date_to)
 
 
 @router.post("/steps/sync", name="sync_steps", description="Sync steps data", tags=["health"])

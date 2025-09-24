@@ -1,5 +1,6 @@
 import { Cell, Pie, PieChart as RechartsPieChart } from 'recharts';
 
+import { PieChartConfig } from '@/app/_chats/tools/charts/schemas';
 import ChartContainer from '@/app/_ui/components/Chart/ChartContainer';
 import ChartLegend from '@/app/_ui/components/Chart/ChartLegend';
 import ChartLegendContent from '@/app/_ui/components/Chart/ChartLegendContent';
@@ -7,16 +8,13 @@ import ChartTooltip from '@/app/_ui/components/Chart/ChartTooltip';
 import ChartTooltipContent from '@/app/_ui/components/Chart/ChartTooltipContent';
 import { ChartConfig } from '@/app/_ui/components/Chart/utils/chartConfig';
 
-import { InternalChartConfig } from '../schemas/internalChartConfigSchema';
-
 export interface PieChartProps {
-  config: InternalChartConfig;
+  config: PieChartConfig;
 }
 
 const PieChart = ({ config }: PieChartProps) => {
-  const { values, xAxisKey, data } = config;
+  const { segments } = config;
 
-  // For pie charts, if we only have one series, we need to generate colors for each data point
   const availableColors = [
     'var(--color-chart-1)',
     'var(--color-chart-2)',
@@ -25,41 +23,40 @@ const PieChart = ({ config }: PieChartProps) => {
     'var(--color-chart-5)'
   ];
 
-  // Generate colors for each data point - for pie charts, use colors from values array
-  const colors =
-    values.length >= data.length
-      ? data.map(
-          (_, index) =>
-            values[index]?.color ||
-            availableColors[index % availableColors.length]
-        )
-      : values.map((s) => s.color);
+  // Assign colors to segments
+  const colors = segments.map(
+    (segment, index) =>
+      segment.color || availableColors[index % availableColors.length]
+  );
 
-  /**
-   * Build legend config per category to ensure correct label-color mapping per
-   * segment
-   */
-  const chartConfig = data.reduce((acc, row, index) => {
-    const record = row as Record<string, string | number>;
-    const categoryKey = String(record[xAxisKey]);
-    acc[categoryKey] = {
-      label: categoryKey,
-      color: colors[index % colors.length]
+  // Build chart config for legend
+  const chartConfig = segments.reduce((acc, segment, index) => {
+    acc[segment.label] = {
+      label: segment.label,
+      color: colors[index]
     };
     return acc;
   }, {} as ChartConfig);
 
-  /** Assuming the first value entry is the one to display in the pie chart */
-  const pieValue = values[0];
-
-  function getAutoContrastColor(hexOrCss: string | undefined, fallback: string): string {
+  function getAutoContrastColor(
+    hexOrCss: string | undefined,
+    fallback: string
+  ): string {
     if (!hexOrCss) return fallback;
     if (hexOrCss.startsWith('var(')) {
       return fallback;
     }
     if (hexOrCss.startsWith('#')) {
       const hex = hexOrCss.replace('#', '');
-      const bigint = parseInt(hex.length === 3 ? hex.split('').map((c) => c + c).join('') : hex, 16);
+      const bigint = parseInt(
+        hex.length === 3
+          ? hex
+              .split('')
+              .map((c) => c + c)
+              .join('')
+          : hex,
+        16
+      );
       const r = (bigint >> 16) & 255;
       const g = (bigint >> 8) & 255;
       const b = bigint & 255;
@@ -115,9 +112,9 @@ const PieChart = ({ config }: PieChartProps) => {
       <RechartsPieChart>
         <ChartTooltip content={<ChartTooltipContent hideLabel />} />
         <Pie
-          data={data}
-          dataKey={pieValue.dataKey}
-          nameKey={xAxisKey}
+          data={segments}
+          dataKey="value"
+          nameKey="label"
           innerRadius="35%"
           outerRadius="75%"
           strokeWidth={5}
@@ -125,16 +122,11 @@ const PieChart = ({ config }: PieChartProps) => {
           label={renderPercentLabel}
           labelLine={false}
         >
-          {data.map((_, index) => {
-            return (
-              <Cell
-                key={`cell-${index}`}
-                fill={colors[index % colors.length]}
-              />
-            );
-          })}
+          {segments.map((_, index) => (
+            <Cell key={`cell-${index}`} fill={colors[index]} />
+          ))}
         </Pie>
-        <ChartLegend content={<ChartLegendContent nameKey={xAxisKey} />} />
+        <ChartLegend content={<ChartLegendContent nameKey="label" />} />
       </RechartsPieChart>
     </ChartContainer>
   );

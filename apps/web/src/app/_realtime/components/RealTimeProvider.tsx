@@ -1,6 +1,11 @@
 'use client';
 
-import { RealtimeAgent, RealtimeSession, tool } from '@openai/agents-realtime';
+import {
+  RealtimeAgent,
+  RealtimeSession,
+  TransportEvent,
+  tool
+} from '@openai/agents-realtime';
 import * as Sentry from '@sentry/nextjs';
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { UIMessage } from 'ai';
@@ -12,9 +17,10 @@ import {
   useState
 } from 'react';
 import { toast } from 'sonner';
-import z from 'zod';
 
 import useChatContext from '@/app/_chats/hooks/useChatContext';
+import useChatMode from '@/app/_chats/hooks/useChatMode';
+import toolsConfig from '@/app/_chats/tools/tools.config';
 import useTRPC from '@/lib/trpc/browser';
 
 import { RealtimeItem } from '../schemas/realtimeItemSchema';
@@ -28,8 +34,8 @@ interface RealTimeContextType {
   connect: () => void;
   disconnect: () => void;
   isMuted: boolean;
-  mute: (next: boolean) => Promise<void> | void;
-  toggleMute: () => Promise<void> | void;
+  setIsMuted: (next: boolean) => void;
+  isAgentTurn: boolean;
   connectionState:
     | 'disconnected'
     | 'connecting'
@@ -37,6 +43,8 @@ interface RealTimeContextType {
     | 'disconnecting';
   canConnect: boolean;
   isEnabled: boolean;
+  isLoading: boolean;
+  interrupt: () => void;
 }
 
 export const RealTimeContext = createContext<RealTimeContextType | undefined>(
@@ -51,10 +59,16 @@ const RealTimeProvider = ({
   children,
   agentSlug
 }: React.PropsWithChildren<RealTimeProviderProps>) => {
-  const { setMode, messages, setMessages, sendMessage, mode } =
-    useChatContext();
+  const { messages, setMessages, sendMessage } = useChatContext();
+  const { mode, setMode } = useChatMode();
 
   const api = useTRPC();
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [isAgentTurn, setIsAgentTurn] = useState(false);
+  const [syncedMessageIds, setSyncedMessageIds] = useState<Set<string>>(
+    new Set()
+  );
 
   const { data: dbChat } = useSuspenseQuery(
     api.chats.getOrCreate.queryOptions({
@@ -63,7 +77,7 @@ const RealTimeProvider = ({
   );
 
   const isEnabled = dbChat.agent.voiceChatEnabled;
-  const [isMuted, setIsMuted] = useState(false);
+  const isAutoMuted = dbChat.agent.voiceChatAutoMute;
 
   const {
     data: realTimeSessionToken,
@@ -104,72 +118,43 @@ const RealTimeProvider = ({
         instructions: dbChat.agent.prompt,
         voice: dbChat.agent.voiceChatVoice,
         tools: [
-          tool({
-            name: 'search_knowledge_base',
-            description: 'Search the knowledge base for information',
-            parameters: z.object({
-              query: z.string()
-            }),
-            execute: async ({ query }) => {
-              console.log('🔧 Tool called - initiating handover');
+          ...Object.values(toolsConfig).map((toolConfig) =>
+            tool({
+              name: toolConfig.name,
+              description: toolConfig.description,
+              parameters: toolConfig.inputSchema,
+              execute: async (args) => {
+                console.log(
+                  `🔧 Tool called: ${toolConfig.name} - initiating handover`
+                );
 
-              console.log('🔧 Tool handover: realtime → chat');
+                setMode('awaiting-tool-call');
 
-              setMode('awaiting-tool-call');
+                await sendMessage({
+                  parts: [
+                    {
+                      type: 'text',
+                      text: `[execute the tool ${toolConfig.name} with the arguments of ${JSON.stringify(args)}]`
+                    }
+                  ],
+                  role: 'user'
+                });
 
-              // Send the tool execution message to normal chat
-              await sendMessage({
-                parts: [
-                  {
-                    type: 'text',
-                    text: `[execute the tool searchKnowledgeBase with the query of "${query}"]`
-                  }
-                ],
-                role: 'user'
-              });
-
-              return 'Tool execution initiated, switching to chat mode...';
-            }
-          }),
-          tool({
-            name: 'execute_sql',
-            description: 'Execute a SQL query on the Easylog database',
-            parameters: z.object({
-              queryIntent: z.string(),
-              proposedQuery: z.string().nullable()
-            }),
-            execute: async ({ queryIntent, proposedQuery }) => {
-              console.log('🔧 Tool called - initiating handover');
-
-              console.log('🔧 Tool handover: realtime → chat');
-
-              setMode('awaiting-tool-call');
-
-              // Send the tool execution message to normal chat
-              await sendMessage({
-                parts: [
-                  {
-                    type: 'text',
-                    text: `[execute the tool executeSql with the query intent of "${queryIntent}" and the proposed query of "${proposedQuery}"]`
-                  }
-                ],
-                role: 'user'
-              });
-
-              return 'Tool execution initiated, switching to chat mode...';
-            }
-          })
+                return '[done]';
+              }
+            })
+          )
         ]
       }),
     // eslint-disable-next-line react-compiler/react-compiler
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [dbChat.agent]
+    [dbChat.agent.name, dbChat.agent.prompt, dbChat.agent.voiceChatVoice]
   );
 
   const session = useMemo(() => {
     if (isEnabled) {
       return new RealtimeSession(agent, {
-        model: 'gpt-realtime'
+        model: 'gpt-realtime-2025-08-28'
       });
     }
     return null;
@@ -183,30 +168,15 @@ const RealTimeProvider = ({
     };
   }, [session]);
 
-  const mute = useCallback(
-    async (next: boolean) => {
+  const setIsMuted = useCallback(
+    (next: boolean) => {
       if (!session || session.transport.status !== 'connected') return;
-      // optimistic update
-      setIsMuted(next);
-      try {
-        await session.mute(next);
-      } finally {
-        // reconcile after a tick
-        setTimeout(() => {
-          const transportMuted = Boolean(session.transport.muted);
-          if (transportMuted !== next) {
-            setIsMuted(transportMuted);
-          }
-        }, 50);
-      }
+      console.log('🔧 Muting realtime:', next);
+      setIsLoading(true);
+      session.mute(next);
     },
     [session]
   );
-
-  const toggleMute = useCallback(async () => {
-    if (!session || session.transport.status !== 'connected') return;
-    await mute(!isMuted);
-  }, [isMuted, mute, session]);
 
   const { mutate: syncMessages, isPending } = useMutation(
     api.realtime.syncMessages.mutationOptions({
@@ -217,75 +187,18 @@ const RealTimeProvider = ({
     })
   );
 
-  const [lastAiAudioItemId, setLastAiAudioItemId] = useState<string | null>(
-    null
-  );
-  const [lastAssistantStartId, setLastAssistantStartId] = useState<string | null>(
-    null
-  );
-
   useEffect(() => {
     const handleHistoryUpdate = (history: RealtimeItem[]) => {
       const newRealtimeMessages = filterNewMessages(history, messages);
       const newUIMessages = convertRealtimeToUI(newRealtimeMessages);
+
+      console.log('🔧 New UI messages:', newUIMessages);
 
       if (newUIMessages.length > 0) {
         setMessages([...messages, ...newUIMessages] as UIMessage<
           unknown,
           {}
         >[]);
-      }
-
-      // Early auto-mute: assistant has started speaking (status in_progress)
-      const latestAssistantStart = [...(session?.history ?? [])]
-        .reverse()
-        .find(
-          (item) =>
-            item.type === 'message' &&
-            'role' in item &&
-            item.role === 'assistant' &&
-            'status' in item &&
-            (item as { status?: string }).status === 'in_progress'
-        );
-
-      if (
-        latestAssistantStart &&
-        latestAssistantStart.itemId !== lastAssistantStartId &&
-        session?.transport.status === 'connected'
-      ) {
-        setLastAssistantStartId(latestAssistantStart.itemId);
-        if (!session.transport.muted) {
-          void mute(true);
-        }
-      }
-
-      // Auto-mute when assistant outputs audio; scan entire history and de-dup by last audio item id
-      const latestAiAudio = [...(session?.history ?? [])]
-        .reverse()
-        .find(
-          (item) =>
-            item.type === 'message' &&
-            'role' in item &&
-            item.role === 'assistant' &&
-            Array.isArray(item.content) &&
-            item.content.some(
-              (c) =>
-                typeof c === 'object' &&
-                c !== null &&
-                'type' in c &&
-                (c as { type: string }).type === 'output_audio'
-            )
-        );
-
-      if (
-        latestAiAudio &&
-        latestAiAudio.itemId !== lastAiAudioItemId &&
-        session?.transport.status === 'connected'
-      ) {
-        setLastAiAudioItemId(latestAiAudio.itemId);
-        if (!session.transport.muted) {
-          void mute(true);
-        }
       }
     };
 
@@ -294,11 +207,39 @@ const RealTimeProvider = ({
     return () => {
       session?.off('history_updated', handleHistoryUpdate);
     };
-  }, [session, messages, setMessages, mute, lastAiAudioItemId, lastAssistantStartId]);
+  }, [session, messages, setMessages]);
 
-  const [syncedMessageIds, setSyncedMessageIds] = useState<Set<string>>(
-    new Set()
-  );
+  useEffect(() => {
+    const handleAgentStart = () => {
+      setIsAgentTurn(true);
+
+      if (isAutoMuted) {
+        setIsMuted(true);
+      }
+    };
+
+    const handleTransportEvent = (event: TransportEvent) => {
+      if (event.type === 'output_audio_buffer.stopped') {
+        setIsAgentTurn(false);
+        setIsLoading(false);
+      }
+    };
+
+    const handleInterrupted = () => {
+      setIsAgentTurn(false);
+      setIsLoading(false);
+    };
+
+    session?.on('agent_start', handleAgentStart);
+    session?.on('transport_event', handleTransportEvent);
+    session?.on('audio_interrupted', handleInterrupted);
+
+    return () => {
+      session?.off('agent_start', handleAgentStart);
+      session?.off('transport_event', handleTransportEvent);
+      session?.off('audio_interrupted', handleInterrupted);
+    };
+  }, [isAutoMuted, session, setIsMuted]);
 
   const connect = useCallback(async () => {
     if (!isEnabled) {
@@ -311,6 +252,8 @@ const RealTimeProvider = ({
         console.error('❌ No ephemeral token available');
         throw new Error('No ephemeral token found');
       }
+
+      setIsLoading(true);
 
       await session?.connect({
         apiKey: realTimeSessionToken?.value
@@ -330,11 +273,21 @@ const RealTimeProvider = ({
       );
       Sentry.captureException(error);
       setMode('chat');
+    } finally {
+      setIsLoading(false);
     }
-  }, [isEnabled, messages, realTimeSessionToken?.value, session, setMode]);
+  }, [
+    isEnabled,
+    messages,
+    realTimeSessionToken?.value,
+    session,
+    setIsMuted,
+    setMode
+  ]);
 
   const disconnect = useCallback(async () => {
     try {
+      setIsLoading(true);
       session?.close();
       setSyncedMessageIds(new Set());
       setMode('chat');
@@ -346,8 +299,16 @@ const RealTimeProvider = ({
         `Failed to disconnect from realtime session: ${(error as Error).message}`
       );
       Sentry.captureException(error);
+    } finally {
+      setIsLoading(false);
     }
-  }, [session, setMode]);
+  }, [session, setIsMuted, setMode]);
+
+  const interrupt = useCallback(() => {
+    session?.interrupt();
+    setIsAgentTurn(false);
+    setIsLoading(false);
+  }, [session]);
 
   useEffect(() => {
     if (
@@ -403,17 +364,15 @@ const RealTimeProvider = ({
 
     if (mode === 'awaiting-tool-call' && !session?.transport.muted) {
       console.log('🔌 Muting realtime...');
-      void mute(true);
+      setIsMuted(true);
       return;
     }
 
     if (mode === 'chat-finished' && session?.transport.muted) {
-      const realtimeHistory = convertUIToRealtime(messages);
-      console.log('🔧 Realtime history:', realtimeHistory);
-      session?.updateHistory(realtimeHistory);
+      console.log('🔧 Realtime history:', messages);
 
-      console.log('🔧 Unmuting realtime...');
-      void mute(false);
+      const realtimeHistory = convertUIToRealtime(messages);
+      session?.updateHistory(realtimeHistory);
 
       console.log('🔧 Sending message to continue conversation');
 
@@ -428,24 +387,58 @@ const RealTimeProvider = ({
         ]
       });
 
+      console.log('🔧 Unmuting realtime...');
+      setIsMuted(false);
+
       setMode('realtime');
     }
-  }, [mode, session?.transport.status, session, messages, setMode]);
+  }, [mode, session?.transport.status, session, messages, setMode, setIsMuted]);
+
+  useEffect(() => {
+    console.log('🔧 Session transport status:', session?.transport.status);
+    console.log('🔧 Session transport muted:', session?.transport.muted);
+
+    if (session?.transport.status === 'connected') {
+      setIsLoading(false);
+    }
+
+    if (session?.transport.status === 'disconnected') {
+      setIsLoading(false);
+    }
+
+    if (session?.transport.status === 'connecting') {
+      setIsLoading(true);
+    }
+
+    if (session?.transport.status === 'disconnecting') {
+      setIsLoading(true);
+    }
+
+    if (session?.transport.muted === true) {
+      setIsLoading(false);
+    }
+
+    if (session?.transport.muted === false) {
+      setIsLoading(false);
+    }
+  }, [session?.transport.status, session?.transport.muted]);
 
   return (
     <RealTimeContext.Provider
       value={{
         agent,
         session,
-        isMuted,
-        mute,
-        toggleMute,
+        isMuted: session?.transport.muted ?? false,
+        setIsMuted,
         connectionState: session?.transport.status ?? 'disconnected',
         connect,
         disconnect,
         canConnect:
           !!realTimeSessionToken?.value && !tokenLoading && !tokenError,
-        isEnabled
+        isLoading,
+        isEnabled,
+        isAgentTurn,
+        interrupt
       }}
     >
       {children}

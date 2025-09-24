@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 from src.agents.base_agent import BaseAgent, SuperAgentConfig
 from src.agents.tools.base_tools import BaseTools
 from src.lib.prisma import prisma
+from src.logger import logger
 from src.models.multiple_choice_widget import Choice, MultipleChoiceWidget
 from src.settings import settings
 from src.utils.function_to_openai_tool import function_to_openai_tool
@@ -99,6 +100,10 @@ class DebugAgent(BaseAgent[DebugAgentConfig]):
             settings.ONESIGNAL_APPERTO_API_KEY,
             settings.ONESIGNAL_APPERTO_APP_ID,
         )
+
+        easylog_token = self.request_headers.get("x-easylog-bearer-token", "")
+        logger.info(f"DebugAgent initialized with api key: {easylog_token}")
+        logger.info(f"DebugAgent initialized with api key: {self.request_headers}")
 
     def _substitute_double_curly_placeholders(self, template_string: str, data_dict: dict[str, Any]) -> str:
         """Substitutes {{placeholder}} style placeholders in a string with values from data_dict."""

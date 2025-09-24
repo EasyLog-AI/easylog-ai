@@ -14,6 +14,8 @@ import openrouterProvider from '@/lib/ai-providers/openrouter';
 import splitArrayBatches from '@/utils/split-array-batches';
 import tryCatch from '@/utils/try-catch';
 
+import { searchKnowledgeBaseConfig } from './config';
+
 interface ToolSearchKnowledgeBaseProps {
   agentId: string;
 }
@@ -23,10 +25,7 @@ const getToolSearchKnowledgeBase = (
   messageStreamWriter: UIMessageStreamWriter
 ) => {
   return tool({
-    description: 'Search the knowledge base for information',
-    inputSchema: z.object({
-      userSearchQuery: z.string().describe('The question the user asked')
-    }),
+    ...searchKnowledgeBaseConfig,
     execute: async ({ userSearchQuery }) => {
       const id = uuidv4();
 

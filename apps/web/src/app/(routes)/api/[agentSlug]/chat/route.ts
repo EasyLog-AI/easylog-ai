@@ -2,19 +2,34 @@ import * as Sentry from '@sentry/nextjs';
 import {
   UIMessage,
   convertToModelMessages,
-  createIdGenerator,
   createUIMessageStream,
   createUIMessageStreamResponse,
+  generateId,
   hasToolCall,
   stepCountIs,
   streamText,
-  tool
+  validateUIMessages
 } from 'ai';
 import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
-import z from 'zod';
 
 import getCurrentUser from '@/app/_auth/data/getCurrentUser';
+import multipleChoiceSchema from '@/app/_chats/schemas/multipleChoiceSchema';
+import researchSchema from '@/app/_chats/schemas/researchSchema';
+import {
+  barChartSchema,
+  lineChartSchema,
+  pieChartSchema,
+  stackedBarChartSchema
+} from '@/app/_chats/tools/charts/schemas';
+import toolCreateBarChart from '@/app/_chats/tools/charts/toolCreateBarChart';
+import toolCreateLineChart from '@/app/_chats/tools/charts/toolCreateLineChart';
+import toolCreatePieChart from '@/app/_chats/tools/charts/toolCreatePieChart';
+import toolCreateStackedBarChart from '@/app/_chats/tools/charts/toolCreateStackedBarChart';
+import toolChangeRole from '@/app/_chats/tools/core/toolChangeRole';
+import toolClearChat from '@/app/_chats/tools/core/toolClearChat';
+import toolCreateMemory from '@/app/_chats/tools/core/toolCreateMemory';
+import toolDeleteMemory from '@/app/_chats/tools/core/toolDeleteMemory';
 import toolCreateMultipleAllocations from '@/app/_chats/tools/easylog-backend/toolCreateMultipleAllocations';
 import toolCreatePlanningPhase from '@/app/_chats/tools/easylog-backend/toolCreatePlanningPhase';
 import toolCreatePlanningProject from '@/app/_chats/tools/easylog-backend/toolCreatePlanningProject';
@@ -31,13 +46,12 @@ import toolUpdateMultipleAllocations from '@/app/_chats/tools/easylog-backend/to
 import toolUpdatePlanningPhase from '@/app/_chats/tools/easylog-backend/toolUpdatePlanningPhase';
 import toolUpdatePlanningProject from '@/app/_chats/tools/easylog-backend/toolUpdatePlanningProject';
 import toolExecuteSQL from '@/app/_chats/tools/execute-sql/toolExecuteSQL';
+import toolLoadDocument from '@/app/_chats/tools/knowledge-base/toolLoadDocument';
+import toolSearchKnowledgeBase from '@/app/_chats/tools/knowledge-base/toolSearchKnowledgeBase';
 import toolAnswerMultipleChoice from '@/app/_chats/tools/multiple-choice/toolAnswerMultipleChoice';
 import toolCreateMultipleChoice from '@/app/_chats/tools/multiple-choice/toolCreateMultipleChoice';
-import toolCreateChart from '@/app/_chats/tools/toolCreateChart';
-import toolLoadDocument from '@/app/_chats/tools/toolLoadDocument';
-import toolSearchKnowledgeBase from '@/app/_chats/tools/toolSearchKnowledgeBase';
 import db from '@/database/client';
-import { chats, memories } from '@/database/schema';
+import { chats } from '@/database/schema';
 import openrouter from '@/lib/ai-providers/openrouter';
 import isUUID from '@/utils/is-uuid';
 
@@ -79,6 +93,19 @@ export const POST = async (
   ) {
     return new NextResponse('Chat not found', { status: 404 });
   }
+
+  const validatedMessages = await validateUIMessages({
+    messages: [...chat.messages, message],
+    dataSchemas: {
+      'bar-chart': barChartSchema,
+      'line-chart': lineChartSchema,
+      'stacked-bar-chart': stackedBarChartSchema,
+      'pie-chart': pieChartSchema,
+      research: researchSchema,
+      'multiple-choice': multipleChoiceSchema
+    }
+    // TODO: Add tool calls to the messages
+  });
 
   const activeRole =
     chat.activeRole ?? chat.agent.roles.find((r) => r.isDefault);
@@ -162,9 +189,12 @@ export const POST = async (
           reasoning
         }),
         system: promptWithContext,
-        messages: convertToModelMessages(messages),
+        messages: convertToModelMessages(validatedMessages),
         tools: {
-          createChart: toolCreateChart(writer),
+          createBarChart: toolCreateBarChart(writer),
+          createLineChart: toolCreateLineChart(writer),
+          createPieChart: toolCreatePieChart(writer),
+          createStackedBarChart: toolCreateStackedBarChart(writer),
           getDatasources: toolGetDataSources(user.id),
           getPlanningProjects: toolGetPlanningProjects(user.id),
           getPlanningProject: toolGetPlanningProject(user.id),
@@ -188,64 +218,10 @@ export const POST = async (
             writer
           ),
           loadDocument: toolLoadDocument(),
-          clearChat: tool({
-            description: 'Clear the chat',
-            inputSchema: z.object({}),
-            execute: async () => {
-              await db.insert(chats).values({
-                agentId: chat.agentId,
-                userId: user.id
-              });
-
-              return 'Chat cleared';
-            }
-          }),
-          changeRole: tool({
-            description: 'Change the active role',
-            inputSchema: z.object({
-              roleName: z.string()
-            }),
-            execute: async (input) => {
-              const role = chat.agent.roles.find(
-                (role) => role.name === input.roleName
-              );
-
-              if (!role) {
-                return 'Role not found';
-              }
-
-              await db.update(chats).set({
-                activeRoleId: role.id
-              });
-
-              return `Role changed to ${role.name}`;
-            }
-          }),
-          createMemory: tool({
-            description: 'Create a memory',
-            inputSchema: z.object({
-              memory: z.string()
-            }),
-            execute: async (input) => {
-              await db.insert(memories).values({
-                userId: user.id,
-                content: input.memory
-              });
-
-              return 'Memory created';
-            }
-          }),
-          deleteMemory: tool({
-            description: 'Delete a memory',
-            inputSchema: z.object({
-              memoryId: z.string()
-            }),
-            execute: async (input) => {
-              await db.delete(memories).where(eq(memories.id, input.memoryId));
-
-              return 'Memory deleted';
-            }
-          }),
+          clearChat: toolClearChat(chat.id, chat.agentId, user.id),
+          changeRole: toolChangeRole(chat.id, chat.agent.roles),
+          createMemory: toolCreateMemory(user.id),
+          deleteMemory: toolDeleteMemory(),
           createMultipleChoice: toolCreateMultipleChoice(
             {
               chatId: chat.id
@@ -256,15 +232,20 @@ export const POST = async (
             chatId: chat.id
           })
         },
-        stopWhen: [stepCountIs(20), hasToolCall('createMultipleChoice')]
+        stopWhen: [
+          stepCountIs(20),
+          hasToolCall('createMultipleChoice'),
+          hasToolCall('clearChat')
+        ]
       });
 
-      writer.merge(result.toUIMessageStream());
+      writer.write({
+        type: 'start',
+        messageId: generateId()
+      });
+
+      writer.merge(result.toUIMessageStream({ sendStart: false }));
     },
-    generateId: createIdGenerator({
-      prefix: 'msg',
-      size: 16
-    }),
     originalMessages: messages,
     onFinish: async ({ messages }) => {
       await db

@@ -1,18 +1,14 @@
 import * as Sentry from '@sentry/nextjs';
 import { tool } from 'ai';
-import { z } from 'zod';
 
 import tryCatch from '@/utils/try-catch';
 
+import { getPlanningPhaseConfig } from './config';
 import getEasylogClient from './utils/getEasylogClient';
 
 const toolGetPlanningPhase = (userId: string) => {
   return tool({
-    description:
-      'Retrieve detailed information about a specific planning phase.',
-    inputSchema: z.object({
-      phaseId: z.number().describe('The ID of the planning phase to retrieve')
-    }),
+    ...getPlanningPhaseConfig,
     execute: async ({ phaseId }) => {
       const client = await getEasylogClient(userId);
 

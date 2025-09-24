@@ -168,11 +168,11 @@
   --color-surface-danger-active: color-mix(in oklch, var(--color-red-100) 95%, black);
   --color-surface-danger-selected: color-mix(in oklch, var(--color-red-100) 95%, black);
 
-  --color-chart-1: var(--color-blue-600);
-  --color-chart-2: var(--color-green-600);
-  --color-chart-3: var(--color-yellow-600);
-  --color-chart-4: var(--color-red-600);
-  --color-chart-5: var(--color-purple-600);
+  --color-chart-1: #ff6b6b; /* Een zacht rood, neigend naar zalmroze */
+  --color-chart-2: #4ecdc4; /* Een frisse turquoise */
+  --color-chart-3: #ffa07a; /* Een warme perzik- of koraaltint */
+  --color-chart-4: #9fe2bf; /* Een zachte mintgroene tint */
+  --color-chart-5: #c495fd; /* Een mooie lavendelpaarse tint */
 
   @keyframes scale-in {
     0%,
