@@ -14,6 +14,14 @@ import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 
 import getCurrentUser from '@/app/_auth/data/getCurrentUser';
+import multipleChoiceSchema from '@/app/_chats/schemas/multipleChoiceSchema';
+import researchSchema from '@/app/_chats/schemas/researchSchema';
+import {
+  barChartSchema,
+  lineChartSchema,
+  pieChartSchema,
+  stackedBarChartSchema
+} from '@/app/_chats/tools/charts/schemas';
 import toolCreateBarChart from '@/app/_chats/tools/charts/toolCreateBarChart';
 import toolCreateLineChart from '@/app/_chats/tools/charts/toolCreateLineChart';
 import toolCreatePieChart from '@/app/_chats/tools/charts/toolCreatePieChart';
@@ -87,7 +95,16 @@ export const POST = async (
   }
 
   const validatedMessages = await validateUIMessages({
-    messages: [...chat.messages, message]
+    messages: [...chat.messages, message],
+    dataSchemas: {
+      'bar-chart': barChartSchema,
+      'line-chart': lineChartSchema,
+      'stacked-bar-chart': stackedBarChartSchema,
+      'pie-chart': pieChartSchema,
+      research: researchSchema,
+      'multiple-choice': multipleChoiceSchema
+    }
+    // TODO: Add tool calls to the messages
   });
 
   const activeRole =
