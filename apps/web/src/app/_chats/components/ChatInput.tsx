@@ -5,7 +5,9 @@ import {
   IconMicrophone,
   IconMicrophoneFilled,
   IconMicrophoneOff,
-  IconPlayerStop
+  IconPaperclip,
+  IconPlayerStop,
+  IconX
 } from '@tabler/icons-react';
 import { motion } from 'motion/react';
 import { useEffect, useRef } from 'react';
@@ -23,7 +25,8 @@ import useZodForm from '@/app/_ui/hooks/useZodForm';
 import useChatContext from '../hooks/useChatContext';
 
 const schema = z.object({
-  content: z.string().min(1)
+  content: z.string().min(1),
+  files: z.instanceof(FileList).optional()
 });
 
 const ChatInput = () => {
@@ -31,6 +34,7 @@ const ChatInput = () => {
   'use no memo';
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const isFlutterWebViewRef = useRef<boolean>(false);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressTriggeredRef = useRef<boolean>(false);
@@ -54,8 +58,12 @@ const ChatInput = () => {
     reset,
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { isSubmitting, isValid, isSubmitSuccessful }
   } = useZodForm(schema);
+
+  const watchedFiles = watch('files');
 
   const submitHandler: SubmitHandler<z.infer<typeof schema>> = async (data) => {
     if (connectionState === 'connected' && session) {
@@ -66,13 +74,16 @@ const ChatInput = () => {
       });
     } else {
       await sendMessage({
-        parts: [{ type: 'text', text: data.content }],
-        role: 'user'
+        // parts: [{ type: 'text', text: data.content }],
+        text: '',
+        // role: 'user',
+        files: data.files
       });
     }
   };
 
   const { ref: textareaFormRef, ...rest } = register('content');
+  const { ref: fileInputFormRef, ...fileInputProps } = register('files');
 
   useEffect(() => {
     if (typeof navigator !== 'undefined') {
@@ -144,108 +155,170 @@ const ChatInput = () => {
           />
         </div>
 
-        <div className="flex items-center justify-end gap-2 px-2.5 pb-2.5">
-          {isEnabled && (
+        {watchedFiles && watchedFiles.length > 0 && (
+          <div className="flex flex-wrap gap-2 px-5 pb-3">
+            {Array.from(watchedFiles).map((file, index) => (
+              <div
+                key={index}
+                className="bg-surface-secondary flex items-center gap-2 rounded-lg px-3 py-2 text-sm"
+              >
+                <span className="max-w-[200px] truncate">{file.name}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const dt = new DataTransfer();
+                    Array.from(watchedFiles).forEach((f, i) => {
+                      if (i !== index) dt.items.add(f);
+                    });
+                    setValue(
+                      'files',
+                      dt.files.length > 0 ? dt.files : undefined
+                    );
+                  }}
+                  className="text-text-muted hover:text-text-primary"
+                >
+                  <Icon icon={IconX} size="sm" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <input
+          type="file"
+          ref={(e) => {
+            fileInputFormRef(e);
+            fileInputRef.current = e;
+          }}
+          {...fileInputProps}
+          multiple
+          accept="image/*,video/*,audio/*,application/pdf,text/*"
+          className="hidden"
+        />
+
+        <div className="flex items-center justify-between gap-2 px-2.5 pb-2.5">
+          <div className="flex items-center gap-2">
             <Button
               shape="circle"
               size="lg"
               type="button"
               variant="ghost"
-              isDisabled={
-                isLoading ||
-                connectionState === 'connecting' ||
-                connectionState === 'disconnecting' ||
-                !isEnabled ||
-                (connectionState === 'disconnected' && !canConnect) ||
-                isRealTimeLoading
-              }
-              onPointerDown={() => {
-                longPressTriggeredRef.current = false;
-                if (connectionState === 'connected') {
-                  longPressTimerRef.current = setTimeout(() => {
-                    longPressTriggeredRef.current = true;
-                    _disconnect();
-                  }, 700);
-                }
-              }}
-              onPointerUp={() => {
-                if (longPressTimerRef.current) {
-                  clearTimeout(longPressTimerRef.current);
-                  longPressTimerRef.current = null;
-                }
-              }}
-              onPointerLeave={() => {
-                if (longPressTimerRef.current) {
-                  clearTimeout(longPressTimerRef.current);
-                  longPressTimerRef.current = null;
-                }
-              }}
-              onClick={() => {
-                console.log('🎤 Microphone button clicked:', connectionState);
+              isDisabled={isLoading}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <ButtonContent>
+                <Icon icon={IconPaperclip} />
+              </ButtonContent>
+            </Button>
+          </div>
 
-                if (longPressTriggeredRef.current) {
-                  // Long-press already handled disconnect; ignore click
+          <div className="flex items-center gap-2">
+            {isEnabled && (
+              <Button
+                shape="circle"
+                size="lg"
+                type="button"
+                variant="ghost"
+                isDisabled={
+                  isLoading ||
+                  connectionState === 'connecting' ||
+                  connectionState === 'disconnecting' ||
+                  !isEnabled ||
+                  (connectionState === 'disconnected' && !canConnect) ||
+                  isRealTimeLoading
+                }
+                onPointerDown={() => {
                   longPressTriggeredRef.current = false;
-                  return;
-                }
+                  if (connectionState === 'connected') {
+                    longPressTimerRef.current = setTimeout(() => {
+                      longPressTriggeredRef.current = true;
+                      _disconnect();
+                    }, 700);
+                  }
+                }}
+                onPointerUp={() => {
+                  if (longPressTimerRef.current) {
+                    clearTimeout(longPressTimerRef.current);
+                    longPressTimerRef.current = null;
+                  }
+                }}
+                onPointerLeave={() => {
+                  if (longPressTimerRef.current) {
+                    clearTimeout(longPressTimerRef.current);
+                    longPressTimerRef.current = null;
+                  }
+                }}
+                onClick={() => {
+                  console.log('🎤 Microphone button clicked:', connectionState);
 
-                if (connectionState === 'connected' && session) {
-                  setIsMuted(!isMuted);
-                } else if (connectionState === 'disconnected') {
-                  connect();
-                }
-              }}
+                  if (longPressTriggeredRef.current) {
+                    // Long-press already handled disconnect; ignore click
+                    longPressTriggeredRef.current = false;
+                    return;
+                  }
+
+                  if (connectionState === 'connected' && session) {
+                    setIsMuted(!isMuted);
+                  } else if (connectionState === 'disconnected') {
+                    connect();
+                  }
+                }}
+              >
+                <ButtonContent>
+                  <Icon
+                    icon={
+                      connectionState === 'connecting' ||
+                      connectionState === 'disconnecting' ||
+                      isRealTimeLoading
+                        ? IconSpinner
+                        : connectionState === 'connected'
+                          ? isMuted
+                            ? IconMicrophoneOff
+                            : IconMicrophoneFilled
+                          : IconMicrophone
+                    }
+                  />
+                </ButtonContent>
+              </Button>
+            )}
+            <Button
+              shape="circle"
+              size="lg"
+              type="submit"
+              isDisabled={
+                (!isStreaming &&
+                  (!isValid || isSubmitting) &&
+                  !(
+                    connectionState === 'connected' &&
+                    isAgentTurn &&
+                    session
+                  )) ||
+                status === 'submitted'
+              }
+              onClick={
+                isStreaming
+                  ? stop
+                  : connectionState === 'connected' && isAgentTurn && session
+                    ? () => interrupt()
+                    : handleSubmit(submitHandler)
+              }
             >
               <ButtonContent>
                 <Icon
                   icon={
-                    connectionState === 'connecting' ||
-                    connectionState === 'disconnecting' ||
-                    isRealTimeLoading
+                    isLoading && !isStreaming
                       ? IconSpinner
-                      : connectionState === 'connected'
-                        ? isMuted
-                          ? IconMicrophoneOff
-                          : IconMicrophoneFilled
-                        : IconMicrophone
+                      : isStreaming ||
+                          (connectionState === 'connected' &&
+                            isAgentTurn &&
+                            session)
+                        ? IconPlayerStop
+                        : IconArrowUp
                   }
                 />
               </ButtonContent>
             </Button>
-          )}
-          <Button
-            shape="circle"
-            size="lg"
-            type="submit"
-            isDisabled={
-              (!isStreaming &&
-                (!isValid || isSubmitting) &&
-                !(connectionState === 'connected' && isAgentTurn && session)) ||
-              status === 'submitted'
-            }
-            onClick={
-              isStreaming
-                ? stop
-                : connectionState === 'connected' && isAgentTurn && session
-                  ? () => interrupt()
-                  : handleSubmit(submitHandler)
-            }
-          >
-            <ButtonContent>
-              <Icon
-                icon={
-                  isLoading && !isStreaming
-                    ? IconSpinner
-                    : isStreaming ||
-                        (connectionState === 'connected' &&
-                          isAgentTurn &&
-                          session)
-                      ? IconPlayerStop
-                      : IconArrowUp
-                }
-              />
-            </ButtonContent>
-          </Button>
+          </div>
         </div>
       </div>
     </motion.div>
