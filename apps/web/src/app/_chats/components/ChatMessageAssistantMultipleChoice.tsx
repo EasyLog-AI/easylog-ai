@@ -16,7 +16,7 @@ import useChatContext from '../hooks/useChatContext';
 export interface ChatMessageAssistantMultipleChoiceProps {
   question: string;
   options: string[];
-  answer: string | null;
+  answer?: string | null;
   chatId: string;
   multipleChoiceQuestionId: string;
   messageId: string;
