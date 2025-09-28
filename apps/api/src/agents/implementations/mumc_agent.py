@@ -1344,12 +1344,48 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
         memories = await self.get_metadata("memories", [])
         notifications = await self.get_metadata("notifications", [])
 
+        # Get current time with proper timezone and Dutch formatting
+        amsterdam_tz = pytz.timezone("Europe/Amsterdam")
+        current_datetime = datetime.now(amsterdam_tz)
+        
+        # Dutch day names
+        dutch_days = {
+            'Monday': 'maandag',
+            'Tuesday': 'dinsdag', 
+            'Wednesday': 'woensdag',
+            'Thursday': 'donderdag',
+            'Friday': 'vrijdag',
+            'Saturday': 'zaterdag',
+            'Sunday': 'zondag'
+        }
+        
+        # Dutch month names
+        dutch_months = {
+            1: 'januari', 2: 'februari', 3: 'maart', 4: 'april',
+            5: 'mei', 6: 'juni', 7: 'juli', 8: 'augustus',
+            9: 'september', 10: 'oktober', 11: 'november', 12: 'december'
+        }
+        
+        # Format current time with Dutch day and month names
+        english_day = current_datetime.strftime("%A")
+        dutch_day = dutch_days.get(english_day, english_day)
+        day_num = current_datetime.day
+        month_name = dutch_months.get(current_datetime.month, current_datetime.strftime("%B"))
+        year = current_datetime.year
+        time_str = current_datetime.strftime("%H:%M:%S")
+        
+        # Create comprehensive time string
+        current_time_str = (
+            f"{dutch_day} {day_num} {month_name} {year} om {time_str} "
+            f"(Week {current_datetime.isocalendar()[1]}, Dag {current_datetime.timetuple().tm_yday} van het jaar)"
+        )
+
         # Prepare the main content for the LLM
         main_prompt_format_args = {
             "current_role": role_config.name,
             "current_role_prompt": formatted_current_role_prompt,
             "available_roles": "\n".join([f"- {role.name}" for role in self.config.roles]),
-            "current_time": datetime.now(pytz.timezone("Europe/Amsterdam")).strftime("%A %Y-%m-%d %H:%M:%S"),
+            "current_time": current_time_str,
             "recurring_tasks": "\n".join(
                 [f"- {task['id']}: {task['cron_expression']} - {task['task']}" for task in recurring_tasks]
             )
