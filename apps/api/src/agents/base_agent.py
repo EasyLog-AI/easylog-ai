@@ -350,6 +350,9 @@ class BaseAgent(Generic[TConfig]):
         text_content: str | None = None
         text_id = str(uuid.uuid4())
 
+        self.logger.info(f"ResponseId: {stream.response.headers.get('X-Request-Id')}")
+        self.logger.info(f"Headers: {stream.response.headers}")
+
         try:
             async for event in stream:
                 if event.choices[0].delta.content is not None:
@@ -437,6 +440,8 @@ class BaseAgent(Generic[TConfig]):
         messages: Iterable[ChatCompletionMessageParam],
         retry_count: int = 0,
     ) -> AsyncGenerator[tuple[MessageContent, bool], None]:
+        self.logger.info(f"ResponseId: {completion.id}")
+
         if len(completion.choices or []) == 0:
             raise ValueError(
                 "No choices found in completion, this usually means the messages weren't forwarded correctly"
