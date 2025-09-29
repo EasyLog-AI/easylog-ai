@@ -17,7 +17,6 @@ from PIL import Image, ImageOps
 from prisma.enums import health_data_point_type
 from prisma.types import health_data_pointsWhereInput, usersWhereInput
 from pydantic import BaseModel, Field
-
 from src.agents.base_agent import BaseAgent, SuperAgentConfig
 from src.agents.tools.base_tools import BaseTools
 from src.agents.tools.easylog_backend_tools import EasylogBackendTools
@@ -147,7 +146,9 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
         if role not in [role.name for role in self.config.roles]:
             role = self.config.roles[0].name
 
-        return next(role_config for role_config in self.config.roles if role_config.name == role)
+        return next(
+            role_config for role_config in self.config.roles if role_config.name == role
+        )
 
     def get_tools(self) -> dict[str, Callable]:
         # EasyLog-specific tools
@@ -211,7 +212,12 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                 search_query, subjects=(await self.get_current_role()).allowed_subjects
             )
 
-            return "\n-".join([f"Path: {document.path} - Summary: {document.summary}" for document in result])
+            return "\n-".join(
+                [
+                    f"Path: {document.path} - Summary: {document.summary}"
+                    for document in result
+                ]
+            )
 
         async def tool_get_document_contents(path: str) -> str:
             """Retrieve the complete contents of a specific document from the knowledge database.
@@ -231,7 +237,9 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
             return json.dumps(await self.get_document(path), default=str)
 
         # Questionnaire tools
-        async def tool_answer_questionaire_question(question_name: str, answer: str) -> str:
+        async def tool_answer_questionaire_question(
+            question_name: str, answer: str
+        ) -> str:
             """Answer a question from the questionaire.
 
             Args:
@@ -278,7 +286,9 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                     raw_answers[code] = ans
 
             if missing:
-                raise ValueError("Missing questionnaire answers for: " + ", ".join(missing))
+                raise ValueError(
+                    "Missing questionnaire answers for: " + ", ".join(missing)
+                )
 
             # --------------------------------------------------------------
             # 2. Parse & validate using Pydantic model
@@ -287,17 +297,27 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                 try:
                     return int(val)
                 except Exception as exc:
-                    raise ValueError(f"Expected integer, got '{val}' for question.") from exc
+                    raise ValueError(
+                        f"Expected integer, got '{val}' for question."
+                    ) from exc
 
             def _to_float(val: str) -> float:
                 try:
-                    return float(val)
+                    # Replace comma with dot for Dutch decimal notation (e.g., "78,6" -> "78.6")
+                    normalized_val = val.strip().replace(",", ".")
+                    return float(normalized_val)
                 except Exception as exc:
-                    raise ValueError(f"Expected float, got '{val}' for question.") from exc
+                    raise ValueError(
+                        f"Expected float, got '{val}' for question."
+                    ) from exc
 
             parsed: dict[str, Any] = {
                 # ints 0-6 unless specified
-                **{f"G{i}": _to_int(raw_answers[f"G{i}"]) for i in range(1, 20) if i != 20},
+                **{
+                    f"G{i}": _to_int(raw_answers[f"G{i}"])
+                    for i in range(1, 20)
+                    if i != 20
+                },
                 # g20 remains str literal
                 "G20": raw_answers["G20"].strip().lower(),
                 # floats
@@ -316,7 +336,9 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                 return float(mean(vals)) if vals else 0.0
 
             scores: dict[str, float] = {
-                "longklachten": _avg([answers.G12, answers.G13, answers.G15, answers.G16]),
+                "longklachten": _avg(
+                    [answers.G12, answers.G13, answers.G15, answers.G16]
+                ),
                 "longaanvallen": float(answers.G17),
                 "lichamelijke_beperkingen": _avg([answers.G5, answers.G6, answers.G7]),
                 "vermoeidheid": float(answers.G1),
@@ -446,7 +468,11 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                 ```
             """
 
-            title = "Resultaten ziektelastmeter" if language == "nl" else "Disease burden results"
+            title = (
+                "Resultaten ziektelastmeter"
+                if language == "nl"
+                else "Disease burden results"
+            )
 
             # Check that data list is at least 1 or more,.
             if len(data) < 1:
@@ -643,7 +669,9 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                         return obj  # Expect list[dict]
                     if isinstance(obj, dict):
                         return [obj]
-                    raise ValueError("horizontal_lines string must decode to a dict or list of dicts")
+                    raise ValueError(
+                        "horizontal_lines string must decode to a dict or list of dicts"
+                    )
 
                 if isinstance(horizontal_lines, str):
                     normalised_lines.extend(_parse_str_to_obj(horizontal_lines))
@@ -654,7 +682,9 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                         elif isinstance(item, str):
                             normalised_lines.extend(_parse_str_to_obj(item))
                         else:
-                            raise ValueError(f"horizontal_lines[{idx}] must be a dict or string, got {type(item)}")
+                            raise ValueError(
+                                f"horizontal_lines[{idx}] must be a dict or string, got {type(item)}"
+                            )
                 else:
                     raise ValueError("horizontal_lines must be a list, string, or None")
 
@@ -667,7 +697,9 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                         )
 
                     if "value" not in line_dict:
-                        raise ValueError(f"horizontal_lines[{i}] missing required 'value' field")
+                        raise ValueError(
+                            f"horizontal_lines[{i}] missing required 'value' field"
+                        )
 
                     try:
                         value = float(line_dict["value"])
@@ -681,9 +713,13 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
 
                     # Validate color format if provided
                     if color is not None and not isinstance(color, str):
-                        raise ValueError(f"horizontal_lines[{i}] 'color' must be a string, got {type(color)}")
+                        raise ValueError(
+                            f"horizontal_lines[{i}] 'color' must be a string, got {type(color)}"
+                        )
 
-                    parsed_horizontal_lines.append(Line(value=value, label=label, color=color))
+                    parsed_horizontal_lines.append(
+                        Line(value=value, label=label, color=color)
+                    )
 
             return ChartWidget.create_bar_chart(
                 title=title,
@@ -752,15 +788,23 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                 A ChartWidget object configured as a line chart.
             """
             if y_labels is not None and len(y_keys) != len(y_labels):
-                raise ValueError("If y_labels are provided for line chart, they must match the length of y_keys.")
+                raise ValueError(
+                    "If y_labels are provided for line chart, they must match the length of y_keys."
+                )
 
             # Basic validation for data structure (can be enhanced)
             for item in data:
                 if x_key not in item:
-                    raise ValueError(f"Line chart data item missing x_key '{x_key}': {item}")
+                    raise ValueError(
+                        f"Line chart data item missing x_key '{x_key}': {item}"
+                    )
                 for y_key in y_keys:
-                    if y_key in item and not isinstance(item[y_key], (int, float, type(None))):
-                        if isinstance(item[y_key], str):  # Allow string if it's meant to be a number
+                    if y_key in item and not isinstance(
+                        item[y_key], (int, float, type(None))
+                    ):
+                        if isinstance(
+                            item[y_key], str
+                        ):  # Allow string if it's meant to be a number
                             try:
                                 float(item[y_key])
                             except ValueError:
@@ -787,7 +831,9 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
             )
 
         # Interaction tools
-        def tool_ask_multiple_choice(question: str, choices: list[dict[str, str]]) -> tuple[MultipleChoiceWidget, bool]:
+        def tool_ask_multiple_choice(
+            question: str, choices: list[dict[str, str]]
+        ) -> tuple[MultipleChoiceWidget, bool]:
             """Asks the user a multiple-choice question with distinct labels and values.
                 When using this tool, you must not repeat the same question or answers in text unless asked to do so by the user.
                 This widget already presents the question and choices to the user.
@@ -807,8 +853,12 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
             parsed_choices = []
             for choice_dict in choices:
                 if "label" not in choice_dict or "value" not in choice_dict:
-                    raise ValueError("Each choice dictionary must contain 'label' and 'value' keys.")
-                parsed_choices.append(Choice(label=choice_dict["label"], value=choice_dict["value"]))
+                    raise ValueError(
+                        "Each choice dictionary must contain 'label' and 'value' keys."
+                    )
+                parsed_choices.append(
+                    Choice(label=choice_dict["label"], value=choice_dict["value"])
+                )
 
             return MultipleChoiceWidget(
                 question=question,
@@ -846,7 +896,9 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                 if image.width > max_size or image.height > max_size:
                     ratio = min(max_size / image.width, max_size / image.height)
                     new_size = (int(image.width * ratio), int(image.height * ratio))
-                    self.logger.info(f"Resizing image from {image.width}x{image.height} to {new_size[0]}x{new_size[1]}")
+                    self.logger.info(
+                        f"Resizing image from {image.width}x{image.height} to {new_size[0]}x{new_size[1]}"
+                    )
                     image = image.resize(new_size, Image.Resampling.LANCZOS)
 
                 return image
@@ -867,7 +919,9 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                 task (str): The task to set the schedule for.
             """
 
-            existing_tasks: list[dict[str, str]] = await self.get_metadata("recurring_tasks", [])
+            existing_tasks: list[dict[str, str]] = await self.get_metadata(
+                "recurring_tasks", []
+            )
 
             existing_tasks.append(
                 {
@@ -889,7 +943,9 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                 message (str): The message to remind the user about.
             """
 
-            existing_reminders: list[dict[str, str]] = await self.get_metadata("reminders", [])
+            existing_reminders: list[dict[str, str]] = await self.get_metadata(
+                "reminders", []
+            )
 
             existing_reminders.append(
                 {
@@ -909,7 +965,9 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
             Args:
                 id (str): The ID of the task to remove.
             """
-            existing_tasks: list[dict[str, str]] = await self.get_metadata("recurring_tasks", [])
+            existing_tasks: list[dict[str, str]] = await self.get_metadata(
+                "recurring_tasks", []
+            )
 
             existing_tasks = [task for task in existing_tasks if task["id"] != id]
 
@@ -923,9 +981,13 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
             Args:
                 id (str): The ID of the reminder to remove.
             """
-            existing_reminders: list[dict[str, str]] = await self.get_metadata("reminders", [])
+            existing_reminders: list[dict[str, str]] = await self.get_metadata(
+                "reminders", []
+            )
 
-            existing_reminders = [reminder for reminder in existing_reminders if reminder["id"] != id]
+            existing_reminders = [
+                reminder for reminder in existing_reminders if reminder["id"] != id
+            ]
 
             await self.set_metadata("reminders", existing_reminders)
 
@@ -965,13 +1027,13 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                 title (str): The title of the notification.
                 contents (str): The text to send in the notification.
             """
-            onesignal_id = self.request_headers.get("x-onesignal-external-user-id") or await self.get_metadata(
-                "onesignal_id", None
-            )
+            onesignal_id = self.request_headers.get(
+                "x-onesignal-external-user-id"
+            ) or await self.get_metadata("onesignal_id", None)
 
-            assistant_field_name = self.request_headers.get("x-assistant-field-name") or await self.get_metadata(
-                "assistant_field_name", None
-            )
+            assistant_field_name = self.request_headers.get(
+                "x-assistant-field-name"
+            ) or await self.get_metadata("assistant_field_name", None)
 
             self.logger.info(f"Sending notification to {onesignal_id}")
 
@@ -981,7 +1043,9 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
             if assistant_field_name is None:
                 return "No assistant field name found"
 
-            self.logger.info(f"Sending notification to {onesignal_id} with app id {settings.ONESIGNAL_HEALTH_APP_ID}")
+            self.logger.info(
+                f"Sending notification to {onesignal_id} with app id {settings.ONESIGNAL_HEALTH_APP_ID}"
+            )
             notification = Notification(
                 target_channel="push",
                 channel_for_external_user_ids="push",
@@ -1021,7 +1085,9 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                     "id": response["id"],
                     "title": title,
                     "contents": contents,
-                    "sent_at": datetime.now(pytz.timezone("Europe/Amsterdam")).isoformat(),
+                    "sent_at": datetime.now(
+                        pytz.timezone("Europe/Amsterdam")
+                    ).isoformat(),
                 }
             )
 
@@ -1086,7 +1152,9 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
             elif agg_raw in {"quarter", "quarterly", "q", "15m", "15min", "15"}:
                 aggregation_normalised = "quarter"
             else:
-                raise ValueError("Invalid aggregation value. Use one of: 'quarter', 'hour', 'day', or None/empty.")
+                raise ValueError(
+                    "Invalid aggregation value. Use one of: 'quarter', 'hour', 'day', or None/empty."
+                )
 
             aggregation = aggregation_normalised  # overwrite with canonical value
 
@@ -1100,7 +1168,9 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
             try:
                 tz = ZoneInfo(tz_name)
             except ZoneInfoNotFoundError as exc:
-                raise ValueError(f"Invalid timezone '{timezone}'. Please provide a valid IANA name.") from exc
+                raise ValueError(
+                    f"Invalid timezone '{timezone}'. Please provide a valid IANA name."
+                ) from exc
 
             UTC = ZoneInfo("UTC")  # single UTC instance for reuse
 
@@ -1127,7 +1197,9 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                 and date_from_dt.timetz() == time(0, tzinfo=tz)
                 and date_to_dt.timetz() == time(0, tzinfo=tz)
             ):
-                date_to_dt = date_to_dt.replace(hour=23, minute=59, second=59, microsecond=999999)
+                date_to_dt = date_to_dt.replace(
+                    hour=23, minute=59, second=59, microsecond=999999
+                )
 
             # Convert to **UTC** for querying
             date_from_utc = date_from_dt.astimezone(UTC)
@@ -1140,7 +1212,9 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
             if external_user_id is None:
                 raise ValueError("User ID not provided and not found in agent context.")
 
-            user = await prisma.users.find_first(where=usersWhereInput(external_id=external_user_id))
+            user = await prisma.users.find_first(
+                where=usersWhereInput(external_id=external_user_id)
+            )
             if user is None:
                 raise ValueError("User not found")
 
@@ -1212,13 +1286,17 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                     start_dt = _parse_input(dp.date_from)
                     local_dt = start_dt.astimezone(tz)
                     floored_minute = (local_dt.minute // 15) * 15
-                    bucket_dt = local_dt.replace(minute=floored_minute, second=0, microsecond=0)
+                    bucket_dt = local_dt.replace(
+                        minute=floored_minute, second=0, microsecond=0
+                    )
                     bucket_key = bucket_dt.isoformat()
                     bucket_totals[bucket_key] += dp.value
 
                 sorted_rows = sorted(bucket_totals.items())[:300]
 
-                return [{"created_at": key, "value": total} for key, total in sorted_rows]
+                return [
+                    {"created_at": key, "value": total} for key, total in sorted_rows
+                ]
 
             # ------------------------------------------------------------------ #
             # 7. Raw datapoints                                                  #
@@ -1273,7 +1351,9 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
         ]
         return {tool.__name__: tool for tool in tools_list}
 
-    def _substitute_double_curly_placeholders(self, template_string: str, data_dict: dict[str, Any]) -> str:
+    def _substitute_double_curly_placeholders(
+        self, template_string: str, data_dict: dict[str, Any]
+    ) -> str:
         """Substitutes {{placeholder}} style placeholders in a string with values from data_dict."""
 
         # First, replace all known placeholders
@@ -1289,7 +1369,9 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
             var_name = match.group(1)  # Content inside {{...}}
             return f"[missing:{var_name}]"
 
-        output_string = re.sub(r"\{\{([^}]+)\}\}", replace_missing_with_indicator, output_string)
+        output_string = re.sub(
+            r"\{\{([^}]+)\}\}", replace_missing_with_indicator, output_string
+        )
         return output_string
 
     async def on_message(
@@ -1314,19 +1396,25 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
         questionnaire_format_kwargs: dict[str, str] = {}
         for q_item in role_config.questionaire:
             answer = await self.get_metadata(q_item.name, "[not answered]")
-            questionnaire_format_kwargs[f"questionaire_{q_item.name}_question"] = q_item.question
+            questionnaire_format_kwargs[f"questionaire_{q_item.name}_question"] = (
+                q_item.question
+            )
 
             # Handle both string and structured instructions
             if isinstance(q_item.instructions, list):
                 # For structured instructions, convert to JSON string for AI prompt
-                questionnaire_format_kwargs[f"questionaire_{q_item.name}_instructions"] = json.dumps(
-                    q_item.instructions
-                )
+                questionnaire_format_kwargs[
+                    f"questionaire_{q_item.name}_instructions"
+                ] = json.dumps(q_item.instructions)
             else:
                 # Legacy string format
-                questionnaire_format_kwargs[f"questionaire_{q_item.name}_instructions"] = q_item.instructions
+                questionnaire_format_kwargs[
+                    f"questionaire_{q_item.name}_instructions"
+                ] = q_item.instructions
 
-            questionnaire_format_kwargs[f"questionaire_{q_item.name}_name"] = q_item.name
+            questionnaire_format_kwargs[f"questionaire_{q_item.name}_name"] = (
+                q_item.name
+            )
             questionnaire_format_kwargs[f"questionaire_{q_item.name}_answer"] = answer
 
         # Format the role prompt with questionnaire data
@@ -1347,33 +1435,44 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
         # Get current time with proper timezone and Dutch formatting
         amsterdam_tz = pytz.timezone("Europe/Amsterdam")
         current_datetime = datetime.now(amsterdam_tz)
-        
+
         # Dutch day names
         dutch_days = {
-            'Monday': 'maandag',
-            'Tuesday': 'dinsdag', 
-            'Wednesday': 'woensdag',
-            'Thursday': 'donderdag',
-            'Friday': 'vrijdag',
-            'Saturday': 'zaterdag',
-            'Sunday': 'zondag'
+            "Monday": "maandag",
+            "Tuesday": "dinsdag",
+            "Wednesday": "woensdag",
+            "Thursday": "donderdag",
+            "Friday": "vrijdag",
+            "Saturday": "zaterdag",
+            "Sunday": "zondag",
         }
-        
+
         # Dutch month names
         dutch_months = {
-            1: 'januari', 2: 'februari', 3: 'maart', 4: 'april',
-            5: 'mei', 6: 'juni', 7: 'juli', 8: 'augustus',
-            9: 'september', 10: 'oktober', 11: 'november', 12: 'december'
+            1: "januari",
+            2: "februari",
+            3: "maart",
+            4: "april",
+            5: "mei",
+            6: "juni",
+            7: "juli",
+            8: "augustus",
+            9: "september",
+            10: "oktober",
+            11: "november",
+            12: "december",
         }
-        
+
         # Format current time with Dutch day and month names
         english_day = current_datetime.strftime("%A")
         dutch_day = dutch_days.get(english_day, english_day)
         day_num = current_datetime.day
-        month_name = dutch_months.get(current_datetime.month, current_datetime.strftime("%B"))
+        month_name = dutch_months.get(
+            current_datetime.month, current_datetime.strftime("%B")
+        )
         year = current_datetime.year
         time_str = current_datetime.strftime("%H:%M:%S")
-        
+
         # Create comprehensive time string
         current_time_str = (
             f"{dutch_day} {day_num} {month_name} {year} om {time_str} "
@@ -1384,19 +1483,29 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
         main_prompt_format_args = {
             "current_role": role_config.name,
             "current_role_prompt": formatted_current_role_prompt,
-            "available_roles": "\n".join([f"- {role.name}" for role in self.config.roles]),
+            "available_roles": "\n".join(
+                [f"- {role.name}" for role in self.config.roles]
+            ),
             "current_time": current_time_str,
             "recurring_tasks": "\n".join(
-                [f"- {task['id']}: {task['cron_expression']} - {task['task']}" for task in recurring_tasks]
+                [
+                    f"- {task['id']}: {task['cron_expression']} - {task['task']}"
+                    for task in recurring_tasks
+                ]
             )
             if recurring_tasks
             else "<no recurring tasks>",
             "reminders": "\n".join(
-                [f"- {reminder['id']}: {reminder['date']} - {reminder['message']}" for reminder in reminders]
+                [
+                    f"- {reminder['id']}: {reminder['date']} - {reminder['message']}"
+                    for reminder in reminders
+                ]
             )
             if reminders
             else "<no reminders>",
-            "memories": "\n".join([f"- {memory['id']}: {memory['memory']}" for memory in memories])
+            "memories": "\n".join(
+                [f"- {memory['id']}: {memory['memory']}" for memory in memories]
+            )
             if memories
             else "<no memories>",
             "notifications": "\n".join(
@@ -1422,10 +1531,14 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
             await self.set_metadata("assistant_field_name", assistant_field_name)
 
         try:
-            llm_content = self._substitute_double_curly_placeholders(self.config.prompt, main_prompt_format_args)
+            llm_content = self._substitute_double_curly_placeholders(
+                self.config.prompt, main_prompt_format_args
+            )
         except Exception as e:
             self.logger.warning(f"Error formatting system prompt: {e}")
-            llm_content = f"Role: {role_config.name}\nPrompt: {formatted_current_role_prompt}"
+            llm_content = (
+                f"Role: {role_config.name}\nPrompt: {formatted_current_role_prompt}"
+            )
 
         self.logger.debug(llm_content)
 
@@ -1461,7 +1574,9 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
 
     async def on_super_agent_call(
         self, messages: Iterable[ChatCompletionMessageParam]
-    ) -> tuple[AsyncStream[ChatCompletionChunk] | ChatCompletion, list[Callable]] | None:
+    ) -> (
+        tuple[AsyncStream[ChatCompletionChunk] | ChatCompletion, list[Callable]] | None
+    ):
         onesignal_id = await self.get_metadata("onesignal_id")
 
         if onesignal_id is None:
