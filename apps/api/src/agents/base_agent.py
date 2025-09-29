@@ -349,13 +349,13 @@ class BaseAgent(Generic[TConfig]):
         final_tool_calls: dict[int, StreamToolCall] = {}
         text_content: str | None = None
         text_id = str(uuid.uuid4())
-        response_id: str | None = None
+        completion_id: str | None = None
 
         try:
             async for event in stream:
-                if response_id is None:
-                    response_id = event.id
-                    self.logger.info(f"ResponseId: {event.id}")
+                if completion_id is None:
+                    completion_id = event.id
+                    self.logger.info(f"CompletionId: {event.id}, ThreadId: {self.thread_id}")
 
                 if event.choices[0].delta.content is not None:
                     text_content = (
@@ -442,7 +442,7 @@ class BaseAgent(Generic[TConfig]):
         messages: Iterable[ChatCompletionMessageParam],
         retry_count: int = 0,
     ) -> AsyncGenerator[tuple[MessageContent, bool], None]:
-        self.logger.info(f"ResponseId: {completion.id}")
+        self.logger.info(f"CompletionId: {completion.id}, ThreadId: {self.thread_id}")
 
         if len(completion.choices or []) == 0:
             raise ValueError(
