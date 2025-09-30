@@ -6,7 +6,7 @@ from typing import Literal
 import pytz
 from fastapi import APIRouter, HTTPException, Path, Query, Request, Response
 from fastapi.responses import StreamingResponse
-from prisma.types import Json
+from prisma import Json
 
 from src.lib.prisma import prisma
 from src.logger import logger
