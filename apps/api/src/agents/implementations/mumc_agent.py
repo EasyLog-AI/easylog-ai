@@ -14,7 +14,11 @@ from openai.types.chat.chat_completion import ChatCompletion
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 from PIL import Image, ImageOps
-from prisma.enums import health_data_point_type
+from prisma.enums import (
+    health_data_point_type,
+    message_content_type,
+    message_role,
+)
 from prisma.types import health_data_pointsWhereInput, usersWhereInput
 from pydantic import BaseModel, Field
 
@@ -150,6 +154,38 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
             role = self.config.roles[0].name
 
         return next(role_config for role_config in self.config.roles if role_config.name == role)
+
+    async def _add_notification_to_chat(self, title: str, contents: str) -> None:
+        """Add a notification message to the chat thread.
+        
+        This makes super agent notifications visible in the chat history.
+        
+        Args:
+            title (str): The notification title
+            contents (str): The notification message content
+        """
+        self.logger.info(f"Adding notification to chat: {title}")
+        
+        try:
+            await prisma.messages.create(
+                data={
+                    "agent_class": "MUMCAgent",
+                    "thread_id": self.thread_id,
+                    "role": message_role.assistant,
+                    "contents": {
+                        "create": [
+                            {
+                                "type": message_content_type.text,
+                                "text": f"🔔 **{title}**\n\n{contents}",
+                            }
+                        ]
+                    },
+                },
+            )
+            self.logger.info("Successfully added notification to chat")
+        except Exception as e:
+            self.logger.error(f"Error adding notification to chat: {e}")
+            # Don't raise - notification was already sent via OneSignal
 
     def get_tools(self) -> dict[str, Callable]:
         # EasyLog-specific tools
@@ -1030,6 +1066,9 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
             )
 
             await self.set_metadata("notifications", filtered_notifications)
+
+            # Add notification to chat so it's visible in message history
+            await self._add_notification_to_chat(title, contents)
 
             return "Notification sent"
 
