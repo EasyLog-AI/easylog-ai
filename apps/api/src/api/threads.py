@@ -25,8 +25,10 @@ async def _ensure_welcome_message(thread_id: str, external_id: str | None) -> No
         external_id: The external ID (used to determine agent_class)
     """
     # Map external_id patterns to agent_class
+    # NOTE: Order matters - more specific patterns first!
     agent_class_map = {
-        "mumc-server-test": "MUMCAgentTest",
+        "mumc-server-test": "MUMCAgentTest",  # Test environment
+        "mumc-server": "MUMCAgent",            # Production environment
         # Add more agents here when needed
     }
 
