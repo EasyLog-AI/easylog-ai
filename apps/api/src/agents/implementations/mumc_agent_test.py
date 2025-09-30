@@ -1339,92 +1339,15 @@ class MUMCAgentTest(BaseAgent[MUMCAgentTestConfig]):
         self, messages: Iterable[ChatCompletionMessageParam], _: int = 0
     ) -> tuple[AsyncStream[ChatCompletionChunk] | ChatCompletion, list[Callable]]:
         # ============================================================
-        # AUTOMATIC WELCOME MESSAGE LOGIC
+        # UPDATE LAST INTERACTION TIME
         # ============================================================
-        # Convert to list for manipulation
-        messages_list = list(messages)
-
-        should_send_welcome = False
-        welcome_reason = ""
-
-        # Check for explicit open signal (future feature)
-        if len(messages_list) > 0:
-            last_msg = messages_list[-1]
-            if (
-                last_msg.get("role") == "user"
-                and last_msg.get("content")
-                in ["[OPEN_CHAT]", "[SESSION_START]"]
-            ):
-                should_send_welcome = True
-                welcome_reason = "explicit_signal"
-                messages_list.pop()  # Remove the signal message
-                self.logger.info(
-                    "[TEST AGENT] Explicit open signal detected"
-                )
-
-        # Fallback: Time-based session detection
-        if not should_send_welcome:
-            last_interaction = await self.get_metadata(
-                "last_interaction_time"
-            )
-            current_time = datetime.now(pytz.timezone("Europe/Amsterdam"))
-
-            SESSION_TIMEOUT_HOURS = 1  # Configurable timeout
-
-            if last_interaction is None:
-                # First time ever
-                should_send_welcome = True
-                welcome_reason = "first_time"
-                self.logger.info(
-                    "[TEST AGENT] First time interaction detected"
-                )
-            else:
-                # Check if session expired
-                try:
-                    last_time = datetime.fromisoformat(last_interaction)
-                    time_diff = current_time - last_time
-
-                    if time_diff.total_seconds() > (
-                        SESSION_TIMEOUT_HOURS * 3600
-                    ):
-                        should_send_welcome = True
-                        mins = time_diff.total_seconds() // 60
-                        welcome_reason = f"session_expired_{mins:.0f}min"
-                        self.logger.info(
-                            f"[TEST AGENT] Session expired after "
-                            f"{mins:.0f} minutes"
-                        )
-                except Exception as e:
-                    self.logger.warning(
-                        f"[TEST AGENT] Error parsing "
-                        f"last_interaction_time: {e}"
-                    )
-
-        # Update last interaction time
+        # Note: Welcome message is now handled in threads.py endpoint
+        # We only update the last interaction time here
         await self.set_metadata(
             "last_interaction_time",
             datetime.now(pytz.timezone("Europe/Amsterdam")).isoformat(),
         )
 
-        # Inject welcome message trigger if needed
-        if should_send_welcome:
-            self.logger.info(
-                f"[TEST AGENT] Injecting welcome message "
-                f"(reason: {welcome_reason})"
-            )
-
-            welcome_trigger: ChatCompletionMessageParam = {
-                "role": "user",
-                "content": (
-                    "[SYSTEM: User opened chat. Start the conversation "
-                    "with a warm, personal greeting. Ask how they are "
-                    "doing today. Keep it natural and friendly.]"
-                ),
-            }
-
-            # Insert at the beginning so context is maintained
-            messages_list.insert(0, welcome_trigger)
-        
         # ============================================================
         # CONTINUE WITH NORMAL FLOW
         # ============================================================
@@ -1579,7 +1502,7 @@ class MUMCAgentTest(BaseAgent[MUMCAgentTestConfig]):
                     "role": "system",
                     "content": llm_content,
                 },
-                *messages_list,  # Use messages_list (may include welcome trigger)
+                *messages,
             ],
             stream=True,
             extra_body={

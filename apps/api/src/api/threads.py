@@ -1,14 +1,119 @@
+from datetime import datetime
 from typing import Literal
 
+import pytz
 from fastapi import APIRouter, HTTPException, Path, Query, Response
 
 from src.lib.prisma import prisma
+from src.logger import logger
 from src.models.pagination import Pagination
 from src.models.threads import ThreadCreateInput, ThreadResponse
-from src.services.messages.utils.db_message_to_message_model import db_message_to_message_model
+from src.services.messages.utils.db_message_to_message_model import (
+    db_message_to_message_model,
+)
 from src.utils.is_valid_uuid import is_valid_uuid
 
 router = APIRouter()
+
+
+async def _ensure_welcome_message(thread_id: str, external_id: str | None) -> None:
+    """Ensure thread has a welcome message if it's a new/expired session.
+
+    Args:
+        thread_id: The thread ID
+        external_id: The external ID (used to determine agent_class)
+    """
+    # Map external_id patterns to agent_class
+    agent_class_map = {
+        "mumc-server-test": "MUMCAgentTest",
+        "mumc-server": "MUMCAgent",
+        # Add more mappings as needed
+    }
+
+    # Determine agent_class from external_id
+    agent_class = None
+    if external_id:
+        for pattern, cls in agent_class_map.items():
+            if pattern in external_id:
+                agent_class = cls
+                break
+
+    if not agent_class:
+        # No mapping found, skip welcome message
+        return
+
+    # Get thread with messages
+    thread = await prisma.threads.find_unique(
+        where={"id": thread_id},
+        include={"messages": True},
+    )
+
+    if not thread:
+        return
+
+    # Get metadata
+    metadata = dict(thread.metadata) if thread.metadata else {}
+    last_interaction = metadata.get("last_interaction_time")
+
+    # Determine if we should add welcome message
+    should_add_welcome = False
+    welcome_reason = ""
+
+    SESSION_TIMEOUT_HOURS = 1
+
+    if last_interaction is None and len(thread.messages or []) == 0:
+        # First time ever and thread is empty
+        should_add_welcome = True
+        welcome_reason = "first_time"
+    elif last_interaction:
+        # Check if session expired
+        try:
+            last_time = datetime.fromisoformat(last_interaction)
+            current_time = datetime.now(pytz.timezone("Europe/Amsterdam"))
+            time_diff = current_time - last_time
+
+            if time_diff.total_seconds() > (SESSION_TIMEOUT_HOURS * 3600):
+                should_add_welcome = True
+                mins = time_diff.total_seconds() // 60
+                welcome_reason = f"session_expired_{mins:.0f}min"
+        except Exception as e:
+            logger.warning(
+                f"Error parsing last_interaction_time for thread "
+                f"{thread_id}: {e}"
+            )
+
+    # Add welcome message if needed
+    if should_add_welcome:
+        logger.info(
+            f"Adding welcome message to thread {thread_id} "
+            f"(reason: {welcome_reason}, agent: {agent_class})"
+        )
+
+        # Create welcome message
+        welcome_msg = await prisma.messages.create(
+            data={
+                "thread_id": thread_id,
+                "role": "assistant",
+                "agent_class": agent_class,
+            }
+        )
+
+        # Add text content
+        await prisma.message_contents.create(
+            data={
+                "message_id": welcome_msg.id,
+                "type": "text",
+                "text": "Hallo! Fijn dat je er bent. Hoe gaat het vandaag met je?",
+            }
+        )
+
+        # Update last_interaction_time
+        metadata["last_interaction_time"] = datetime.now(
+            pytz.timezone("Europe/Amsterdam")
+        ).isoformat()
+        await prisma.threads.update(
+            where={"id": thread_id}, data={"metadata": metadata}
+        )
 
 
 @router.get(
@@ -85,6 +190,22 @@ async def get_thread_by_id(
 
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
+
+    # Ensure welcome message exists for new/expired sessions
+    await _ensure_welcome_message(thread.id, thread.external_id)
+
+    # Refetch thread to include any newly added welcome message
+    thread = await prisma.threads.find_first(
+        where={"id": thread.id},
+        include={
+            "messages": {
+                "order_by": {"created_at": "desc"},
+                "include": {
+                    "contents": True,
+                },
+            }
+        },
+    )
 
     return ThreadResponse(
         **thread.model_dump(exclude={"messages"}),
