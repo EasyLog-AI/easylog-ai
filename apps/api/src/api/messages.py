@@ -6,6 +6,7 @@ from typing import Literal
 import pytz
 from fastapi import APIRouter, HTTPException, Path, Query, Request, Response
 from fastapi.responses import StreamingResponse
+from prisma.types import Json
 
 from src.lib.prisma import prisma
 from src.logger import logger
@@ -125,7 +126,7 @@ async def _ensure_welcome_message(
             pytz.timezone("Europe/Amsterdam")
         ).isoformat()
         await prisma.threads.update(
-            where={"id": thread_id}, data={"metadata": metadata}
+            where={"id": thread_id}, data={"metadata": Json(metadata)}
         )
 
 
