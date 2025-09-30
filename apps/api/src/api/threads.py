@@ -103,7 +103,10 @@ async def _ensure_welcome_message(thread_id: str, external_id: str | None) -> No
             data={
                 "message_id": welcome_msg.id,
                 "type": "text",
-                "text": "Hallo! Fijn dat je er bent. Hoe gaat het vandaag met je?",
+                "text": (
+                    "Hallo ik ben de 1e versie van de nieuwe E-supporter "
+                    "app. Zullen we beginnen?"
+                ),
             }
         )
 

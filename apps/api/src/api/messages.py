@@ -114,8 +114,8 @@ async def _ensure_welcome_message(
                 "message_id": welcome_msg.id,
                 "type": "text",
                 "text": (
-                    "Hallo! Fijn dat je er bent. "
-                    "Hoe gaat het vandaag met je?"
+                    "Hallo ik ben de 1e versie van de nieuwe E-supporter "
+                    "app. Zullen we beginnen?"
                 ),
             }
         )
