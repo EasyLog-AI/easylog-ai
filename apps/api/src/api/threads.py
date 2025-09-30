@@ -104,8 +104,10 @@ async def _ensure_welcome_message(thread_id: str, external_id: str | None) -> No
                 "message_id": welcome_msg.id,
                 "type": "text",
                 "text": (
-                    "Hallo ik ben de 1e versie van de nieuwe E-supporter "
-                    "app. Zullen we beginnen?"
+                    "👋 Hallo!\n\n"
+                    "Welkom bij de 1e testversie van de nieuwe "
+                    "E-Supporter app van Easylog en het MUMC+.\n\n"
+                    "Zullen we beginnen met testen?"
                 ),
             }
         )
