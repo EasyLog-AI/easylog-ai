@@ -2,12 +2,11 @@ import multipleChoiceQuestionMiddleware from '../middleware/multipleChoiceQuesti
 
 const multipleChoiceQuestionGet = multipleChoiceQuestionMiddleware
   .meta({
-    openapi: {
+    route: {
       method: 'GET',
-      path: '/multiple-choice/questions',
+      path: '/api/orpc/multiple-choice/questions',
       tags: ['Multiple Choice'],
-      summary: 'Get a multiple choice question',
-      protect: true
+      summary: 'Get a multiple choice question'
     }
   })
   .query(async ({ ctx }) => {

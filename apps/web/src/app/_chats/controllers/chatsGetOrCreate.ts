@@ -6,45 +6,44 @@ import { chats } from '@/database/schema';
 
 const chatGetOrCreate = agentMiddleware
   .meta({
-    openapi: {
+    route: {
       method: 'GET',
-      path: '/chats',
+      path: '/api/orpc/chats',
       tags: ['Chats'],
-      summary: 'Get or create a chat for an agent',
-      protect: true
+      summary: 'Get and if needed create a chat for an agent'
     }
   })
   .query(async ({ ctx }) => {
     const chat = await db.query.chats.findFirst({
       where: {
         agentId: ctx.agent.id,
-      userId: ctx.user.id
-    },
-    orderBy: {
-      createdAt: 'desc'
-    }
-  });
+        userId: ctx.user.id
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
 
-  if (chat) {
+    if (chat) {
+      return {
+        ...chat,
+        agent: ctx.agent
+      };
+    }
+
+    const [newChat] = await db
+      .insert(chats)
+      .values({
+        agentId: ctx.agent.id,
+        userId: ctx.user.id,
+        messages: [] satisfies UIMessage[]
+      })
+      .returning();
+
     return {
-      ...chat,
+      ...newChat,
       agent: ctx.agent
     };
-  }
-
-  const [newChat] = await db
-    .insert(chats)
-    .values({
-      agentId: ctx.agent.id,
-      userId: ctx.user.id,
-      messages: [] satisfies UIMessage[]
-    })
-    .returning();
-
-  return {
-    ...newChat,
-    agent: ctx.agent
-  };
-});
+  });
 
 export default chatGetOrCreate;

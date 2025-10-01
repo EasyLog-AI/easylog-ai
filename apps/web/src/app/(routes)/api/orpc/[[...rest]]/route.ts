@@ -14,7 +14,6 @@ const handler = new OpenAPIHandler(orpcRouter, {
 async function handleRequest(request: Request) {
   const context = await createTRPCContext();
   const { response } = await handler.handle(request, {
-    prefix: '/api/orpc',
     context
   });
 

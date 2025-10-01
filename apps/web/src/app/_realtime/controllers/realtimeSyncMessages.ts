@@ -12,12 +12,11 @@ import filterNewMessages from '../utils/filterNewMessages';
 
 const realtimeSyncMessages = chatMiddleware
   .meta({
-    openapi: {
+    route: {
       method: 'POST',
-      path: '/realtime/sync-messages',
+      path: '/api/orpc/realtime/sync-messages',
       tags: ['Realtime'],
-      summary: 'Sync realtime messages with a chat',
-      protect: true
+      summary: 'Sync realtime messages with a chat'
     }
   })
   .input(

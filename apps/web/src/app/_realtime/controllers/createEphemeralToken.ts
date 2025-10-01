@@ -6,12 +6,11 @@ import serverConfig from '@/server.config';
 
 const createEphemeralToken = chatMiddleware
   .meta({
-    openapi: {
+    route: {
       method: 'GET',
-      path: '/realtime/ephemeral-token',
+      path: '/api/orpc/realtime/ephemeral-token',
       tags: ['Realtime'],
-      summary: 'Create a realtime ephemeral token for a chat',
-      protect: true
+      summary: 'Create a realtime ephemeral token for a chat'
     }
   })
   .query(async ({}) => {

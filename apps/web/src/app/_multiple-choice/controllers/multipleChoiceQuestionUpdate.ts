@@ -10,12 +10,11 @@ import multipleChoiceQuestionMiddleware from '../middleware/multipleChoiceQuesti
 
 const multipleChoiceQuestionUpdate = multipleChoiceQuestionMiddleware
   .meta({
-    openapi: {
+    route: {
       method: 'PATCH',
-      path: '/multiple-choice/questions',
+      path: '/api/orpc/multiple-choice/questions',
       tags: ['Multiple Choice'],
-      summary: 'Update a multiple choice answer',
-      protect: true
+      summary: 'Update a multiple choice answer'
     }
   })
   .input(

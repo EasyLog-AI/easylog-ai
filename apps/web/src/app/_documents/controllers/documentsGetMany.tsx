@@ -7,12 +7,11 @@ import { documents } from '@/database/schema';
 
 const documentsGetMany = agentMiddleware
   .meta({
-    openapi: {
+    route: {
       method: 'GET',
-      path: '/documents',
+      path: '/api/orpc/documents',
       tags: ['Documents'],
-      summary: 'List documents for an agent',
-      protect: true
+      summary: 'List documents for an agent'
     }
   })
   .input(

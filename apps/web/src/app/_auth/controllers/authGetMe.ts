@@ -2,12 +2,11 @@ import { protectedProcedure } from '@/lib/trpc/procedures';
 
 const authGetMe = protectedProcedure
   .meta({
-    openapi: {
+    route: {
       method: 'GET',
-      path: '/auth/me',
+      path: '/api/orpc/auth/me',
       tags: ['Auth'],
-      summary: 'Get the currently authenticated user',
-      protect: true
+      summary: 'Get the currently authenticated user'
     }
   })
   .query(async ({ ctx }) => {
