@@ -17,8 +17,14 @@ from src.utils.is_valid_uuid import is_valid_uuid
 router = APIRouter()
 
 
-async def _ensure_welcome_message(thread_id: str, external_id: str | None) -> None:
+async def _ensure_welcome_message(
+    thread_id: str, external_id: str | None
+) -> None:
     """Ensure thread has a welcome message if it's a new/expired session.
+
+    Two-tier welcome system:
+    1. First visit (empty thread): Full onboarding message
+    2. Return visit (24h+ inactive): Personalized "welcome back" with name
 
     Args:
         thread_id: The thread ID
@@ -56,45 +62,85 @@ async def _ensure_welcome_message(thread_id: str, external_id: str | None) -> No
     # Get metadata
     metadata = dict(thread.metadata) if thread.metadata else {}
     last_interaction = metadata.get("last_interaction_time")
+    last_welcome_date = metadata.get("last_welcome_date")
+
+    # Current time
+    current_time = datetime.now(pytz.timezone("Europe/Amsterdam"))
+    current_date = current_time.date().isoformat()
+
+    # Configuration
+    # TODO: Change to 1440 (24 hours) for production
+    SESSION_TIMEOUT_MINUTES = 15
 
     # Determine if we should add welcome message
     should_add_welcome = False
     welcome_reason = ""
+    welcome_text = ""
+    is_welcome_back = False
 
-    SESSION_TIMEOUT_HOURS = 1
-
-    # ONLY add welcome if thread is completely empty
+    # Scenario 1: Empty thread (first visit)
     if len(thread.messages or []) == 0:
         if last_interaction is None:
             # First time ever
             should_add_welcome = True
             welcome_reason = "first_time"
-        else:
-            # Check if session expired
-            try:
-                last_time = datetime.fromisoformat(last_interaction)
-                current_time = datetime.now(
-                    pytz.timezone("Europe/Amsterdam")
-                )
-                time_diff = current_time - last_time
+            welcome_text = (
+                "👋 Hallo!\n\n"
+                "Welkom bij de 1e testversie van de nieuwe "
+                "E-Supporter app van Easylog en het MUMC+.\n\n"
+                "Zullen we beginnen met testen?"
+            )
 
-                if time_diff.total_seconds() > (
-                    SESSION_TIMEOUT_HOURS * 3600
-                ):
-                    should_add_welcome = True
-                    mins = time_diff.total_seconds() // 60
-                    welcome_reason = f"session_expired_{mins:.0f}min"
-            except Exception as e:
-                logger.warning(
-                    f"Error parsing last_interaction_time for thread "
-                    f"{thread_id}: {e}"
-                )
+    # Scenario 2: Thread has messages - check for "welcome back"
+    elif last_interaction:
+        try:
+            last_time = datetime.fromisoformat(last_interaction)
+            time_diff = current_time - last_time
+            inactive_minutes = time_diff.total_seconds() / 60
+
+            # Check if enough time has passed AND not already welcomed today
+            if (
+                inactive_minutes > SESSION_TIMEOUT_MINUTES
+                and last_welcome_date != current_date
+            ):
+                should_add_welcome = True
+                is_welcome_back = True
+                welcome_reason = f"welcome_back_{inactive_minutes:.0f}min"
+
+                # Extract user name from memories if available
+                memories = metadata.get("memories", {})
+                user_name = None
+
+                # Try to find name in memories
+                # (could be stored as "naam" or "name")
+                if isinstance(memories, dict):
+                    user_name = (
+                        memories.get("naam") or memories.get("name")
+                    )
+
+                # Build personalized welcome back message
+                if user_name:
+                    welcome_text = (
+                        f"Hallo {user_name}, welkom terug.\n\n"
+                        "Hoe gaat het vandaag?"
+                    )
+                else:
+                    welcome_text = (
+                        "Hallo, welkom terug.\n\n"
+                        "Hoe gaat het vandaag?"
+                    )
+        except Exception as e:
+            logger.warning(
+                f"Error parsing last_interaction_time for thread "
+                f"{thread_id}: {e}"
+            )
 
     # Add welcome message if needed
     if should_add_welcome:
         logger.info(
             f"Adding welcome message to thread {thread_id} "
-            f"(reason: {welcome_reason}, agent: {agent_class})"
+            f"(reason: {welcome_reason}, agent: {agent_class}, "
+            f"welcome_back: {is_welcome_back})"
         )
 
         # Create welcome message
@@ -111,19 +157,15 @@ async def _ensure_welcome_message(thread_id: str, external_id: str | None) -> No
             data={
                 "message_id": welcome_msg.id,
                 "type": "text",
-                "text": (
-                    "👋 Hallo!\n\n"
-                    "Welkom bij de 1e testversie van de nieuwe "
-                    "E-Supporter app van Easylog en het MUMC+.\n\n"
-                    "Zullen we beginnen met testen?"
-                ),
+                "text": welcome_text,
             }
         )
 
-        # Update last_interaction_time
-        metadata["last_interaction_time"] = datetime.now(
-            pytz.timezone("Europe/Amsterdam")
-        ).isoformat()
+        # Update metadata
+        metadata["last_interaction_time"] = current_time.isoformat()
+        if is_welcome_back:
+            metadata["last_welcome_date"] = current_date
+
         await prisma.threads.update(
             where={"id": thread_id}, data={"metadata": Json(metadata)}
         )
