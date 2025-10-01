@@ -118,6 +118,21 @@ const appertoServerPlugin = (
               });
             }
 
+            // Get all accounts for this user
+            const accounts =
+              await ctx.context.internalAdapter.findAccounts(user.user.id);
+
+            // Create account if it doesn't exist
+            if (
+              !accounts.some((account) => account.providerId === 'apperto')
+            ) {
+              await ctx.context.internalAdapter.createAccount({
+                userId: user.user.id,
+                accountId: userInfoResult.data.sub.toString(),
+                providerId: 'apperto'
+              });
+            }
+
             // Create session
             const session = await ctx.context.internalAdapter.createSession(
               user.user.id,
