@@ -5,25 +5,36 @@ Serves generated PDF reports for MUMC patients.
 
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse
+
+from src.settings import settings
 
 router = APIRouter(prefix="/patient-reports", tags=["Patient Reports"])
 
 
 @router.get("/{filename}")
-async def get_patient_report(filename: str) -> FileResponse:
+async def get_patient_report(
+    filename: str,
+    token: str | None = Query(default=None, description="Bearer token for authentication")
+) -> FileResponse:
     """Serve a patient report PDF file.
 
     Args:
         filename: The PDF filename to serve
+        token: Bearer token for authentication (passed as query param)
 
     Returns:
         FileResponse with the PDF file
 
     Raises:
-        HTTPException: If file not found or invalid filename
+        HTTPException: If file not found, invalid filename, or unauthorized
     """
+    # Basic auth check - token should be "easylog" for now (same as Bearer token)
+    # TODO: For production, implement proper patient-specific token validation
+    if token != "easylog":
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
     # Security: Only allow PDF files and prevent path traversal
     if not filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Invalid file type")

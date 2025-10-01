@@ -1354,7 +1354,10 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                 proto = self.request_headers.get("x-forwarded-proto", "https")
                 host = self.request_headers.get("host", "staging2.easylog.nu")
                 prefix = self.request_headers.get("x-forwarded-prefix", "/ai")
-                download_url = f"{proto}://{host}{prefix}/patient-reports/{filename}"
+                
+                # Add bearer token as query param so the download works without extra auth
+                bearer_token = self.request_headers.get("authorization", "").replace("Bearer ", "")
+                download_url = f"{proto}://{host}{prefix}/patient-reports/{filename}?token={bearer_token}"
 
                 # Calculate file size
                 file_size_kb = len(pdf_bytes) // 1024
@@ -1368,7 +1371,7 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                     f"📄 **Bestand:** {filename}\n"
                     f"📊 **Periode:** {report_data['period']}\n"
                     f"💾 **Grootte:** {file_size_kb} KB\n\n"
-                    f"Je kunt het verslag hier downloaden: {download_url}\n\n"
+                    f"[📥 Download je verslag]({download_url})\n\n"
                     f"Dit verslag bevat een overzicht van je ziektelast (ZLM), doelen, "
                     f"activiteit en medicatie. Je kunt het delen met je arts of voor jezelf bewaren."
                 )
