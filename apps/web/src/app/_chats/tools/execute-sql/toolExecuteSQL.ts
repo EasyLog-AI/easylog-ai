@@ -10,7 +10,7 @@ import tryCatch from '@/utils/try-catch';
 import { executeSQLConfig } from './config';
 import truncateStrings from './utils/truncateStrings';
 
-const toolExecuteSQL = (messageStreamWriter: UIMessageStreamWriter) => {
+const toolExecuteSQL = (messageStreamWriter?: UIMessageStreamWriter) => {
   return tool({
     ...executeSQLConfig,
     execute: async (query) => {
@@ -18,7 +18,7 @@ const toolExecuteSQL = (messageStreamWriter: UIMessageStreamWriter) => {
 
       console.log('Executing SQL query', query.proposedQuery);
 
-      messageStreamWriter.write({
+      messageStreamWriter?.write({
         type: 'data-research',
         id,
         data: {
@@ -171,7 +171,7 @@ ${query.queryIntent}
                 query: z.string()
               }),
               execute: async (query) => {
-                messageStreamWriter.write({
+                messageStreamWriter?.write({
                   type: 'data-research',
                   id,
                   data: {
@@ -209,7 +209,7 @@ ${query.queryIntent}
           },
           prepareStep: (step) => {
             if (step.steps.at(-1)?.toolCalls.length === 0) {
-              messageStreamWriter.write({
+              messageStreamWriter?.write({
                 type: 'data-research',
                 id,
                 data: {
@@ -230,7 +230,7 @@ ${query.queryIntent}
         return `Error executing SQL query: ${error.message}`;
       }
 
-      messageStreamWriter.write({
+      messageStreamWriter?.write({
         type: 'data-research',
         id,
         data: {
