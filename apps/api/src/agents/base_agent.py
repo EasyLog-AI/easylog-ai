@@ -267,10 +267,12 @@ Instructions:
 3. Be concise - summarize the relevant data points, don't return entire documents
 4. If no relevant information exists, return "No relevant information found"
 5. Focus on facts, data, and specific details that address the query
+6. If the document contents include images (URLs or base64) that are RELEVANT to the query, include ALL relevant images
 
 Return format:
 **Relevant Information:**
 - [Brief description of what was found and from which document]
+- ![description](image_url) - Include all images that help answer the user's question
 
 If nothing relevant: "No relevant information found in the knowledge base."""
 
