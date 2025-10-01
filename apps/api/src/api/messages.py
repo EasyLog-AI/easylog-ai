@@ -73,26 +73,32 @@ async def _ensure_welcome_message(
 
     SESSION_TIMEOUT_HOURS = 1
 
-    if last_interaction is None and len(thread.messages or []) == 0:
-        # First time ever and thread is empty
-        should_add_welcome = True
-        welcome_reason = "first_time"
-    elif last_interaction:
-        # Check if session expired
-        try:
-            last_time = datetime.fromisoformat(last_interaction)
-            current_time = datetime.now(pytz.timezone("Europe/Amsterdam"))
-            time_diff = current_time - last_time
+    # ONLY add welcome if thread is completely empty
+    if len(thread.messages or []) == 0:
+        if last_interaction is None:
+            # First time ever
+            should_add_welcome = True
+            welcome_reason = "first_time"
+        else:
+            # Check if session expired
+            try:
+                last_time = datetime.fromisoformat(last_interaction)
+                current_time = datetime.now(
+                    pytz.timezone("Europe/Amsterdam")
+                )
+                time_diff = current_time - last_time
 
-            if time_diff.total_seconds() > (SESSION_TIMEOUT_HOURS * 3600):
-                should_add_welcome = True
-                mins = time_diff.total_seconds() // 60
-                welcome_reason = f"session_expired_{mins:.0f}min"
-        except Exception as e:
-            logger.warning(
-                f"Error parsing last_interaction_time for thread "
-                f"{thread_id}: {e}"
-            )
+                if time_diff.total_seconds() > (
+                    SESSION_TIMEOUT_HOURS * 3600
+                ):
+                    should_add_welcome = True
+                    mins = time_diff.total_seconds() // 60
+                    welcome_reason = f"session_expired_{mins:.0f}min"
+            except Exception as e:
+                logger.warning(
+                    f"Error parsing last_interaction_time for thread "
+                    f"{thread_id}: {e}"
+                )
 
     # Add welcome message if needed
     if should_add_welcome:
