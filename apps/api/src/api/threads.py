@@ -111,23 +111,36 @@ async def _ensure_welcome_message(
                 memories = metadata.get("memories", {})
                 user_name = None
 
+                # Debug logging for memories
+                logger.info(
+                    f"Thread {thread_id} memories type: "
+                    f"{type(memories)}, keys: "
+                    f"{list(memories.keys()) if isinstance(memories, dict) else 'N/A'}"
+                )
+
                 # Try to find name in memories
                 # (could be stored as "naam" or "name")
                 if isinstance(memories, dict):
                     user_name = (
                         memories.get("naam") or memories.get("name")
                     )
+                    logger.info(
+                        f"Thread {thread_id} extracted name: "
+                        f"{user_name if user_name else 'None found'}"
+                    )
 
                 # Build personalized welcome back message
                 if user_name:
                     welcome_text = (
-                        f"Hallo {user_name}, welkom terug.\n\n"
-                        "Hoe gaat het vandaag?"
+                        f"👋 Hallo {user_name}!\n\n"
+                        "Fijn dat je er weer bent. "
+                        "Hoe gaat het vandaag met je?"
                     )
                 else:
                     welcome_text = (
-                        "Hallo, welkom terug.\n\n"
-                        "Hoe gaat het vandaag?"
+                        "👋 Hallo!\n\n"
+                        "Fijn dat je er weer bent. "
+                        "Hoe gaat het vandaag met je?"
                     )
         except Exception as e:
             logger.warning(
