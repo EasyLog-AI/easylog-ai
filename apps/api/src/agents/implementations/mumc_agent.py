@@ -1505,7 +1505,7 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
     @staticmethod
     def super_agent_config() -> SuperAgentConfig[MUMCAgentConfig] | None:
         return SuperAgentConfig(
-            cron_expression="*/15 * * * *",  # every 15 minutes
+            cron_expression="*/5 * * * *",  # every 5 minutes for production
             agent_config=MUMCAgentConfig(),
         )
 
@@ -1540,6 +1540,7 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
         notifications = await self.get_metadata("notifications", [])
         reminders = await self.get_metadata("reminders", [])
         recurring_tasks = await self.get_metadata("recurring_tasks", [])
+        memories = await self.get_metadata("memories", [])
 
         current_time = datetime.now(pytz.timezone("Europe/Amsterdam"))
         current_hour = current_time.hour
@@ -1547,6 +1548,67 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
         current_weekday = current_time.weekday()  # 0=Monday, 6=Sunday
         current_day = current_time.day
         current_month = current_time.month
+
+        # ========================================================================
+        # FETCH STEPS DATA + GOAL FOR DYNAMIC NOTIFICATIONS 
+        # ========================================================================
+        self.logger.info("🎯 Fetching steps data for dynamic notifications...")
+        
+        steps_today = 0
+        steps_goal = 0
+        steps_remaining = 0
+        steps_progress_pct = 0
+        
+        try:
+            # Get user for steps data
+            user = await prisma.users.find_first(
+                where=usersWhereInput(external_id=onesignal_id)
+            )
+            
+            if user:
+                # Fetch today's steps
+                today_start = current_time.replace(hour=0, minute=0, second=0, microsecond=0)
+                today_end = current_time.replace(hour=23, minute=59, second=59, microsecond=999999)
+                
+                steps_data = await prisma.health_data_points.find_many(
+                    where=health_data_pointsWhereInput(
+                        user_id=user.id,
+                        type=health_data_point_type.steps,
+                        date_from={"gte": today_start},
+                        date_to={"lte": today_end},
+                    )
+                )
+                
+                steps_today = sum(dp.value for dp in steps_data)
+                self.logger.info(f"Steps today: {steps_today}")
+                
+                # Extract steps goal from memories
+                for mem in memories:
+                    mem_text = mem.get("memory", "").lower()
+                    # Look for patterns like "8000 stappen" or "Goal-1: 8000 stappen per dag"
+                    if "stappen" in mem_text or "steps" in mem_text:
+                        match = re.search(r'(\d+)\s*stappen', mem_text)
+                        if match:
+                            steps_goal = int(match.group(1))
+                            self.logger.info(f"Found steps goal: {steps_goal}")
+                            break
+                
+                # If no goal found, use default
+                if steps_goal == 0:
+                    steps_goal = 8000
+                    self.logger.info(f"Using default steps goal: {steps_goal}")
+                
+                # Calculate progress
+                steps_remaining = max(0, steps_goal - steps_today)
+                steps_progress_pct = int((steps_today / steps_goal) * 100) if steps_goal > 0 else 0
+                
+                self.logger.info(f"📊 Steps data ready: {steps_today}/{steps_goal} ({steps_progress_pct}%) - {steps_remaining} remaining")
+            else:
+                self.logger.warning(f"User not found for onesignal_id: {onesignal_id}")
+                
+        except Exception as e:
+            self.logger.error(f"Error fetching steps data: {e}")
+            # Continue without steps data
 
         prompt = f"""
 # Notification Management System
@@ -1556,6 +1618,30 @@ You are the notification management system responsible for delivering timely ale
 
 ## Current Time
 Current system time: {current_time.strftime("%A %Y-%m-%d %H:%M:%S")} (Hour: {current_hour}, Minute: {current_minute}, Weekday: {current_weekday} where 0=Monday, Day: {current_day}, Month: {current_month})
+
+## 📊 Live Context Data (For Dynamic Notifications)
+You have access to real-time user data to create personalized, dynamic notifications:
+
+### Today's Activity Data:
+- Steps today: {steps_today}
+- Steps goal: {steps_goal}
+- Steps remaining: {steps_remaining}
+- Progress: {steps_progress_pct}%
+
+### User Memories:
+{json.dumps(memories, indent=2)}
+
+## Dynamic Notification Guidelines
+**IMPORTANT**: When sending notifications for recurring tasks that mention "stappen", "wandelen", "bewegen", or similar activity-related keywords:
+1. **Include actual numbers**: Use the steps data above to personalize the message
+2. **Show progress**: Include both current steps and remaining steps
+3. **Be motivating**: Use encouraging language based on progress
+4. **Be specific**: Avoid generic messages - use real data
+
+**Examples of Dynamic Messages**:
+- If task mentions "stappen update": "Super! Je hebt vandaag al {steps_today} van {steps_goal} stappen! Nog {steps_remaining} te gaan 💪"
+- If progress > 80%: "Geweldig bezig! Je bent bijna bij je doel: {steps_today}/{steps_goal} stappen ({steps_progress_pct}%) 🎯"
+- If progress < 50%: "Je hebt al {steps_today} stappen vandaag. Zullen we samen naar {steps_goal} gaan? Nog {steps_remaining} te gaan! 🚶"
 
 ## Previously Sent Notifications
 The following notifications have already been sent and MUST NOT be resent:
@@ -1591,10 +1677,10 @@ A cron expression format is: "minute hour day_of_month month day_of_week"
 
 ## Decision Rules
 - Reminders are due when their scheduled date/time is <= current time.
-- Apply a 2-minute grace window for reminders: if scheduled within the last 2 minutes, treat as due.
+- Apply a 4-minute grace window for reminders: if scheduled within the last 4 minutes, treat as due.
 - For recurring tasks: send if the cron expression matches the EXACT current time
-  OR falls within a 5-minute grace window after the scheduled minute.
-- A task with "0 9 * * *" should ONLY trigger when current hour=9 AND current minute=0.
+  OR falls within a 4-minute grace window after the scheduled minute.
+- A task with "0 9 * * *" should ONLY trigger when current hour=9 AND minute=0.
 - A task with "0 9,10,11 * * 1-5" should ONLY trigger when (hour in [9,10,11] AND minute=0 AND weekday is Monday–Friday).
 - Do not skip a due recurring task because a reminder is also due; handle both if applicable.
 - De-duplicate using the previously sent notifications list: skip items already sent today (or within the current hour for the same title/task).
@@ -1603,15 +1689,53 @@ A cron expression format is: "minute hour day_of_month month day_of_week"
 After analysis:
 - For EACH due reminder and EACH due recurring task that is not a duplicate, invoke the send_notification tool with appropriate title and contents.
 - For reminders: Use "Reminder" as title and the reminder message as contents.
-- For recurring tasks: Extract the actual message from the task description and use "Dagelijkse herinnering" as title. 
-  Example: task "Stuur bericht 'Ga lopen' naar de gebruiker" → title: "Dagelijkse herinnering", contents: "Ga lopen"
+- For recurring tasks:
+  
+  **⛔ ABSOLUTE RULE: THE TASK TEXT IS AN INSTRUCTION TO YOU, NOT THE MESSAGE TO SEND! ⛔**
+  
+  Think of the task text as instructions from a manager telling you WHAT to do, not WHAT to say.
+  You must TRANSLATE the instruction into an actual user-facing message.
+  
+  **Step-by-step process for activity tasks:**
+  1. Read the task text to understand WHAT you need to do (e.g., "send steps overview")
+  2. Look at the steps data provided above (steps_today, steps_goal, steps_remaining, steps_progress_pct)
+  3. CREATE a new, personalized message using those numbers
+  4. NEVER copy the task text itself into the contents field
+  
+  **If task mentions activity keywords (stappen, wandelen, bewegen, activiteit, lopen, stappendoel):**
+  
+  ✅ CORRECT PROCESS:
+  - Title: "Stappen Update" or "Je Activiteit"
+  - Contents: Write a BRAND NEW motivating message with the ACTUAL steps numbers
+  
+  **Examples - Study these carefully:**
+  
+  Task: "Stuur Ewout dagelijks om 15:15 een overzicht van zijn stappen"
+  This is telling YOU to send an overview. The USER should NOT see this instruction!
+  ❌ ABSOLUTELY WRONG: {{"title": "Dagelijkse herinnering", "contents": "Stuur Ewout dagelijks om 15:15 een overzicht van zijn stappen"}}
+  ✅ CORRECT: {{"title": "Stappen Update", "contents": "Je hebt vandaag al {{steps_today}} van {{steps_goal}} stappen! Nog {{steps_remaining}} te gaan 💪"}}
+  
+  Task: "Stuur een motiverend bericht over stappen"
+  This is telling YOU what kind of message to create. Create it!
+  ❌ ABSOLUTELY WRONG: {{"title": "Dagelijkse herinnering", "contents": "Stuur een motiverend bericht over stappen"}}
+  ✅ CORRECT: {{"title": "Stappen Update", "contents": "Super bezig! Je bent al bij {{steps_today}} stappen vandaag. Je doel is {{steps_goal}} stappen 🎯"}}
+  
+  Task: "Stuur een motiverend bericht over de stappen van vandaag en het dagelijkse stappendoel"
+  This is YOUR instruction. Transform it into a user message!
+  ❌ ABSOLUTELY WRONG: {{"title": "Dagelijkse herinnering", "contents": "Stuur een motiverend bericht over de stappen van vandaag en het dagelijkse stappendoel"}}
+  ✅ CORRECT: {{"title": "Stappen Update", "contents": "Vandaag heb je al {{steps_today}} stappen gelopen! Je doel is {{steps_goal}} stappen. Nog {{steps_remaining}} te gaan! 🚶‍♂️"}}
+  
+  **For non-activity tasks:**
+  - Extract the actual message part (usually in quotes) and use that as contents
+  - Example: task "Stuur bericht 'Vergeet je medicatie niet'" → title: "Dagelijkse herinnering", contents: "Vergeet je medicatie niet"
+  
 - If no eligible notifications exist: invoke the noop tool.
 """
 
         self.logger.info(f"Calling super agent with prompt: {prompt}")
 
         response = await self.client.chat.completions.create(
-            model="openai/gpt-4.1",  # Consider making this configurable or same as role_config.model
+            model="anthropic/claude-sonnet-4.5",  # Using Claude 4.5 for better instruction following
             messages=[
                 {
                     "role": "system",
@@ -1624,9 +1748,15 @@ After analysis:
             ],
             tools=[function_to_openai_tool(tool) for tool in tools],
             tool_choice="auto",
+            stream=False,
         )
 
-        self.logger.info(f"Super agent response: {response.choices[0].message}")
+        if response and response.choices:
+            self.logger.info(f"Super agent response: {response.choices[0].message}")
 
-        async for _ in self._handle_completion(response, tools, messages):
-            pass
+            async for _ in self._handle_completion(response, tools, messages):
+                pass
+        else:
+            self.logger.error(f"No response from API call: {response}")
+        
+        return None
