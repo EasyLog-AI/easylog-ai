@@ -1728,18 +1728,18 @@ After analysis:
   
   Task: "Stuur Ewout dagelijks om 15:15 een overzicht van zijn stappen"
   This is telling YOU to send an overview. The USER should NOT see this instruction!
-  ❌ ABSOLUTELY WRONG: {"title": "Dagelijkse herinnering", "contents": "Stuur Ewout dagelijks om 15:15 een overzicht van zijn stappen"}
-  ✅ CORRECT: {"title": "Stappen Update", "contents": "Je hebt vandaag al {steps_today} van {steps_goal} stappen! Nog {steps_remaining} te gaan 💪"}
+  ❌ ABSOLUTELY WRONG: {{"title": "Dagelijkse herinnering", "contents": "Stuur Ewout dagelijks om 15:15 een overzicht van zijn stappen"}}
+  ✅ CORRECT: {{"title": "Stappen Update", "contents": "Je hebt vandaag al {{steps_today}} van {{steps_goal}} stappen! Nog {{steps_remaining}} te gaan 💪"}}
   
   Task: "Stuur een motiverend bericht over stappen"
   This is telling YOU what kind of message to create. Create it!
-  ❌ ABSOLUTELY WRONG: {"title": "Dagelijkse herinnering", "contents": "Stuur een motiverend bericht over stappen"}
-  ✅ CORRECT: {"title": "Stappen Update", "contents": "Super bezig! Je bent al bij {steps_today} stappen vandaag. Je doel is {steps_goal} stappen 🎯"}
+  ❌ ABSOLUTELY WRONG: {{"title": "Dagelijkse herinnering", "contents": "Stuur een motiverend bericht over stappen"}}
+  ✅ CORRECT: {{"title": "Stappen Update", "contents": "Super bezig! Je bent al bij {{steps_today}} stappen vandaag. Je doel is {{steps_goal}} stappen 🎯"}}
   
   Task: "Stuur een motiverend bericht over de stappen van vandaag en het dagelijkse stappendoel"
   This is YOUR instruction. Transform it into a user message!
-  ❌ ABSOLUTELY WRONG: {"title": "Dagelijkse herinnering", "contents": "Stuur een motiverend bericht over de stappen van vandaag en het dagelijkse stappendoel"}
-  ✅ CORRECT: {"title": "Stappen Update", "contents": "Vandaag heb je al {steps_today} stappen gelopen! Je doel is {steps_goal} stappen. Nog {steps_remaining} te gaan! 🚶‍♂️"}
+  ❌ ABSOLUTELY WRONG: {{"title": "Dagelijkse herinnering", "contents": "Stuur een motiverend bericht over de stappen van vandaag en het dagelijkse stappendoel"}}
+  ✅ CORRECT: {{"title": "Stappen Update", "contents": "Vandaag heb je al {{steps_today}} stappen gelopen! Je doel is {{steps_goal}} stappen. Nog {{steps_remaining}} te gaan! 🚶‍♂️"}}
   
   **For non-activity tasks:**
   - Extract the actual message part (usually in quotes) and use that as contents
@@ -1751,7 +1751,7 @@ After analysis:
         self.logger.info(f"[TEST AGENT] Calling super agent with prompt: {prompt}")
 
         response = await self.client.chat.completions.create(
-            model="openai/gpt-4.1",  # Consider making this configurable or same as role_config.model
+            model="anthropic/claude-sonnet-4.5",  # Using Claude 4.5 for better instruction following
             messages=[
                 {
                     "role": "system",
