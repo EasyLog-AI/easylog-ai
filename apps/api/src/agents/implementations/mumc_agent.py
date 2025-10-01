@@ -1442,7 +1442,7 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
             if recurring_tasks
             else "<no recurring tasks>",
             "reminders": "\n".join(
-                [f"- {reminder['id']}: {reminder['date']} - {reminder['message']}" for reminder in reminders]
+                [f"- {reminder['id']}: {reminder.get('date') or reminder.get('scheduled_at', 'No date')} - {reminder['message']}" for reminder in reminders]
             )
             if reminders
             else "<no reminders>",
