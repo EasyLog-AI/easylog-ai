@@ -1741,9 +1741,27 @@ After analysis:
   ❌ ABSOLUTELY WRONG: {{"title": "Dagelijkse herinnering", "contents": "Stuur een motiverend bericht over de stappen van vandaag en het dagelijkse stappendoel"}}
   ✅ CORRECT: {{"title": "Stappen Update", "contents": "Vandaag heb je al {{steps_today}} stappen gelopen! Je doel is {{steps_goal}} stappen. Nog {{steps_remaining}} te gaan! 🚶‍♂️"}}
   
-  **For non-activity tasks:**
-  - Extract the actual message part (usually in quotes) and use that as contents
-  - Example: task "Stuur bericht 'Vergeet je medicatie niet'" → title: "Dagelijkse herinnering", contents: "Vergeet je medicatie niet"
+  **For non-activity tasks (medicatie, ademhaling, algemene herinneringen):**
+  
+  Two types of tasks:
+  
+  1. **Task IS the message** (most common):
+     - If the task reads like a user message, use it as-is
+     - Examples:
+       * Task: "Tijd voor je medicatie! Vergeet niet je prednison in te nemen."
+         → title: "Medicatie Herinnering", contents: "Tijd voor je medicatie! Vergeet niet je prednison in te nemen."
+       * Task: "Herinnering: Trimbow inhalator - 1 puff (ochtend)"
+         → title: "Medicatie Herinnering", contents: "Herinnering: Trimbow inhalator - 1 puff (ochtend)"
+       * Task: "Reminder: Tijd om de E-supporter app te testen!"
+         → title: "Reminder", contents: "Tijd om de E-supporter app te testen!"
+  
+  2. **Task contains instructions** (less common):
+     - If the task says "Stuur bericht...", "Herinner X aan...", extract the core message
+     - Examples:
+       * Task: "Herinner Adonis aan ademhalingsoefeningen voor minder kortademigheid"
+         → title: "Herinnering", contents: "Tijd voor je ademhalingsoefeningen! Dit helpt tegen kortademigheid."
+       * Task: "Stuur bericht 'Vergeet je medicatie niet'"
+         → title: "Medicatie Herinnering", contents: "Vergeet je medicatie niet"
   
 - If no eligible notifications exist: invoke the noop tool.
 """
