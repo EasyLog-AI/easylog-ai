@@ -1347,20 +1347,15 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                     f"Generated patient report: {filename} ({file_size_kb}KB, {len(pdf_base64)} chars base64) for {report_data['patient_name']}"
                 )
 
-                # Return message with embedded PDF as base64
-                # Flutter app can detect and handle the PDF_BASE64 section
+                # Return compact message with a data URL link (short & clickable)
+                data_url = f"data:application/pdf;base64,{pdf_base64}"
                 return (
                     f"✅ Ik heb je verslag gegenereerd!\n\n"
                     f"📄 **Bestand:** {filename}\n"
                     f"📊 **Periode:** {report_data['period']}\n"
                     f"💾 **Grootte:** {file_size_kb} KB\n\n"
-                    f"📥 **Download je verslag hieronder**\n\n"
-                    f"Dit verslag bevat een overzicht van je ziektelast (ZLM), doelen, "
-                    f"activiteit en medicatie. Je kunt het delen met je arts of voor jezelf bewaren.\n\n"
-                    f"---PDF_BASE64_START---\n"
-                    f"{pdf_base64}\n"
-                    f"---PDF_BASE64_END---\n"
-                    f"FILENAME:{filename}"
+                    f"[📥 Download je verslag]({data_url})\n\n"
+                    f"Dit verslag bevat een overzicht van je ziektelast (ZLM), doelen, activiteit en medicatie."
                 )
 
             except Exception as e:
