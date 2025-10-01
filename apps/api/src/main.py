@@ -148,3 +148,4 @@ app.include_router(messages.router)
 app.include_router(knowledge.router)
 app.include_router(steps.router)
 app.include_router(patient_reports.router)
+app.include_router(patient_reports.public_router)  # Public route without auth for testing

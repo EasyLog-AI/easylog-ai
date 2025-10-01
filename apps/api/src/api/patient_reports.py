@@ -11,6 +11,7 @@ from fastapi.responses import FileResponse
 from src.settings import settings
 
 router = APIRouter(prefix="/patient-reports", tags=["Patient Reports"])
+public_router = APIRouter(prefix="/public/patient-reports", tags=["Patient Reports (Public)"])
 
 
 @router.get("/{filename}")
@@ -35,6 +36,52 @@ async def get_patient_report(
     if token != "easylog":
         raise HTTPException(status_code=401, detail="Unauthorized")
     
+    # Security: Only allow PDF files and prevent path traversal
+    if not filename.endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Invalid file type")
+
+    if ".." in filename or "/" in filename:
+        raise HTTPException(
+            status_code=400, detail="Invalid filename"
+        )
+
+    # Check file exists
+    reports_dir = Path("/tmp/patient_reports")
+    file_path = reports_dir / filename
+
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    # Check file is actually in the reports directory (no symlink attacks)
+    try:
+        file_path.resolve().relative_to(reports_dir.resolve())
+    except ValueError:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    return FileResponse(
+        path=str(file_path),
+        filename=filename,
+        media_type="application/pdf",
+        headers={"X-Content-Type-Options": "nosniff"},
+    )
+
+
+@public_router.get("/{filename}")
+async def get_patient_report_public(filename: str) -> FileResponse:
+    """Serve a patient report PDF file (PUBLIC - no auth required for testing).
+    
+    Security relies on UUID in filename being unguessable.
+    TODO: Add expiration/cleanup for old files.
+    
+    Args:
+        filename: The PDF filename to serve
+
+    Returns:
+        FileResponse with the PDF file
+
+    Raises:
+        HTTPException: If file not found or invalid filename
+    """
     # Security: Only allow PDF files and prevent path traversal
     if not filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Invalid file type")

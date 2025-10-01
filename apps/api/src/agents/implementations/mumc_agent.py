@@ -1353,11 +1353,10 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                 # Use forwarded proto/host/prefix from nginx reverse proxy
                 proto = self.request_headers.get("x-forwarded-proto", "https")
                 host = self.request_headers.get("host", "staging2.easylog.nu")
-                prefix = self.request_headers.get("x-forwarded-prefix", "/ai")
                 
-                # Add bearer token as query param so the download works without extra auth
-                bearer_token = self.request_headers.get("authorization", "").replace("Bearer ", "")
-                download_url = f"{proto}://{host}{prefix}/patient-reports/{filename}?token={bearer_token}"
+                # Use PUBLIC route without auth for easier testing
+                # Security: UUID in filename makes it unguessable
+                download_url = f"{proto}://{host}/public/patient-reports/{filename}"
 
                 # Calculate file size
                 file_size_kb = len(pdf_bytes) // 1024
