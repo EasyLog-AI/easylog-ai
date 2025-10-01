@@ -3,7 +3,7 @@ import json
 import re
 import uuid
 from collections.abc import Callable, Iterable
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from typing import Any, Literal
 
 import httpx
@@ -996,12 +996,19 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
 
             return memory["memory"]
 
-        async def tool_send_notification(title: str, contents: str) -> str:
+        async def tool_send_notification(
+            title: str, 
+            contents: str,
+            reminder_id: str | None = None,
+            task_id: str | None = None,
+        ) -> str:
             """Send a notification.
 
             Args:
                 title (str): The title of the notification.
                 contents (str): The text to send in the notification.
+                reminder_id (str | None): Optional ID of the reminder being sent (for cleanup).
+                task_id (str | None): Optional ID of the recurring task being sent (for tracking).
             """
             onesignal_id = self.request_headers.get("x-onesignal-external-user-id") or await self.get_metadata(
                 "onesignal_id", None
@@ -1039,21 +1046,29 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
 
             self.logger.info(f"Notification response: {response}")
 
+            # Automatic cleanup: remove reminder after sending
+            if reminder_id:
+                await self._remove_reminder(reminder_id)
+            
+            # Add notification to history with tracking IDs
+            await self._add_notification_record(title, contents, task_id=task_id, reminder_id=reminder_id)
+
+            # Legacy notification tracking (kept for backwards compatibility)
             notifications = await self.get_metadata("notifications", [])
 
             # Keep only today's notifications
             today = datetime.now(pytz.timezone("Europe/Amsterdam")).date()
             filtered_notifications = []
-            for notification in notifications:
+            for notif in notifications:
                 try:
-                    sent_date = datetime.fromisoformat(notification["sent_at"]).date()
+                    sent_date = datetime.fromisoformat(notif["sent_at"]).date()
                     if sent_date == today:
-                        filtered_notifications.append(notification)
+                        filtered_notifications.append(notif)
                 except (ValueError, KeyError):
                     # Keep notification if we can't parse the date
-                    filtered_notifications.append(notification)
+                    filtered_notifications.append(notif)
 
-            # Add new notification
+            # Add new notification (legacy format - will be phased out)
             filtered_notifications.append(
                 {
                     "id": response["id"],
@@ -1333,6 +1348,260 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
         output_string = re.sub(r"\{\{([^}]+)\}\}", replace_missing_with_indicator, output_string)
         return output_string
 
+    def _parse_cron_expression(self, cron_expr: str) -> dict[str, Any]:
+        """Parse a cron expression into its components.
+        
+        Format: "minute hour day_of_month month day_of_week"
+        Returns dict with parsed values or None for wildcards.
+        """
+        parts = cron_expr.split()
+        if len(parts) != 5:
+            self.logger.warning(f"Invalid cron expression: {cron_expr}")
+            return {}
+        
+        def parse_field(value: str) -> list[int] | None:
+            """Parse a cron field into a list of integers or None for wildcard."""
+            if value == "*":
+                return None
+            if "," in value:
+                return [int(v) for v in value.split(",")]
+            if "-" in value:
+                start, end = value.split("-")
+                return list(range(int(start), int(end) + 1))
+            return [int(value)]
+        
+        return {
+            "minute": parse_field(parts[0]),
+            "hour": parse_field(parts[1]),
+            "day_of_month": parse_field(parts[2]),
+            "month": parse_field(parts[3]),
+            "day_of_week": parse_field(parts[4]),
+        }
+
+    def _matches_cron_time(
+        self, cron_expr: str, current_time: datetime, grace_minutes: int = 4
+    ) -> bool:
+        """Check if current time matches a cron expression with grace window.
+        
+        Args:
+            cron_expr: Cron expression string (e.g., "15 20 * * *")
+            current_time: Current datetime to check against
+            grace_minutes: Minutes after scheduled time to still consider eligible
+            
+        Returns:
+            True if current time matches (within grace window)
+        """
+        parsed = self._parse_cron_expression(cron_expr)
+        if not parsed:
+            return False
+        
+        # Check hour (must match exactly)
+        if parsed["hour"] and current_time.hour not in parsed["hour"]:
+            return False
+        
+        # Check minute (with grace window)
+        if parsed["minute"]:
+            scheduled_minutes = parsed["minute"]
+            current_minute = current_time.minute
+            
+            # Check if we're within grace window of any scheduled minute
+            is_within_grace = False
+            for scheduled_min in scheduled_minutes:
+                # Calculate minutes difference
+                diff = current_minute - scheduled_min
+                # Within grace window means: exact time OR 0-4 minutes after
+                if 0 <= diff <= grace_minutes:
+                    is_within_grace = True
+                    break
+            
+            if not is_within_grace:
+                return False
+        
+        # Check day of month
+        if parsed["day_of_month"] and current_time.day not in parsed["day_of_month"]:
+            return False
+        
+        # Check month
+        if parsed["month"] and current_time.month not in parsed["month"]:
+            return False
+        
+        # Check day of week (convert Python weekday to cron format)
+        if parsed["day_of_week"]:
+            # Python: 0=Monday, 6=Sunday
+            # Cron: 0=Sunday, 1=Monday, ..., 6=Saturday OR 1=Monday, ..., 7=Sunday
+            python_weekday = current_time.weekday()
+            cron_weekday = (python_weekday + 1) % 7  # Convert to cron format (0=Sunday)
+            
+            # Support both formats (0-6 and 1-7)
+            cron_days = parsed["day_of_week"]
+            if cron_weekday not in cron_days and (cron_weekday + 1) not in cron_days:
+                return False
+        
+        return True
+
+    def _is_eligible_reminder(
+        self, reminder: dict[str, Any], notifications: list[dict[str, Any]], current_time: datetime
+    ) -> bool:
+        """Check if a reminder is eligible to be sent.
+        
+        Args:
+            reminder: Reminder dict with 'id', 'date'/'scheduled_at', 'message'
+            notifications: List of previously sent notifications
+            current_time: Current datetime
+            
+        Returns:
+            True if reminder should be sent
+        """
+        # Get scheduled time
+        scheduled_str = reminder.get("date") or reminder.get("scheduled_at")
+        if not scheduled_str:
+            self.logger.warning(f"Reminder {reminder.get('id')} missing date/scheduled_at")
+            return False
+        
+        try:
+            # Parse scheduled time
+            if isinstance(scheduled_str, str):
+                scheduled_time = datetime.fromisoformat(scheduled_str.replace("Z", "+00:00"))
+            else:
+                scheduled_time = scheduled_str
+            
+            # Make timezone-aware if needed
+            if scheduled_time.tzinfo is None:
+                amsterdam_tz = pytz.timezone("Europe/Amsterdam")
+                scheduled_time = amsterdam_tz.localize(scheduled_time)
+            
+            # Check if due (with 4-minute grace window)
+            grace_window = 4 * 60  # 4 minutes in seconds
+            time_diff = (current_time - scheduled_time).total_seconds()
+            
+            if time_diff < -60:  # More than 1 minute in future
+                return False
+            
+            if time_diff > grace_window:  # More than 4 minutes in past
+                return False
+            
+            # Check for duplicates (same contents in last 24 hours)
+            reminder_contents = reminder.get("message", "")
+            cutoff_time = current_time - timedelta(hours=24)
+            
+            for notif in notifications:
+                notif_contents = notif.get("contents", "")
+                notif_sent_str = notif.get("sent_at", "")
+                
+                if notif_contents == reminder_contents:
+                    try:
+                        notif_sent = datetime.fromisoformat(notif_sent_str.replace("Z", "+00:00"))
+                        if notif_sent > cutoff_time:
+                            self.logger.info(
+                                f"Reminder {reminder.get('id')} skipped - same contents sent at {notif_sent}"
+                            )
+                            return False
+                    except Exception as e:
+                        self.logger.warning(f"Error parsing notification sent_at: {e}")
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Error checking reminder eligibility: {e}")
+            return False
+
+    def _is_eligible_recurring_task(
+        self, task: dict[str, Any], notifications: list[dict[str, Any]], current_time: datetime
+    ) -> bool:
+        """Check if a recurring task is eligible to be sent.
+        
+        Args:
+            task: Recurring task dict with 'id', 'cron_expression', 'task'
+            notifications: List of previously sent notifications
+            current_time: Current datetime
+            
+        Returns:
+            True if task should be sent
+        """
+        cron_expr = task.get("cron_expression", "")
+        if not cron_expr:
+            self.logger.warning(f"Task {task.get('id')} missing cron_expression")
+            return False
+        
+        # Check if cron matches current time
+        if not self._matches_cron_time(cron_expr, current_time):
+            return False
+        
+        # Check for duplicates in current hour
+        # We use task ID + hour as deduplication key
+        task_id = task.get("id", "")
+        current_hour = current_time.hour
+        
+        for notif in notifications:
+            notif_sent_str = notif.get("sent_at", "")
+            notif_task_id = notif.get("task_id", "")
+            
+            try:
+                notif_sent = datetime.fromisoformat(notif_sent_str.replace("Z", "+00:00"))
+                notif_hour = notif_sent.hour
+                notif_date = notif_sent.date()
+                current_date = current_time.date()
+                
+                # Skip if same task sent in same hour today
+                if (
+                    notif_task_id == task_id
+                    and notif_hour == current_hour
+                    and notif_date == current_date
+                ):
+                    self.logger.info(
+                        f"Task {task_id} skipped - already sent at {notif_sent} (hour {notif_hour})"
+                    )
+                    return False
+                    
+            except Exception as e:
+                self.logger.warning(f"Error parsing notification sent_at: {e}")
+        
+        return True
+
+    async def _remove_reminder(self, reminder_id: str) -> None:
+        """Remove a reminder from metadata after it's been sent."""
+        try:
+            reminders = await self.get_metadata("reminders", [])
+            updated_reminders = [r for r in reminders if r.get("id") != reminder_id]
+            await self.set_metadata("reminders", updated_reminders)
+            self.logger.info(f"Removed reminder {reminder_id} from metadata")
+        except Exception as e:
+            self.logger.error(f"Error removing reminder {reminder_id}: {e}")
+
+    async def _add_notification_record(
+        self, title: str, contents: str, task_id: str | None = None, reminder_id: str | None = None
+    ) -> None:
+        """Add a notification to the sent notifications history."""
+        try:
+            amsterdam_tz = pytz.timezone("Europe/Amsterdam")
+            current_time = datetime.now(amsterdam_tz)
+            
+            notifications = await self.get_metadata("notifications", [])
+            
+            notification_record = {
+                "id": str(uuid.uuid4()),
+                "title": title,
+                "contents": contents,
+                "sent_at": current_time.isoformat(),
+            }
+            
+            if task_id:
+                notification_record["task_id"] = task_id
+            if reminder_id:
+                notification_record["reminder_id"] = reminder_id
+            
+            notifications.append(notification_record)
+            
+            # Keep only last 100 notifications to prevent metadata bloat
+            if len(notifications) > 100:
+                notifications = notifications[-100:]
+            
+            await self.set_metadata("notifications", notifications)
+            self.logger.info(f"Added notification record: {title}")
+            
+        except Exception as e:
+            self.logger.error(f"Error adding notification record: {e}")
+
     async def on_message(
         self, messages: Iterable[ChatCompletionMessageParam], _: int = 0
     ) -> tuple[AsyncStream[ChatCompletionChunk] | ChatCompletion, list[Callable]]:
@@ -1537,20 +1806,52 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
             self.get_tools()["tool_send_notification"],
         ]
 
+        # Get current time and metadata
+        amsterdam_tz = pytz.timezone("Europe/Amsterdam")
+        current_time = datetime.now(amsterdam_tz)
+        
         notifications = await self.get_metadata("notifications", [])
         reminders = await self.get_metadata("reminders", [])
         recurring_tasks = await self.get_metadata("recurring_tasks", [])
         memories = await self.get_metadata("memories", [])
 
-        current_time = datetime.now(pytz.timezone("Europe/Amsterdam"))
-        current_hour = current_time.hour
-        current_minute = current_time.minute
-        current_weekday = current_time.weekday()  # 0=Monday, 6=Sunday
-        current_day = current_time.day
-        current_month = current_time.month
+        self.logger.info(
+            f"📋 Super Agent run at {current_time.strftime('%H:%M:%S')} - "
+            f"{len(reminders)} reminders, {len(recurring_tasks)} tasks"
+        )
 
         # ========================================================================
-        # FETCH STEPS DATA + GOAL FOR DYNAMIC NOTIFICATIONS 
+        # PYTHON PRE-FILTERING (Betrouwbaar!)
+        # ========================================================================
+        eligible_reminders = []
+        eligible_recurring_tasks = []
+        
+        # Filter reminders
+        for reminder in reminders:
+            if self._is_eligible_reminder(reminder, notifications, current_time):
+                eligible_reminders.append(reminder)
+                self.logger.info(f"✅ Eligible reminder: {reminder.get('id')} - {reminder.get('message')[:50]}")
+            else:
+                self.logger.debug(f"⏭️  Skipped reminder: {reminder.get('id')}")
+        
+        # Filter recurring tasks
+        for task in recurring_tasks:
+            if self._is_eligible_recurring_task(task, notifications, current_time):
+                eligible_recurring_tasks.append(task)
+                self.logger.info(
+                    f"✅ Eligible task: {task.get('id')} - "
+                    f"cron={task.get('cron_expression')} - {task.get('task')[:50]}"
+                )
+            else:
+                self.logger.debug(f"⏭️  Skipped task: {task.get('id')}")
+        
+        # If nothing is eligible, skip AI call
+        if not eligible_reminders and not eligible_recurring_tasks:
+            self.logger.info("No eligible notifications - skipping AI call")
+            return None
+
+        # ========================================================================
+        # FETCH STEPS DATA FOR DYNAMIC CONTENT
         # ========================================================================
         self.logger.info("🎯 Fetching steps data for dynamic notifications...")
         
@@ -1560,13 +1861,11 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
         steps_progress_pct = 0
         
         try:
-            # Get user for steps data
             user = await prisma.users.find_first(
                 where=usersWhereInput(external_id=onesignal_id)
             )
             
             if user:
-                # Fetch today's steps
                 today_start = current_time.replace(hour=0, minute=0, second=0, microsecond=0)
                 today_end = current_time.replace(hour=23, minute=59, second=59, microsecond=999999)
                 
@@ -1580,201 +1879,109 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                 )
                 
                 steps_today = sum(dp.value for dp in steps_data)
-                self.logger.info(f"Steps today: {steps_today}")
                 
                 # Extract steps goal from memories
                 for mem in memories:
                     mem_text = mem.get("memory", "").lower()
-                    # Look for patterns like "8000 stappen" or "Goal-1: 8000 stappen per dag"
                     if "stappen" in mem_text or "steps" in mem_text:
                         match = re.search(r'(\d+)\s*stappen', mem_text)
                         if match:
                             steps_goal = int(match.group(1))
-                            self.logger.info(f"Found steps goal: {steps_goal}")
                             break
                 
-                # If no goal found, use default
                 if steps_goal == 0:
                     steps_goal = 8000
-                    self.logger.info(f"Using default steps goal: {steps_goal}")
                 
-                # Calculate progress
                 steps_remaining = max(0, steps_goal - steps_today)
                 steps_progress_pct = int((steps_today / steps_goal) * 100) if steps_goal > 0 else 0
                 
-                self.logger.info(f"📊 Steps data ready: {steps_today}/{steps_goal} ({steps_progress_pct}%) - {steps_remaining} remaining")
-            else:
-                self.logger.warning(f"User not found for onesignal_id: {onesignal_id}")
-                
+                self.logger.info(
+                    f"📊 Steps: {steps_today}/{steps_goal} ({steps_progress_pct}%) - {steps_remaining} remaining"
+                )
         except Exception as e:
             self.logger.error(f"Error fetching steps data: {e}")
-            # Continue without steps data
 
+        # ========================================================================
+        # SIMPLIFIED AI PROMPT (Python did the filtering!)
+        # ========================================================================
         prompt = f"""
-# Notification Management System
+# Notification Content Creator
 
-## Core Responsibility
-You are the notification management system responsible for delivering timely alerts without duplication. Your task is to analyze pending notifications and determine which ones need to be sent.
+## Your Job
+Create appropriate notification content for the eligible items below. 
+**All filtering has been done - just create good content!**
 
-## Current Time
-Current system time: {current_time.strftime("%A %Y-%m-%d %H:%M:%S")} (Hour: {current_hour}, Minute: {current_minute}, Weekday: {current_weekday} where 0=Monday, Day: {current_day}, Month: {current_month})
+## Current Context
+Time: {current_time.strftime("%H:%M")}
+Date: {current_time.strftime("%A %d %B %Y")}
 
-## 📊 Live Context Data (For Dynamic Notifications)
-You have access to real-time user data to create personalized, dynamic notifications:
-
-### Today's Activity Data:
+## Activity Data (For Dynamic Messages)
 - Steps today: {steps_today}
 - Steps goal: {steps_goal}
 - Steps remaining: {steps_remaining}
 - Progress: {steps_progress_pct}%
 
-### User Memories:
-{json.dumps(memories, indent=2)}
+## Eligible Items to Send
 
-## Dynamic Notification Guidelines
-**IMPORTANT**: When sending notifications for recurring tasks that mention "stappen", "wandelen", "bewegen", or similar activity-related keywords:
-1. **Include actual numbers**: Use the steps data above to personalize the message
-2. **Show progress**: Include both current steps and remaining steps
-3. **Be motivating**: Use encouraging language based on progress
-4. **Be specific**: Avoid generic messages - use real data
+### Reminders ({len(eligible_reminders)}):
+{json.dumps(eligible_reminders, indent=2)}
 
-**Examples of Dynamic Messages**:
-- If task mentions "stappen update": "Super! Je hebt vandaag al {steps_today} van {steps_goal} stappen! Nog {steps_remaining} te gaan 💪"
-- If progress > 80%: "Geweldig bezig! Je bent bijna bij je doel: {steps_today}/{steps_goal} stappen ({steps_progress_pct}%) 🎯"
-- If progress < 50%: "Je hebt al {steps_today} stappen vandaag. Zullen we samen naar {steps_goal} gaan? Nog {steps_remaining} te gaan! 🚶"
+### Recurring Tasks ({len(eligible_recurring_tasks)}):
+{json.dumps(eligible_recurring_tasks, indent=2)}
 
-## Previously Sent Notifications
-The following notifications have already been sent and MUST NOT be resent:
-{json.dumps(notifications, indent=2)}
+## Instructions
 
-## Items to Evaluate
-Please evaluate these items for notification eligibility:
+### For Reminders:
+- Title: "Reminder"
+- Contents: Use the reminder message as-is
 
-1. Reminders:
-{json.dumps(reminders, indent=2)}
+### For Recurring Tasks:
+**The task text is an INSTRUCTION to you, not the message content!**
 
-2. Recurring Tasks:
-{json.dumps(recurring_tasks, indent=2)}
+**If task mentions activity (stappen, bewegen, lopen):**
+- Title: "Stappen Update" or "Je Activiteit"
+- Contents: Create motivating message with REAL numbers from activity data above
+- Example: "Super! Je hebt vandaag al {steps_today} van {steps_goal} stappen! Nog {steps_remaining} te gaan 💪"
 
-## Critical Cron Expression Rules
-A cron expression format is: "minute hour day_of_month month day_of_week"
-- minute: 0-59
-- hour: 0-23 
-- day_of_month: 1-31
-- month: 1-12
-- day_of_week: 0-6 (0=Sunday, 1=Monday, ..., 6=Saturday) OR 1-7 (1=Monday, ..., 7=Sunday)
-- Workdays ("werkdagen"): 1-5 (Monday=1, Tuesday=2, Wednesday=3, Thursday=4, Friday=5)
+**If task IS a user message (medicatie, ademhaling):**
+- Title: "Medicatie Herinnering" or appropriate title
+- Contents: Use task text as-is if it reads like a user message
+- Example task: "Tijd voor je medicatie! Vergeet niet je prednison in te nemen."
+  → Send exactly that
 
-**IMPORTANT TIMING RULE**: A recurring task should ONLY be triggered when ALL time components match EXACTLY:
-- "0 9 * * *" means ONLY at 9:00 (hour=9 AND minute=0)
-- "0 9,10,11 * * *" means ONLY at 9:00, 10:00, or 11:00 (hour in [9,10,11] AND minute=0)
-- "0 9,10,11 * * 1-5" means ONLY at 9:00, 10:00, or 11:00 AND ONLY on workdays Monday(1) through Friday(5)
+**If task contains instruction keywords ("Stuur", "Herinner"):**
+- Extract the core message from the instruction
+- Example: "Herinner aan ademhalingsoefeningen" → "Tijd voor je ademhalingsoefeningen!"
 
-**Current time matching logic**:
-- Current hour is {current_hour}, current minute is {current_minute}
-- Current weekday is {current_weekday} (Python format: 0=Monday, 6=Sunday)
-- For cron day_of_week matching, convert Python weekday to cron format: Sunday=0, Monday=1, ..., Saturday=6
+## Action Required
+For EACH eligible item:
+1. **Call `tool_send_notification` with:**
+   - `title`: Appropriate title
+   - `contents`: The message content
+   - `reminder_id`: The reminder ID (for reminders only)
+   - `task_id`: The task ID (for recurring tasks only)
 
-## Decision Rules
-- Reminders are due when their scheduled date/time is <= current time.
-- Apply a 4-minute grace window for reminders: if scheduled within the last 4 minutes, treat as due.
-- For recurring tasks: send if the cron expression matches the EXACT current time
-  OR falls within a 4-minute grace window after the scheduled minute.
-- A task with "0 9 * * *" should ONLY trigger when current hour=9 AND minute=0.
-- A task with "0 9,10,11 * * 1-5" should ONLY trigger when (hour in [9,10,11] AND minute=0 AND weekday is Monday–Friday).
-- Do not skip a due recurring task because a reminder is also due; handle both if applicable.
+2. **IMPORTANT**: Include the IDs so cleanup can happen automatically!
 
-## ⛔ CRITICAL DEDUPLICATION RULES ⛔
-**Before sending ANY notification, you MUST check the previously sent notifications list:**
+Example calls:
+```
+# For reminder
+tool_send_notification(
+    title="Reminder",
+    contents="Tijd om de Ziektelastmeter in te vullen!",
+    reminder_id="abc123"
+)
 
-### For Recurring Tasks (HOUR-BASED):
-1. Extract the scheduled HOUR from the cron expression (e.g., "10 18 * * *" = hour 18)
-2. Check if a notification with the SAME TITLE was sent in the CURRENT HOUR (hour {current_hour})
-3. If found in current hour: **SKIP IT** - already sent this hour
-4. If NOT found in current hour: **SEND IT** - this is the first trigger for this hour
+# For recurring task (use REAL numbers from activity data!)
+# If steps_today=5000, steps_goal=8000, steps_remaining=3000:
+tool_send_notification(
+    title="Stappen Update",
+    contents="Je hebt vandaag al 5000 stappen! Nog 3000 te gaan 💪",
+    task_id="task456"
+)
+```
 
-Example timeline for "10 18 * * *" (18:10 daily):
-- 18:10 Super Agent run → Check notifications from hour 18 → None found → SEND ✅
-- 18:15 Super Agent run → Check notifications from hour 18 → Found at 18:11 → SKIP ❌
-- 18:20 Super Agent run → Check notifications from hour 18 → Found at 18:11 → SKIP ❌
-- Next day 18:10 → Check notifications from hour 18 TODAY → None found → SEND ✅
-
-### For Reminders (CONTENT-BASED):
-1. Check if a notification with the EXACT SAME CONTENTS was already sent
-2. Check the sent_at timestamp: If sent within the last 24 hours: **SKIP IT**
-3. If NOT found in last 24 hours: **SEND IT**
-
-Example for reminder "Tijd om de Ziektelastmeter (ZLM) in te vullen!":
-- 18:51 Super Agent → No matching contents in last 24h → SEND ✅
-- 18:55 Super Agent → Same contents sent at 18:51 (4 min ago) → SKIP ❌
-- 19:00 Super Agent → Same contents sent at 18:51 (9 min ago) → SKIP ❌
-- Next day 18:51 → Contents sent yesterday (24+ hours ago) → SEND ✅
-
-This prevents reminder spam while allowing legitimate daily reminders.
-
-## Required Action
-After analysis:
-- For EACH due reminder and EACH due recurring task that is not a duplicate, invoke the send_notification tool with appropriate title and contents.
-- For reminders: Use "Reminder" as title and the reminder message as contents.
-- For recurring tasks:
-  
-  **⛔ ABSOLUTE RULE: THE TASK TEXT IS AN INSTRUCTION TO YOU, NOT THE MESSAGE TO SEND! ⛔**
-  
-  Think of the task text as instructions from a manager telling you WHAT to do, not WHAT to say.
-  You must TRANSLATE the instruction into an actual user-facing message.
-  
-  **Step-by-step process for activity tasks:**
-  1. Read the task text to understand WHAT you need to do (e.g., "send steps overview")
-  2. Look at the steps data provided above (steps_today, steps_goal, steps_remaining, steps_progress_pct)
-  3. CREATE a new, personalized message using those numbers
-  4. NEVER copy the task text itself into the contents field
-  
-  **If task mentions activity keywords (stappen, wandelen, bewegen, activiteit, lopen, stappendoel):**
-  
-  ✅ CORRECT PROCESS:
-  - Title: "Stappen Update" or "Je Activiteit"
-  - Contents: Write a BRAND NEW motivating message with the ACTUAL steps numbers
-  
-  **Examples - Study these carefully:**
-  
-  Task: "Stuur Ewout dagelijks om 15:15 een overzicht van zijn stappen"
-  This is telling YOU to send an overview. The USER should NOT see this instruction!
-  ❌ ABSOLUTELY WRONG: {{"title": "Dagelijkse herinnering", "contents": "Stuur Ewout dagelijks om 15:15 een overzicht van zijn stappen"}}
-  ✅ CORRECT: {{"title": "Stappen Update", "contents": "Je hebt vandaag al {{steps_today}} van {{steps_goal}} stappen! Nog {{steps_remaining}} te gaan 💪"}}
-  
-  Task: "Stuur een motiverend bericht over stappen"
-  This is telling YOU what kind of message to create. Create it!
-  ❌ ABSOLUTELY WRONG: {{"title": "Dagelijkse herinnering", "contents": "Stuur een motiverend bericht over stappen"}}
-  ✅ CORRECT: {{"title": "Stappen Update", "contents": "Super bezig! Je bent al bij {{steps_today}} stappen vandaag. Je doel is {{steps_goal}} stappen 🎯"}}
-  
-  Task: "Stuur een motiverend bericht over de stappen van vandaag en het dagelijkse stappendoel"
-  This is YOUR instruction. Transform it into a user message!
-  ❌ ABSOLUTELY WRONG: {{"title": "Dagelijkse herinnering", "contents": "Stuur een motiverend bericht over de stappen van vandaag en het dagelijkse stappendoel"}}
-  ✅ CORRECT: {{"title": "Stappen Update", "contents": "Vandaag heb je al {{steps_today}} stappen gelopen! Je doel is {{steps_goal}} stappen. Nog {{steps_remaining}} te gaan! 🚶‍♂️"}}
-  
-  **For non-activity tasks (medicatie, ademhaling, algemene herinneringen):**
-  
-  Two types of tasks:
-  
-  1. **Task IS the message** (most common):
-     - If the task reads like a user message, use it as-is
-     - Examples:
-       * Task: "Tijd voor je medicatie! Vergeet niet je prednison in te nemen."
-         → title: "Medicatie Herinnering", contents: "Tijd voor je medicatie! Vergeet niet je prednison in te nemen."
-       * Task: "Herinnering: Trimbow inhalator - 1 puff (ochtend)"
-         → title: "Medicatie Herinnering", contents: "Herinnering: Trimbow inhalator - 1 puff (ochtend)"
-       * Task: "Reminder: Tijd om de E-supporter app te testen!"
-         → title: "Reminder", contents: "Tijd om de E-supporter app te testen!"
-  
-  2. **Task contains instructions** (less common):
-     - If the task says "Stuur bericht...", "Herinner X aan...", extract the core message
-     - Examples:
-       * Task: "Herinner Ewout aan ademhalingsoefeningen voor minder kortademigheid"
-         → title: "Herinnering", contents: "Tijd voor je ademhalingsoefeningen! Dit helpt tegen kortademigheid."
-       * Task: "Stuur bericht 'Vergeet je medicatie niet'"
-         → title: "Medicatie Herinnering", contents: "Vergeet je medicatie niet"
-  
-- If no eligible notifications exist: invoke the noop tool.
+If no items to send: call tool_noop
 """
 
         self.logger.info(f"Calling super agent with prompt: {prompt}")
