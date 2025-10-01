@@ -26,6 +26,8 @@ from src.agents.base_agent import BaseAgent, SuperAgentConfig
 from src.agents.tools.base_tools import BaseTools
 from src.agents.tools.easylog_backend_tools import EasylogBackendTools
 from src.agents.tools.easylog_sql_tools import EasylogSqlTools
+from src.agents.utils.patient_report_data import PatientReportDataAggregator
+from src.agents.utils.patient_report_generator import PatientReportGenerator
 from src.lib.prisma import prisma
 from src.models.chart_widget import (
     ChartWidget,
@@ -1289,6 +1291,88 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                 for dp in steps_data
             ]
 
+        async def tool_generate_patient_report(period_days: int = 30) -> str:
+            """Genereer een professioneel patiënt verslag als PDF.
+
+            Dit verslag bevat een overzicht van de patient zijn/haar:
+            - Profiel informatie (leeftijd, diagnose, comorbiditeit)
+            - ZLM (Ziektelast) scores
+            - Doelen en voortgang
+            - Activiteit (stappen) data
+            - Medicatie informatie
+
+            De gegenereerde PDF kan door de patient gedownload en gedeeld worden
+            met bijvoorbeeld hun arts.
+
+            Args:
+                period_days (int): Aantal dagen terug om data te verzamelen.
+                                  Default is 30 dagen (laatste maand).
+
+            Returns:
+                str: Bericht met download URL voor de gegenereerde PDF
+
+            Raises:
+                ValueError: Als er geen patient data beschikbaar is
+            """
+            try:
+                # Get OneSignal ID from headers
+                onesignal_id = self.request_headers.get("x-onesignal-external-user-id")
+                if not onesignal_id:
+                    raise ValueError("Kan patient ID niet vinden")
+
+                # Aggregate patient data
+                aggregator = PatientReportDataAggregator(
+                    thread_id=self.thread_id, onesignal_id=onesignal_id
+                )
+                report_data = await aggregator.aggregate_report_data(period_days=period_days)
+
+                # Generate PDF
+                generator = PatientReportGenerator()
+                pdf_bytes = generator.generate_report(report_data)
+
+                # Save PDF to storage
+                import os
+                from pathlib import Path
+
+                # Create reports directory if it doesn't exist
+                reports_dir = Path("/tmp/patient_reports")
+                reports_dir.mkdir(exist_ok=True)
+
+                # Generate unique filename
+                report_id = str(uuid.uuid4())
+                patient_name_safe = report_data["patient_name"].replace(" ", "_")
+                timestamp = datetime.now(pytz.timezone("Europe/Amsterdam")).strftime("%Y-%m")
+                filename = f"COPD_Verslag_{patient_name_safe}_{timestamp}_{report_id[:8]}.pdf"
+
+                # Save file
+                file_path = reports_dir / filename
+                with open(file_path, "wb") as f:
+                    f.write(pdf_bytes)
+
+                # Generate download URL (assuming this endpoint exists)
+                download_url = f"{settings.API_URL}/patient-reports/{filename}"
+
+                # Calculate file size
+                file_size_kb = len(pdf_bytes) // 1024
+
+                self.logger.info(
+                    f"Generated patient report: {filename} ({file_size_kb}KB) for {report_data['patient_name']}"
+                )
+
+                return (
+                    f"✅ Ik heb je verslag gegenereerd!\n\n"
+                    f"📄 **Bestand:** {filename}\n"
+                    f"📊 **Periode:** {report_data['period']}\n"
+                    f"💾 **Grootte:** {file_size_kb} KB\n\n"
+                    f"Je kunt het verslag hier downloaden: {download_url}\n\n"
+                    f"Dit verslag bevat een overzicht van je ziektelast (ZLM), doelen, "
+                    f"activiteit en medicatie. Je kunt het delen met je arts of voor jezelf bewaren."
+                )
+
+            except Exception as e:
+                self.logger.error(f"Error generating patient report: {e}", exc_info=True)
+                return f"❌ Er ging iets mis bij het genereren van je verslag: {str(e)}"
+
         # Assemble and return the complete tool list
         tools_list = [
             # EasyLog-specific tools
@@ -1323,6 +1407,8 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
             tool_send_notification,
             # Step counter tools
             tool_get_steps_data,
+            # Report generation
+            tool_generate_patient_report,
             # System tools
             BaseTools.tool_noop,
             BaseTools.tool_call_super_agent,
