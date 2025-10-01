@@ -24,16 +24,29 @@ import useZodForm from '@/app/_ui/hooks/useZodForm';
 
 import useChatContext from '../hooks/useChatContext';
 
-const schema = z.object({
-  content: z.string().min(1),
-  // Looks a bit hacky, but it's the only way to get the FileList type in SSR mode that i could think of.
-  files: z
-    .unknown()
-    .optional()
-    .refine((files) => files === undefined || files instanceof FileList, {
-      message: 'Files must be a FileList or undefined'
-    })
-});
+const schema = z
+  .object({
+    content: z.string().optional(),
+    // Looks a bit hacky, but it's the only way to get the FileList type in SSR mode that i could think of.
+    files: z
+      .unknown()
+      .optional()
+      .refine((files) => files === undefined || files instanceof FileList, {
+        message: 'Files must be a FileList or undefined'
+      })
+  })
+  .refine(
+    (data) => {
+      // Either content must have text or files must be provided
+      return (
+        (data.content?.trim().length ?? 0) > 0 ||
+        (data.files && data.files.length > 0)
+      );
+    },
+    {
+      message: 'Either text content or files must be provided'
+    }
+  );
 
 const ChatInput = () => {
   // eslint-disable-next-line react-compiler/react-compiler
@@ -76,11 +89,11 @@ const ChatInput = () => {
       session.sendMessage({
         type: 'message',
         role: 'user',
-        content: [{ type: 'input_text', text: data.content }]
+        content: [{ type: 'input_text', text: data.content ?? '' }]
       });
     } else {
       await sendMessage({
-        text: data.content,
+        text: data.content ?? '',
         files: data.files
       });
     }

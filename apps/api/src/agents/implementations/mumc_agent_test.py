@@ -121,7 +121,7 @@ class RoleConfig(BaseModel):
     )
 
 
-class MUMCAgentConfig(BaseModel):
+class MUMCAgentTestConfig(BaseModel):
     roles: list[RoleConfig] = Field(
         default_factory=lambda: [
             RoleConfig(
@@ -139,14 +139,14 @@ class MUMCAgentConfig(BaseModel):
     )
 
 
-class MUMCAgent(BaseAgent[MUMCAgentConfig]):
+class MUMCAgentTest(BaseAgent[MUMCAgentTestConfig]):
     def on_init(self) -> None:
         self.configure_onesignal(
             settings.ONESIGNAL_HEALTH_API_KEY,
             settings.ONESIGNAL_HEALTH_APP_ID,
         )
 
-        self.logger.info(f"Request headers: {self.request_headers}")
+        self.logger.info(f"[TEST AGENT] Request headers: {self.request_headers}")
 
     async def get_current_role(self) -> RoleConfig:
         role = await self.get_metadata("current_role", self.config.roles[0].name)
@@ -164,12 +164,12 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
             title (str): The notification title
             contents (str): The notification message content
         """
-        self.logger.info(f"Adding notification to chat: {title}")
+        self.logger.info(f"[TEST AGENT] Adding notification to chat: {title}")
         
         try:
             await prisma.messages.create(
                 data={
-                    "agent_class": "MUMCAgent",
+                    "agent_class": "MUMCAgentTest",
                     "thread_id": self.thread_id,
                     "role": message_role.assistant,
                     "contents": {
@@ -182,9 +182,9 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                     },
                 },
             )
-            self.logger.info("Successfully added notification to chat")
+            self.logger.info("[TEST AGENT] Successfully added notification to chat")
         except Exception as e:
-            self.logger.error(f"Error adding notification to chat: {e}")
+            self.logger.error(f"[TEST AGENT] Error adding notification to chat: {e}")
             # Don't raise - notification was already sent via OneSignal
 
     def get_tools(self) -> dict[str, Callable]:
@@ -231,23 +231,25 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
         async def tool_search_documents(search_query: str) -> str:
             """Search for documents in the knowledge database using a semantic search query.
 
-            This tool uses AI-powered filtering to return only the most relevant information,
-            significantly reducing token usage while maintaining search quality.
+            This tool allows you to search through the knowledge database for relevant documents
+            based on a natural language query. The search is performed using semantic matching,
+            which means it will find documents that are conceptually related to your query,
+            even if they don't contain the exact words.
 
             Args:
                 search_query (str): A natural language query describing what you're looking for.
                                   For example: "information about metro systems" or "how to handle customer complaints"
 
             Returns:
-                str: A concise summary of relevant information from the knowledge base,
-                     or a message indicating no relevant information was found.
+                str: A formatted string containing the search results, where each result includes:
+                     - The document's path and summary
             """
 
-            result = await self.search_documents_with_summary(
+            result = await self.search_documents(
                 search_query, subjects=(await self.get_current_role()).allowed_subjects
             )
 
-            return result
+            return "\n-".join([f"Path: {document.path} - Summary: {document.summary}" for document in result])
 
         async def tool_get_document_contents(path: str) -> str:
             """Retrieve the complete contents of a specific document from the knowledge database.
@@ -1011,7 +1013,7 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                 "assistant_field_name", None
             )
 
-            self.logger.info(f"Sending notification to {onesignal_id}")
+            self.logger.info(f"[TEST AGENT] Sending notification to {onesignal_id}")
 
             if onesignal_id is None:
                 return "No onesignal id found"
@@ -1019,7 +1021,7 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
             if assistant_field_name is None:
                 return "No assistant field name found"
 
-            self.logger.info(f"Sending notification to {onesignal_id} with app id {settings.ONESIGNAL_HEALTH_APP_ID}")
+            self.logger.info(f"[TEST AGENT] Sending notification to {onesignal_id} with app id {settings.ONESIGNAL_HEALTH_APP_ID}")
             notification = Notification(
                 target_channel="push",
                 channel_for_external_user_ids="push",
@@ -1030,14 +1032,14 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                 data={"type": "chat", "assistantFieldName": assistant_field_name},
             )
 
-            self.logger.info(f"Notification: {notification}")
+            self.logger.info(f"[TEST AGENT] Notification: {notification}")
             try:
                 response = await self.one_signal.send_notification(notification)
             except Exception as e:
-                self.logger.error(f"Error sending notification: {e}")
+                self.logger.error(f"[TEST AGENT] Error sending notification: {e}")
                 return "Error sending notification"
 
-            self.logger.info(f"Notification response: {response}")
+            self.logger.info(f"[TEST AGENT] Notification response: {response}")
 
             notifications = await self.get_metadata("notifications", [])
 
@@ -1076,7 +1078,7 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
             timezone: str | None = None,
             aggregation: str | None = None,
         ) -> list[dict[str, Any]]:
-            """Retrieve a user’s step counts with optional time aggregation.
+            """Retrieve a user's step counts with optional time aggregation.
 
             Parameters
             ----------
@@ -1162,7 +1164,7 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
             if date_from_dt.year < datetime.now(pytz.timezone("Europe/Amsterdam")).year:
                 raise ValueError("Date from is in the past")
 
-            # Expand “whole-day” range (00:00 → 23:59:59.999999)
+            # Expand "whole-day" range (00:00 → 23:59:59.999999)
             if (
                 date_from_dt.date() == date_to_dt.date()
                 and date_from_dt.timetz() == time(0, tzinfo=tz)
@@ -1283,7 +1285,7 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
             tool_set_current_role,
             # Document tools
             tool_search_documents,
-            # tool_get_document_contents,
+            tool_get_document_contents,
             # Questionnaire tools
             tool_answer_questionaire_question,
             tool_get_questionaire_answer,
@@ -1336,6 +1338,19 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
     async def on_message(
         self, messages: Iterable[ChatCompletionMessageParam], _: int = 0
     ) -> tuple[AsyncStream[ChatCompletionChunk] | ChatCompletion, list[Callable]]:
+        # ============================================================
+        # UPDATE LAST INTERACTION TIME
+        # ============================================================
+        # Note: Welcome message is now handled in threads.py endpoint
+        # We only update the last interaction time here
+        await self.set_metadata(
+            "last_interaction_time",
+            datetime.now(pytz.timezone("Europe/Amsterdam")).isoformat(),
+        )
+
+        # ============================================================
+        # CONTINUE WITH NORMAL FLOW
+        # ============================================================
         # Get the current role
         role_config = await self.get_current_role()
 
@@ -1503,10 +1518,10 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
         return response, list(tools_values)
 
     @staticmethod
-    def super_agent_config() -> SuperAgentConfig[MUMCAgentConfig] | None:
+    def super_agent_config() -> SuperAgentConfig[MUMCAgentTestConfig] | None:
         return SuperAgentConfig(
             cron_expression="*/5 * * * *",  # every 5 minutes for production
-            agent_config=MUMCAgentConfig(),
+            agent_config=MUMCAgentTestConfig(),
         )
 
     async def on_super_agent_call(
@@ -1515,7 +1530,7 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
         onesignal_id = await self.get_metadata("onesignal_id")
 
         if onesignal_id is None:
-            self.logger.info("No onesignal id found, skipping super agent call")
+            self.logger.info("[TEST AGENT] No onesignal id found, skipping super agent call")
             return
 
         last_thread = await prisma.threads.query_first(
@@ -1529,7 +1544,7 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
         )
 
         if last_thread is None:
-            self.logger.info("No last thread found, skipping super agent call")
+            self.logger.info("[TEST AGENT] No last thread found, skipping super agent call")
             return
 
         tools = [
@@ -1550,9 +1565,9 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
         current_month = current_time.month
 
         # ========================================================================
-        # FETCH STEPS DATA + GOAL FOR DYNAMIC NOTIFICATIONS 
+        # OPTION 1: FETCH STEPS DATA + GOAL FOR DYNAMIC NOTIFICATIONS 
         # ========================================================================
-        self.logger.info("🎯 Fetching steps data for dynamic notifications...")
+        self.logger.info("[TEST AGENT] 🎯 Fetching steps data for dynamic notifications...")
         
         steps_today = 0
         steps_goal = 0
@@ -1580,34 +1595,35 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                 )
                 
                 steps_today = sum(dp.value for dp in steps_data)
-                self.logger.info(f"Steps today: {steps_today}")
+                self.logger.info(f"[TEST AGENT] Steps today: {steps_today}")
                 
                 # Extract steps goal from memories
                 for mem in memories:
                     mem_text = mem.get("memory", "").lower()
                     # Look for patterns like "8000 stappen" or "Goal-1: 8000 stappen per dag"
                     if "stappen" in mem_text or "steps" in mem_text:
+                        import re
                         match = re.search(r'(\d+)\s*stappen', mem_text)
                         if match:
                             steps_goal = int(match.group(1))
-                            self.logger.info(f"Found steps goal: {steps_goal}")
+                            self.logger.info(f"[TEST AGENT] Found steps goal: {steps_goal}")
                             break
                 
                 # If no goal found, use default
                 if steps_goal == 0:
                     steps_goal = 8000
-                    self.logger.info(f"Using default steps goal: {steps_goal}")
+                    self.logger.info(f"[TEST AGENT] Using default steps goal: {steps_goal}")
                 
                 # Calculate progress
                 steps_remaining = max(0, steps_goal - steps_today)
                 steps_progress_pct = int((steps_today / steps_goal) * 100) if steps_goal > 0 else 0
                 
-                self.logger.info(f"📊 Steps data ready: {steps_today}/{steps_goal} ({steps_progress_pct}%) - {steps_remaining} remaining")
+                self.logger.info(f"[TEST AGENT] 📊 Steps data ready: {steps_today}/{steps_goal} ({steps_progress_pct}%) - {steps_remaining} remaining")
             else:
-                self.logger.warning(f"User not found for onesignal_id: {onesignal_id}")
+                self.logger.warning(f"[TEST AGENT] User not found for onesignal_id: {onesignal_id}")
                 
         except Exception as e:
-            self.logger.error(f"Error fetching steps data: {e}")
+            self.logger.error(f"[TEST AGENT] Error fetching steps data: {e}")
             # Continue without steps data
 
         prompt = f"""
@@ -1732,7 +1748,7 @@ After analysis:
 - If no eligible notifications exist: invoke the noop tool.
 """
 
-        self.logger.info(f"Calling super agent with prompt: {prompt}")
+        self.logger.info(f"[TEST AGENT] Calling super agent with prompt: {prompt}")
 
         response = await self.client.chat.completions.create(
             model="anthropic/claude-sonnet-4.5",  # Using Claude 4.5 for better instruction following
@@ -1752,11 +1768,12 @@ After analysis:
         )
 
         if response and response.choices:
-            self.logger.info(f"Super agent response: {response.choices[0].message}")
+            self.logger.info(f"[TEST AGENT] Super agent response: {response.choices[0].message}")
 
             async for _ in self._handle_completion(response, tools, messages):
                 pass
         else:
-            self.logger.error(f"No response from API call: {response}")
+            self.logger.error(f"[TEST AGENT] No response from API call: {response}")
         
         return None
+

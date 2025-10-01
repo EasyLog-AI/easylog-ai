@@ -61,9 +61,9 @@ export const voiceChatVoiceEnum = pgEnum('voice_chat_voice_enum', [
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
-  name: text('name'),
+  name: text('name').notNull(),
   email: text('email').notNull().unique(),
-  emailVerified: boolean('email_verified').default(false),
+  emailVerified: boolean('email_verified').notNull().default(false),
   image: text('image'),
   ...timestamps
 });
