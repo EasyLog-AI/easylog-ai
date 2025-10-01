@@ -69,8 +69,7 @@ async def _ensure_welcome_message(
     current_date = current_time.date().isoformat()
 
     # Configuration
-    # TODO: Change to 1440 (24 hours) for production
-    SESSION_TIMEOUT_MINUTES = 15
+    SESSION_TIMEOUT_MINUTES = 240  # 4 hours = 240 minutes
 
     # Determine if we should add welcome message
     should_add_welcome = False
@@ -98,11 +97,9 @@ async def _ensure_welcome_message(
             time_diff = current_time - last_time
             inactive_minutes = time_diff.total_seconds() / 60
 
-            # Check if enough time has passed AND not already welcomed today
-            if (
-                inactive_minutes > SESSION_TIMEOUT_MINUTES
-                and last_welcome_date != current_date
-            ):
+            # Check if enough time has passed (4 hours)
+            # Always show welcome back after timeout, even if shown earlier today
+            if inactive_minutes > SESSION_TIMEOUT_MINUTES:
                 should_add_welcome = True
                 is_welcome_back = True
                 welcome_reason = f"welcome_back_{inactive_minutes:.0f}min"
@@ -112,27 +109,36 @@ async def _ensure_welcome_message(
                 user_name = None
 
                 # Memories is a list of {"id": "...", "memory": "text"}
-                # Search for name in memory text
+                # Search for name in memory text with multiple patterns
                 if isinstance(memories, list):
                     for mem in memories:
                         if not isinstance(mem, dict):
                             continue
-                        memory_text = mem.get("memory", "").lower()
-                        # Look for patterns like "naam: John" or "[naam]"
-                        if "naam:" in memory_text or "[naam]" in memory_text:
-                            # Extract the name after "naam:" or in [naam]
-                            if "naam:" in memory_text:
-                                user_name = (
-                                    memory_text.split("naam:")[1]
-                                    .split(",")[0]
-                                    .strip()
-                                )
+                        memory_text = mem.get("memory", "").strip()
+                        memory_lower = memory_text.lower()
+                        
+                        # Pattern 1: "[naam]" as the entire memory
+                        if memory_text.startswith("[") and memory_text.endswith("]"):
+                            user_name = memory_text[1:-1].strip()
+                            break
+                        # Pattern 2: "naam: John" or "naam : John"
+                        elif "naam" in memory_lower and ":" in memory_text:
+                            parts = memory_text.split(":", 1)
+                            if "naam" in parts[0].lower():
+                                user_name = parts[1].split(",")[0].strip()
+                                break
+                        # Pattern 3: Just the name (short text, starts with capital)
+                        elif (
+                            len(memory_text.split()) <= 3 
+                            and memory_text[0].isupper()
+                            and not any(x in memory_lower for x in ["goal", "zlm", "score", "stappen", "medicatie"])
+                        ):
+                            user_name = memory_text
                             break
 
                     logger.info(
                         f"Thread {thread_id} - found {len(memories)} "
-                        f"memories, extracted name: "
-                        f"'{user_name if user_name else 'None'}'"
+                        f"memories, extracted name: '{user_name or 'None'}'"
                     )
 
                 # Build personalized welcome back message
