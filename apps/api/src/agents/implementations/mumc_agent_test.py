@@ -1707,30 +1707,42 @@ After analysis:
 - For reminders: Use "Reminder" as title and the reminder message as contents.
 - For recurring tasks:
   
-  **CRITICAL: NEVER use the task text directly as notification contents!**
+  **⛔ ABSOLUTE RULE: THE TASK TEXT IS AN INSTRUCTION TO YOU, NOT THE MESSAGE TO SEND! ⛔**
   
-  **If task mentions activity keywords (stappen, wandelen, bewegen, activiteit):**
-  1. ✅ DO: Create a COMPLETELY NEW personalized message using the actual steps data
-  2. ❌ DON'T: Copy the task text into contents
-  3. Use title: "Stappen Update" or "Je Activiteit"
-  4. Create motivating contents with REAL NUMBERS from the steps data above
+  Think of the task text as instructions from a manager telling you WHAT to do, not WHAT to say.
+  You must TRANSLATE the instruction into an actual user-facing message.
   
-  **Examples for activity-related tasks:**
+  **Step-by-step process for activity tasks:**
+  1. Read the task text to understand WHAT you need to do (e.g., "send steps overview")
+  2. Look at the steps data provided above (steps_today, steps_goal, steps_remaining, steps_progress_pct)
+  3. CREATE a new, personalized message using those numbers
+  4. NEVER copy the task text itself into the contents field
   
-  If task is: "Stuur Ewout dagelijks om 15:15 een overzicht van zijn stappen"
-  ❌ WRONG: contents: "Stuur Ewout dagelijks om 15:15 een overzicht van zijn stappen"
-  ✅ CORRECT: 
-     - title: "Stappen Update"
-     - contents: "Je hebt vandaag al {steps_today} van {steps_goal} stappen gelopen! Nog {steps_remaining} te gaan 💪"
+  **If task mentions activity keywords (stappen, wandelen, bewegen, activiteit, lopen, stappendoel):**
   
-  If task is: "Stuur een motiverend bericht over stappen"
-  ❌ WRONG: contents: "Stuur een motiverend bericht over stappen"
-  ✅ CORRECT:
-     - title: "Stappen Update"
-     - contents: Use steps data to create: "Super bezig! Je bent al bij {steps_today} stappen vandaag. Je doel is {steps_goal} stappen 🎯"
+  ✅ CORRECT PROCESS:
+  - Title: "Stappen Update" or "Je Activiteit"
+  - Contents: Write a BRAND NEW motivating message with the ACTUAL steps numbers
+  
+  **Examples - Study these carefully:**
+  
+  Task: "Stuur Ewout dagelijks om 15:15 een overzicht van zijn stappen"
+  This is telling YOU to send an overview. The USER should NOT see this instruction!
+  ❌ ABSOLUTELY WRONG: {"title": "Dagelijkse herinnering", "contents": "Stuur Ewout dagelijks om 15:15 een overzicht van zijn stappen"}
+  ✅ CORRECT: {"title": "Stappen Update", "contents": "Je hebt vandaag al {steps_today} van {steps_goal} stappen! Nog {steps_remaining} te gaan 💪"}
+  
+  Task: "Stuur een motiverend bericht over stappen"
+  This is telling YOU what kind of message to create. Create it!
+  ❌ ABSOLUTELY WRONG: {"title": "Dagelijkse herinnering", "contents": "Stuur een motiverend bericht over stappen"}
+  ✅ CORRECT: {"title": "Stappen Update", "contents": "Super bezig! Je bent al bij {steps_today} stappen vandaag. Je doel is {steps_goal} stappen 🎯"}
+  
+  Task: "Stuur een motiverend bericht over de stappen van vandaag en het dagelijkse stappendoel"
+  This is YOUR instruction. Transform it into a user message!
+  ❌ ABSOLUTELY WRONG: {"title": "Dagelijkse herinnering", "contents": "Stuur een motiverend bericht over de stappen van vandaag en het dagelijkse stappendoel"}
+  ✅ CORRECT: {"title": "Stappen Update", "contents": "Vandaag heb je al {steps_today} stappen gelopen! Je doel is {steps_goal} stappen. Nog {steps_remaining} te gaan! 🚶‍♂️"}
   
   **For non-activity tasks:**
-  - Extract the actual message and use "Dagelijkse herinnering" as title
+  - Extract the actual message part (usually in quotes) and use that as contents
   - Example: task "Stuur bericht 'Vergeet je medicatie niet'" → title: "Dagelijkse herinnering", contents: "Vergeet je medicatie niet"
   
 - If no eligible notifications exist: invoke the noop tool.
