@@ -1330,49 +1330,37 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                 generator = PatientReportGenerator()
                 pdf_bytes = generator.generate_report(report_data)
 
-                # Save PDF to storage
-                import os
-                from pathlib import Path
+                # Convert PDF to base64 for embedding in chat
+                import base64
+                pdf_base64 = base64.b64encode(pdf_bytes).decode('utf-8')
 
-                # Create reports directory if it doesn't exist
-                reports_dir = Path("/tmp/patient_reports")
-                reports_dir.mkdir(exist_ok=True)
-
-                # Generate unique filename
+                # Generate filename for reference
                 report_id = str(uuid.uuid4())
                 patient_name_safe = report_data["patient_name"].replace(" ", "_")
                 timestamp = datetime.now(pytz.timezone("Europe/Amsterdam")).strftime("%Y-%m")
                 filename = f"COPD_Verslag_{patient_name_safe}_{timestamp}_{report_id[:8]}.pdf"
 
-                # Save file
-                file_path = reports_dir / filename
-                with open(file_path, "wb") as f:
-                    f.write(pdf_bytes)
-
-                # Generate download URL based on request headers
-                # Use forwarded proto/host/prefix from nginx reverse proxy
-                proto = self.request_headers.get("x-forwarded-proto", "https")
-                host = self.request_headers.get("host", "staging2.easylog.nu")
-                
-                # Use PUBLIC route without auth for easier testing
-                # Security: UUID in filename makes it unguessable
-                download_url = f"{proto}://{host}/public/patient-reports/{filename}"
-
                 # Calculate file size
                 file_size_kb = len(pdf_bytes) // 1024
 
                 self.logger.info(
-                    f"Generated patient report: {filename} ({file_size_kb}KB) for {report_data['patient_name']}"
+                    f"Generated patient report: {filename} ({file_size_kb}KB, {len(pdf_base64)} chars base64) for {report_data['patient_name']}"
                 )
 
+                # Return message with embedded PDF as base64
+                # Flutter app can detect and handle the PDF_BASE64 section
                 return (
                     f"✅ Ik heb je verslag gegenereerd!\n\n"
                     f"📄 **Bestand:** {filename}\n"
                     f"📊 **Periode:** {report_data['period']}\n"
                     f"💾 **Grootte:** {file_size_kb} KB\n\n"
-                    f"[📥 Download je verslag]({download_url})\n\n"
+                    f"📥 **Download je verslag hieronder**\n\n"
                     f"Dit verslag bevat een overzicht van je ziektelast (ZLM), doelen, "
-                    f"activiteit en medicatie. Je kunt het delen met je arts of voor jezelf bewaren."
+                    f"activiteit en medicatie. Je kunt het delen met je arts of voor jezelf bewaren.\n\n"
+                    f"---PDF_BASE64_START---\n"
+                    f"{pdf_base64}\n"
+                    f"---PDF_BASE64_END---\n"
+                    f"FILENAME:{filename}"
                 )
 
             except Exception as e:
