@@ -1349,8 +1349,12 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                 with open(file_path, "wb") as f:
                     f.write(pdf_bytes)
 
-                # Generate download URL (assuming this endpoint exists)
-                download_url = f"{settings.API_URL}/patient-reports/{filename}"
+                # Generate download URL based on request headers
+                # Use forwarded proto/host/prefix from nginx reverse proxy
+                proto = self.request_headers.get("x-forwarded-proto", "https")
+                host = self.request_headers.get("host", "staging2.easylog.nu")
+                prefix = self.request_headers.get("x-forwarded-prefix", "/ai")
+                download_url = f"{proto}://{host}{prefix}/patient-reports/{filename}"
 
                 # Calculate file size
                 file_size_kb = len(pdf_bytes) // 1024
