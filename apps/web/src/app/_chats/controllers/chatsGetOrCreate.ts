@@ -1,6 +1,4 @@
-import { UIMessage } from 'ai';
-import type { ZodTypeAny } from 'zod';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 import agentMiddleware from '@/app/_agents/middleware/agentMiddleware';
 import db from '@/database/client';
@@ -81,7 +79,7 @@ const chatGetOrCreate = agentMiddleware
       .values({
         agentId: ctx.agent.id,
         userId: ctx.user.id,
-        messages: [] satisfies UIMessage[]
+        messages: []
       })
       .returning();
 
