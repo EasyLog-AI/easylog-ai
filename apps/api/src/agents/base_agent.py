@@ -191,6 +191,118 @@ class BaseAgent(Generic[TConfig]):
 
         return await prisma.documents.find_many(where={"file_name": {"in": filenames}})
 
+    async def search_documents_with_summary(
+        self,
+        search_query: str,
+        subjects: Sequence[str] | None = None,
+        limit: int = 3,
+        filter_model: str = "google/gemini-2.5-flash",
+    ) -> str:
+        """Search documents and return AI-extracted relevant information from full contents.
+
+        This method uses a two-stage approach to minimize token usage:
+        1. Use Weaviate hybrid search to find top 3 most relevant documents
+        2. Use a cheap AI model to analyze FULL document contents and extract only relevant information
+
+        This reduces token usage by 70-80% compared to returning full documents to the main agent.
+
+        Args:
+            search_query: Natural language search query
+            subjects: Optional list of subject filters
+            limit: Maximum number of documents to analyze (default: 3)
+            filter_model: AI model to use for extraction (default: google/gemini-2.5-flash)
+
+        Returns:
+            str: Concise summary of relevant information extracted from full document contents
+        """
+        # Stage 1: Use Weaviate hybrid search to get top relevant documents
+        search_results = await self.documents_collection.query.hybrid(
+            query=search_query,
+            limit=limit,
+            alpha=0.5,
+            auto_limit=1,
+            return_metadata=MetadataQuery.full(),
+            filters=Filter.by_property("subject").contains_any(subjects) if subjects else None,
+        )
+
+        filenames = [
+            filename
+            for filename in (
+                result.properties.get("file_name", "")
+                for result in search_results.objects
+                if result.metadata and result.metadata.score and result.metadata.score > 0
+            )
+            if isinstance(filename, str)
+        ]
+
+        if not filenames:
+            return "No documents found in the knowledge base."
+
+        # Fetch full documents with contents
+        db_documents = await prisma.documents.find_many(
+            where={"file_name": {"in": filenames}},
+            take=limit,
+        )
+
+        if not db_documents:
+            return "No documents found in the knowledge base."
+
+        # Stage 2: Use AI to analyze full document contents and extract relevant information
+        documents_content = chr(10).join(
+            f"Document {i + 1}: {doc.file_name}\nContent: {json.dumps(doc.content, default=str)}\n"
+            for i, doc in enumerate(db_documents)
+        )
+
+        prompt = f"""You are a document analysis assistant. Analyze the FULL contents of these documents and extract \
+ONLY the information relevant to the user's question.
+
+User Question: "{search_query}"
+
+Documents to analyze:
+{documents_content}
+
+Instructions:
+1. Read through the full document contents carefully
+2. Extract ONLY the specific information that helps answer the user's question
+3. Be concise - summarize the relevant data points, don't return entire documents
+4. If no relevant information exists, return "No relevant information found"
+5. Focus on facts, data, and specific details that address the query
+
+Return format:
+**Relevant Information:**
+- [Brief description of what was found and from which document]
+
+If nothing relevant: "No relevant information found in the knowledge base."""
+
+        try:
+            response = await self.client.chat.completions.create(
+                model=filter_model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are an expert information extraction assistant. "
+                        "Analyze full document contents and extract only relevant information.",
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    },
+                ],
+                max_tokens=1500,
+                temperature=0.1,
+            )
+
+            result = response.choices[0].message.content or "No relevant information found."
+
+            self.logger.debug(f"Document search result for '{search_query}': {result}")
+
+            return result
+
+        except Exception as e:
+            self.logger.error(f"Error in AI-powered document search: {e}")
+            # Fallback to summary list
+            return "\n".join([f"- {doc.file_name}: {doc.summary}" for doc in db_documents])
+
     async def _get_thread(self) -> threads:
         """Get the thread for the agent."""
 

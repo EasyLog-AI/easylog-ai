@@ -231,25 +231,23 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
         async def tool_search_documents(search_query: str) -> str:
             """Search for documents in the knowledge database using a semantic search query.
 
-            This tool allows you to search through the knowledge database for relevant documents
-            based on a natural language query. The search is performed using semantic matching,
-            which means it will find documents that are conceptually related to your query,
-            even if they don't contain the exact words.
+            This tool uses AI-powered filtering to return only the most relevant information,
+            significantly reducing token usage while maintaining search quality.
 
             Args:
                 search_query (str): A natural language query describing what you're looking for.
                                   For example: "information about metro systems" or "how to handle customer complaints"
 
             Returns:
-                str: A formatted string containing the search results, where each result includes:
-                     - The document's path and summary
+                str: A concise summary of relevant information from the knowledge base,
+                     or a message indicating no relevant information was found.
             """
 
-            result = await self.search_documents(
+            result = await self.search_documents_with_summary(
                 search_query, subjects=(await self.get_current_role()).allowed_subjects
             )
 
-            return "\n-".join([f"Path: {document.path} - Summary: {document.summary}" for document in result])
+            return result
 
         async def tool_get_document_contents(path: str) -> str:
             """Retrieve the complete contents of a specific document from the knowledge database.
@@ -1285,7 +1283,7 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
             tool_set_current_role,
             # Document tools
             tool_search_documents,
-            tool_get_document_contents,
+            # tool_get_document_contents,
             # Questionnaire tools
             tool_answer_questionaire_question,
             tool_get_questionaire_answer,
