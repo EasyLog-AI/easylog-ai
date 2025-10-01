@@ -1729,10 +1729,16 @@ After analysis:
             ],
             tools=[function_to_openai_tool(tool) for tool in tools],
             tool_choice="auto",
+            stream=False,
         )
 
-        self.logger.info(f"[TEST AGENT] Super agent response: {response.choices[0].message}")
+        if response and response.choices:
+            self.logger.info(f"[TEST AGENT] Super agent response: {response.choices[0].message}")
 
-        async for _ in self._handle_completion(response, tools, messages):
-            pass
+            async for _ in self._handle_completion(response, tools, messages):
+                pass
+        else:
+            self.logger.error(f"[TEST AGENT] No response from API call: {response}")
+        
+        return None
 
