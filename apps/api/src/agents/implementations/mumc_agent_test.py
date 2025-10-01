@@ -1520,7 +1520,7 @@ class MUMCAgentTest(BaseAgent[MUMCAgentTestConfig]):
     @staticmethod
     def super_agent_config() -> SuperAgentConfig[MUMCAgentTestConfig] | None:
         return SuperAgentConfig(
-            cron_expression="*/5 * * * *",  # every 5 minutes for faster testing
+            cron_expression="*/15 * * * *",  # every 15 minutes for production
             agent_config=MUMCAgentTestConfig(),
         )
 
