@@ -4,7 +4,8 @@ import {
   generateId,
   generateText,
   stepCountIs,
-  tool
+  tool,
+  validateUIMessages
 } from 'ai';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
@@ -27,8 +28,14 @@ export const runSuperAgentJob = schemaTask({
     chatId: z.string(),
     userId: z.string()
   }),
+  retry: {
+    maxAttempts: 1
+  },
+  queue: {
+    concurrencyLimit: 5
+  },
   run: async ({ superAgentId, chatId, userId }) => {
-    let skipReason: string | null = null;
+    const skipReason: string | null = null;
     const writeChatMessages: string[] = [];
 
     const [superAgent, chat, scratchpadMessages] = await Promise.all([
@@ -137,9 +144,41 @@ ${scratchpadMessages.length > 0 ? scratchpadMessages.map((m) => `[${new Date(m.c
 
 5. **Be Concise**: If you write to chat, be helpful and brief. Users don't know you're a background process. Act like your the assistant in the conversation.
 
+6. **Follow Role Instructions**: If your role instructions within <start_of_role_instructions></end_of_role_instructions> tell you to "add message to the chat" or similar, you MUST use the writeChatMessage tool to do so.
+
+## Output Format
+
+**CRITICAL**: You MUST provide text output along with your tool calls. Your text output should be a concise summary (2-4 sentences) of your analysis. Include:
+- What you observed in the conversation
+- What actions you took (tools called) and why
+
+Example: "Analyzed the last 5 messages. User asked about pricing but no response was given. No urgent action needed. Called skipIteration because conversation is still active and recent."
+
+This summary is for logging/debugging purposes and helps track the super agent's behavior over time. **Do NOT just call tools without providing this text summary.**
+
 ## Your Mission
 Silently monitor and analyze conversations, storing insights in your scratchpad. Only surface to the user when you have something genuinely helpful to contribute based on patterns, missed opportunities, or important follow-ups you've identified.
 `;
+
+    logger.info(`System prompt: ${systemPrompt}`);
+
+    logger.info(`Messages: ${JSON.stringify(chat.messages, null, 2)}`);
+
+    logger.info(
+      `User memories: ${JSON.stringify(chat.user.memories, null, 2)}`
+    );
+
+    logger.info(
+      `Scratchpad messages: ${JSON.stringify(scratchpadMessages, null, 2)}`
+    );
+
+    const validatedMessages = await validateUIMessages({
+      messages: chat.messages
+    });
+
+    logger.info(
+      `Validated messages: ${JSON.stringify(validatedMessages, null, 2)}`
+    );
 
     const result = await generateText({
       model: openrouter(superAgent.model, {
@@ -148,28 +187,18 @@ Silently monitor and analyze conversations, storing insights in your scratchpad.
           effort: superAgent.reasoningEffort
         }
       }),
-      system: systemPrompt,
-      messages: convertToModelMessages(chat.messages),
-      stopWhen: [
-        stepCountIs(20),
-        ({ steps }) => {
-          const last = steps.at(-1);
-
-          if (!last) return false;
-
-          const toolResult = last.toolResults?.find(
-            (t) => t.toolName === 'skip'
-          );
-
-          if (!toolResult || !toolResult.output) return false;
-
-          return z
-            .object({
-              success: z.boolean()
-            })
-            .parse(toolResult.output).success;
+      messages: [
+        {
+          role: 'system',
+          content: systemPrompt
+        },
+        ...convertToModelMessages(validatedMessages),
+        {
+          role: 'user',
+          content: 'start your super agent job'
         }
       ],
+      stopWhen: [stepCountIs(20)],
       tools: {
         writeScratchpadMessage: tool({
           description: 'Write a message to the scratchpad',
@@ -199,21 +228,6 @@ Silently monitor and analyze conversations, storing insights in your scratchpad.
             return 'Message deleted from scratchpad';
           }
         }),
-        skipIteration: tool({
-          description: 'Skip this super agent iteration',
-          inputSchema: z.object({
-            reason: z.string()
-          }),
-          execute: async ({ reason }) => {
-            logger.info(`Skipping super agent iteration because: ${reason}`);
-
-            skipReason = reason;
-
-            return {
-              success: true
-            };
-          }
-        }),
         writeChatMessage: tool({
           description: 'Write a message to the chat',
           inputSchema: z.object({
@@ -233,17 +247,14 @@ Silently monitor and analyze conversations, storing insights in your scratchpad.
       }
     });
 
-    logger.info(result.text);
-    logger.info(JSON.parse(JSON.stringify(result, null, 2)));
+    logger.info(`Result text: ${result.text}`);
+    logger.info(`Result: ${result.toolCalls}`);
+
     logger.info(`Response ID: ${result.response.id}`);
 
-    const lastMessage = result.response.messages
-      .filter((message) => message.role === 'assistant')
-      .at(-1);
-
-    if (!lastMessage) {
-      throw new AbortTaskRunError('Last message not found, this is unexpected');
-    }
+    result.reasoning.forEach((reasoning, index) => {
+      logger.info(`Reasoning ${index + 1}: ${reasoning.text}`);
+    });
 
     if (skipReason) {
       logger.info(`Skipping super agent iteration because: ${skipReason}`);
