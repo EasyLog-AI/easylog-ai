@@ -1705,11 +1705,34 @@ A cron expression format is: "minute hour day_of_month month day_of_week"
 After analysis:
 - For EACH due reminder and EACH due recurring task that is not a duplicate, invoke the send_notification tool with appropriate title and contents.
 - For reminders: Use "Reminder" as title and the reminder message as contents.
-- For recurring tasks: 
-  * If task mentions activity keywords (stappen, wandelen, bewegen): Create a dynamic, personalized message using the steps data above
-  * Otherwise: Extract the message as normal and use "Dagelijkse herinnering" as title
-  * Example static: task "Stuur bericht 'Ga lopen' naar de gebruiker" → title: "Dagelijkse herinnering", contents: "Ga lopen"
-  * Example dynamic: task "Stuur een motiverend bericht over stappen voortgang" → title: "Stappen Update", contents: "Super! Je hebt vandaag al 6234 van 8000 stappen! Nog 1766 te gaan 💪"
+- For recurring tasks:
+  
+  **CRITICAL: NEVER use the task text directly as notification contents!**
+  
+  **If task mentions activity keywords (stappen, wandelen, bewegen, activiteit):**
+  1. ✅ DO: Create a COMPLETELY NEW personalized message using the actual steps data
+  2. ❌ DON'T: Copy the task text into contents
+  3. Use title: "Stappen Update" or "Je Activiteit"
+  4. Create motivating contents with REAL NUMBERS from the steps data above
+  
+  **Examples for activity-related tasks:**
+  
+  If task is: "Stuur Ewout dagelijks om 15:15 een overzicht van zijn stappen"
+  ❌ WRONG: contents: "Stuur Ewout dagelijks om 15:15 een overzicht van zijn stappen"
+  ✅ CORRECT: 
+     - title: "Stappen Update"
+     - contents: "Je hebt vandaag al {steps_today} van {steps_goal} stappen gelopen! Nog {steps_remaining} te gaan 💪"
+  
+  If task is: "Stuur een motiverend bericht over stappen"
+  ❌ WRONG: contents: "Stuur een motiverend bericht over stappen"
+  ✅ CORRECT:
+     - title: "Stappen Update"
+     - contents: Use steps data to create: "Super bezig! Je bent al bij {steps_today} stappen vandaag. Je doel is {steps_goal} stappen 🎯"
+  
+  **For non-activity tasks:**
+  - Extract the actual message and use "Dagelijkse herinnering" as title
+  - Example: task "Stuur bericht 'Vergeet je medicatie niet'" → title: "Dagelijkse herinnering", contents: "Vergeet je medicatie niet"
+  
 - If no eligible notifications exist: invoke the noop tool.
 """
 
