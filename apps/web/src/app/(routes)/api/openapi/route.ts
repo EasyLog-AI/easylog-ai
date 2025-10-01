@@ -11,9 +11,10 @@ const openAPIGenerator = new OpenAPIGenerator({
 export const GET = async (_eq: NextRequest) => {
   const spec = await openAPIGenerator.generate(orpcRouter, {
     info: {
-      title: 'My Playground',
+      title: 'Easylog AI API',
       version: '1.0.0'
-    }
+    },
+    security: [{ bearerAuth: [] }]
   });
 
   return NextResponse.json(spec);
