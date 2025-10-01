@@ -1683,7 +1683,23 @@ A cron expression format is: "minute hour day_of_month month day_of_week"
 - A task with "0 9 * * *" should ONLY trigger when current hour=9 AND minute=0.
 - A task with "0 9,10,11 * * 1-5" should ONLY trigger when (hour in [9,10,11] AND minute=0 AND weekday is Monday–Friday).
 - Do not skip a due recurring task because a reminder is also due; handle both if applicable.
-- De-duplicate using the previously sent notifications list: skip items already sent today (or within the current hour for the same title/task).
+
+## ⛔ CRITICAL DEDUPLICATION RULES ⛔
+**Before sending ANY notification, you MUST check the previously sent notifications list:**
+
+For recurring tasks, use HOUR-BASED deduplication:
+1. Extract the scheduled HOUR from the cron expression (e.g., "10 18 * * *" = hour 18)
+2. Check if a notification with the SAME TITLE was sent in the CURRENT HOUR (hour {current_hour})
+3. If found in current hour: **SKIP IT** - already sent this hour
+4. If NOT found in current hour: **SEND IT** - this is the first trigger for this hour
+
+Example timeline for "10 18 * * *" (18:10 daily):
+- 18:10 Super Agent run → Check notifications from hour 18 → None found → SEND ✅
+- 18:15 Super Agent run → Check notifications from hour 18 → Found at 18:11 → SKIP ❌
+- 18:20 Super Agent run → Check notifications from hour 18 → Found at 18:11 → SKIP ❌
+- Next day 18:10 → Check notifications from hour 18 TODAY → None found → SEND ✅
+
+This allows DAILY recurring tasks while preventing duplicates within the same hour.
 
 ## Required Action
 After analysis:
@@ -1742,7 +1758,7 @@ After analysis:
   2. **Task contains instructions** (less common):
      - If the task says "Stuur bericht...", "Herinner X aan...", extract the core message
      - Examples:
-       * Task: "Herinner Adonis aan ademhalingsoefeningen voor minder kortademigheid"
+       * Task: "Herinner Ewout aan ademhalingsoefeningen voor minder kortademigheid"
          → title: "Herinnering", contents: "Tijd voor je ademhalingsoefeningen! Dit helpt tegen kortademigheid."
        * Task: "Stuur bericht 'Vergeet je medicatie niet'"
          → title: "Medicatie Herinnering", contents: "Vergeet je medicatie niet"
