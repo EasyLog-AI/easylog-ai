@@ -16,18 +16,29 @@ from prisma.models import message_contents, messages
 
 
 def db_message_to_openai_param(message: messages) -> ChatCompletionMessageParam:
+    """Convert database message to OpenAI message parameter.
+    
+    Note: message.role can be either a string or message_role enum depending on
+    how Prisma loaded it from the database. We handle both cases.
+    """
     if message.contents is None:
         raise ValueError("Message contents are required")
 
-    if message.role == message_role.user:
+    # Handle role as either string or enum
+    role_value = message.role.value if hasattr(message.role, "value") else str(message.role)
+    
+    # Compare role using string comparison to handle both string and enum types
+    role_str = str(message.role).lower() if not hasattr(message.role, "value") else message.role.value
+    
+    if role_str == "user":
         if all(content.type == message_content_type.text for content in message.contents):
             return ChatCompletionUserMessageParam(
-                role=message.role.value,
+                role=role_value,
                 content="".join(content.text for content in message.contents if content.text is not None),
             )
 
         return ChatCompletionUserMessageParam(
-            role=message.role.value,
+            role=role_value,
             content=[
                 message_content
                 for message_content in [
@@ -43,9 +54,9 @@ def db_message_to_openai_param(message: messages) -> ChatCompletionMessageParam:
                 if message_content is not None
             ],
         )
-    elif message.role == message_role.assistant:
+    elif role_str == "assistant":
         message_content = ChatCompletionAssistantMessageParam(
-            role=message.role.value,
+            role=role_value,
             content="".join(
                 text_param(content)["text"] for content in message.contents if content.type == message_content_type.text
             ),
@@ -60,9 +71,9 @@ def db_message_to_openai_param(message: messages) -> ChatCompletionMessageParam:
 
         return message_content
 
-    elif message.role == message_role.system:
+    elif role_str == "system":
         return ChatCompletionSystemMessageParam(
-            role=message.role.value,
+            role=role_value,
             content=[
                 message_content
                 for message_content in [
@@ -72,9 +83,9 @@ def db_message_to_openai_param(message: messages) -> ChatCompletionMessageParam:
                 if message_content is not None
             ],
         )
-    elif message.role == message_role.developer:
+    elif role_str == "developer":
         return ChatCompletionDeveloperMessageParam(
-            role=message.role.value,
+            role=role_value,
             name=message.name or "Developer",
             content=[
                 message_content
@@ -85,7 +96,7 @@ def db_message_to_openai_param(message: messages) -> ChatCompletionMessageParam:
                 if message_content is not None
             ],
         )
-    elif message.role == message_role.tool:
+    elif role_str == "tool":
         if not message.tool_use_id:
             raise ValueError("Tool use ID is required")
 
@@ -99,7 +110,7 @@ def db_message_to_openai_param(message: messages) -> ChatCompletionMessageParam:
             ),
         )
 
-    raise ValueError(f"Unsupported message role: {message.role}")
+    raise ValueError(f"Unsupported message role: {role_str}")
 
 
 def text_param(content: message_contents) -> ChatCompletionContentPartTextParam:
