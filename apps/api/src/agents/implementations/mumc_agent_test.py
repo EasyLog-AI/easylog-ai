@@ -1520,7 +1520,7 @@ class MUMCAgentTest(BaseAgent[MUMCAgentTestConfig]):
     @staticmethod
     def super_agent_config() -> SuperAgentConfig[MUMCAgentTestConfig] | None:
         return SuperAgentConfig(
-            cron_expression="5-55/10 * * * *",  # every 10 minutes starting at :05 (:05, :15, :25, :35, :45, :55)
+            cron_expression="*/15 * * * *",  # every 15 minutes to prevent overlap
             agent_config=MUMCAgentTestConfig(),
         )
 
