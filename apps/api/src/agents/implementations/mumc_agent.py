@@ -1687,7 +1687,7 @@ A cron expression format is: "minute hour day_of_month month day_of_week"
 ## ⛔ CRITICAL DEDUPLICATION RULES ⛔
 **Before sending ANY notification, you MUST check the previously sent notifications list:**
 
-For recurring tasks, use HOUR-BASED deduplication:
+### For Recurring Tasks (HOUR-BASED):
 1. Extract the scheduled HOUR from the cron expression (e.g., "10 18 * * *" = hour 18)
 2. Check if a notification with the SAME TITLE was sent in the CURRENT HOUR (hour {current_hour})
 3. If found in current hour: **SKIP IT** - already sent this hour
@@ -1699,7 +1699,18 @@ Example timeline for "10 18 * * *" (18:10 daily):
 - 18:20 Super Agent run → Check notifications from hour 18 → Found at 18:11 → SKIP ❌
 - Next day 18:10 → Check notifications from hour 18 TODAY → None found → SEND ✅
 
-This allows DAILY recurring tasks while preventing duplicates within the same hour.
+### For Reminders (CONTENT-BASED):
+1. Check if a notification with the EXACT SAME CONTENTS was already sent
+2. Check the sent_at timestamp: If sent within the last 24 hours: **SKIP IT**
+3. If NOT found in last 24 hours: **SEND IT**
+
+Example for reminder "Tijd om de Ziektelastmeter (ZLM) in te vullen!":
+- 18:51 Super Agent → No matching contents in last 24h → SEND ✅
+- 18:55 Super Agent → Same contents sent at 18:51 (4 min ago) → SKIP ❌
+- 19:00 Super Agent → Same contents sent at 18:51 (9 min ago) → SKIP ❌
+- Next day 18:51 → Contents sent yesterday (24+ hours ago) → SEND ✅
+
+This prevents reminder spam while allowing legitimate daily reminders.
 
 ## Required Action
 After analysis:
