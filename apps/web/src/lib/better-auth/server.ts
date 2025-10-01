@@ -8,6 +8,7 @@ import * as schema from '@/database/schema';
 import serverConfig from '@/server.config';
 
 import appertoServerPlugin from './plugins/apperto/appertoServerPlugin';
+import externalJWTPlugin from './plugins/externalJWT/externalJWTPlugin';
 
 const authServerClient = betterAuth({
   baseURL: serverConfig.appUrl.toString(),
@@ -33,6 +34,14 @@ const authServerClient = betterAuth({
           clientSecret: ''
         }
       ]
+    }),
+    externalJWTPlugin({
+      discoveryUrl:
+        'https://staging2.easylog.nu/.well-known/openid-configuration',
+      claimVerificationOptions: {
+        audience: '99a0db85-5cd0-4f60-b65e-03483b72d14a',
+        requiredClaims: ['sub']
+      }
     })
   ],
   advanced: {
