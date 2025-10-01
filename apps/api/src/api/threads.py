@@ -108,25 +108,31 @@ async def _ensure_welcome_message(
                 welcome_reason = f"welcome_back_{inactive_minutes:.0f}min"
 
                 # Extract user name from memories if available
-                memories = metadata.get("memories", {})
+                memories = metadata.get("memories", [])
                 user_name = None
 
-                # Debug logging for memories
-                logger.info(
-                    f"Thread {thread_id} memories type: "
-                    f"{type(memories)}, keys: "
-                    f"{list(memories.keys()) if isinstance(memories, dict) else 'N/A'}"
-                )
+                # Memories is a list of {"id": "...", "memory": "text"}
+                # Search for name in memory text
+                if isinstance(memories, list):
+                    for mem in memories:
+                        if not isinstance(mem, dict):
+                            continue
+                        memory_text = mem.get("memory", "").lower()
+                        # Look for patterns like "naam: John" or "[naam]"
+                        if "naam:" in memory_text or "[naam]" in memory_text:
+                            # Extract the name after "naam:" or in [naam]
+                            if "naam:" in memory_text:
+                                user_name = (
+                                    memory_text.split("naam:")[1]
+                                    .split(",")[0]
+                                    .strip()
+                                )
+                            break
 
-                # Try to find name in memories
-                # (could be stored as "naam" or "name")
-                if isinstance(memories, dict):
-                    user_name = (
-                        memories.get("naam") or memories.get("name")
-                    )
                     logger.info(
-                        f"Thread {thread_id} extracted name: "
-                        f"{user_name if user_name else 'None found'}"
+                        f"Thread {thread_id} - found {len(memories)} "
+                        f"memories, extracted name: "
+                        f"'{user_name if user_name else 'None'}'"
                     )
 
                 # Build personalized welcome back message
