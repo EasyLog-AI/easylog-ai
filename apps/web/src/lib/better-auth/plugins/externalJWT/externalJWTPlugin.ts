@@ -38,7 +38,6 @@
  */
 
 import { APIError } from 'better-auth/api';
-import { setSessionCookie } from 'better-auth/cookies';
 import { BetterAuthPlugin, createAuthMiddleware } from 'better-auth/plugins';
 import {
   JWTClaimVerificationOptions,
@@ -46,6 +45,7 @@ import {
   jwtVerify
 } from 'jose';
 
+import db from '@/database/client';
 import tryCatch from '@/utils/try-catch';
 
 import openIDDiscoverySchema from './schemas/openIDDiscoverySchema';
@@ -130,10 +130,6 @@ export type ExternalJWTPluginOptions = {
  * @returns A Better Auth plugin
  */
 const externalJWTPlugin = (options: ExternalJWTPluginOptions) => {
-  /** In-memory cache for JWKS (jose library handles key rotation internally) */
-  let jwksCache: ReturnType<typeof createRemoteJWKSet> | null = null;
-  let jwksUriCache: string | null = null;
-
   return {
     id: 'external-jwt',
     hooks: {
@@ -188,193 +184,248 @@ const externalJWTPlugin = (options: ExternalJWTPluginOptions) => {
            *   not configured
            */
           handler: createAuthMiddleware(async (c) => {
+            console.log('[externalJWT] Handler triggered');
+
             const token =
               c.request?.headers.get('authorization')?.replace('Bearer ', '') ||
               c.headers?.get('Authorization')?.replace('Bearer ', '');
 
             if (!token) {
+              console.log('[externalJWT] No bearer token found');
               return;
             }
 
-            try {
-              /**
-               * Step 1: Resolve JWKS URI and userinfo endpoint from
-               * configuration
-               */
-              let jwksUri: string | URL;
-              let userinfoEndpoint: string | URL | undefined;
+            console.log(
+              '[externalJWT] Token found:',
+              token.substring(0, 50) + '...'
+            );
 
-              if ('jwksUri' in options) {
-                /** Direct JWKS configuration */
-                jwksUri = options.jwksUri;
-                userinfoEndpoint = options.userinfoEndpoint;
-              } else {
-                /** OpenID Connect discovery flow */
-                const [discoveryResponse, discoveryError] = await tryCatch(
-                  fetch(options.discoveryUrl)
-                );
+            /** Step 1: Resolve JWKS URI and userinfo endpoint from configuration */
+            console.log('[externalJWT] Step 1: Resolving JWKS URI...');
+            let jwksUri: string | URL;
+            let userinfoEndpoint: string | URL | undefined;
 
-                if (discoveryError || !discoveryResponse.ok) {
-                  throw new APIError('BAD_REQUEST', {
-                    message: 'Failed to fetch OpenID discovery document',
-                    code: 'DISCOVERY_FAILED'
-                  });
-                }
-
-                const [discoveryJson, jsonError] = await tryCatch(
-                  discoveryResponse.json()
-                );
-
-                if (jsonError) {
-                  throw new APIError('BAD_REQUEST', {
-                    message: 'Invalid OpenID discovery document format',
-                    code: 'INVALID_DISCOVERY_DOCUMENT'
-                  });
-                }
-
-                const parseResult =
-                  openIDDiscoverySchema.safeParse(discoveryJson);
-
-                if (!parseResult.success) {
-                  throw new APIError('BAD_REQUEST', {
-                    message: 'OpenID discovery document validation failed',
-                    code: 'INVALID_DISCOVERY_SCHEMA'
-                  });
-                }
-
-                jwksUri = parseResult.data.jwks_uri;
-                userinfoEndpoint = parseResult.data.userinfo_endpoint;
-              }
-
-              /**
-               * Step 2: Validate JWT token against JWKS (with caching for
-               * performance)
-               */
-              const jwksUriString = jwksUri.toString();
-              if (!jwksCache || jwksUriCache !== jwksUriString) {
-                jwksCache = createRemoteJWKSet(new URL(jwksUri));
-                jwksUriCache = jwksUriString;
-              }
-
-              const [verifyResult, verifyError] = await tryCatch(
-                jwtVerify(token, jwksCache, options.claimVerificationOptions)
+            if ('jwksUri' in options) {
+              /** Direct JWKS configuration */
+              console.log('[externalJWT] Using direct JWKS URI');
+              jwksUri = options.jwksUri;
+              userinfoEndpoint = options.userinfoEndpoint;
+            } else {
+              /** OpenID Connect discovery flow */
+              console.log(
+                '[externalJWT] Fetching discovery document from:',
+                options.discoveryUrl
+              );
+              const [discoveryResponse, discoveryError] = await tryCatch(
+                fetch(options.discoveryUrl)
               );
 
-              if (verifyError) {
-                throw new APIError('UNAUTHORIZED', {
-                  message: 'JWT token validation failed',
-                  code: 'INVALID_TOKEN'
-                });
-              }
-
-              const { payload } = verifyResult;
-
-              /** Step 3: Extract and validate required claims */
-              const sub = payload.sub;
-
-              if (!sub) {
+              if (discoveryError || !discoveryResponse.ok) {
+                console.error(
+                  '[externalJWT] Discovery fetch failed:',
+                  discoveryError
+                );
                 throw new APIError('BAD_REQUEST', {
-                  message: 'JWT token missing required sub claim',
-                  code: 'MISSING_SUB_CLAIM'
+                  message: 'Failed to fetch OpenID discovery document',
+                  code: 'DISCOVERY_FAILED'
                 });
               }
 
-              /** Step 4: Find or create user based on sub claim */
-              let user = await c.context.internalAdapter.findUserById(sub);
+              console.log(
+                '[externalJWT] Discovery document fetched successfully'
+              );
 
-              /**
-               * Step 5: Fetch user info from userinfo endpoint if user not
-               * found
-               */
-              if (!user && userinfoEndpoint) {
-                const [userinfoResponse, userinfoError] = await tryCatch(
-                  fetch(userinfoEndpoint, {
-                    headers: {
-                      Authorization: `Bearer ${token}`
-                    }
-                  })
+              const [discoveryJson, jsonError] = await tryCatch(
+                discoveryResponse.json()
+              );
+
+              if (jsonError) {
+                console.error(
+                  '[externalJWT] Failed to parse discovery JSON:',
+                  jsonError
                 );
+                throw new APIError('BAD_REQUEST', {
+                  message: 'Invalid OpenID discovery document format',
+                  code: 'INVALID_DISCOVERY_DOCUMENT'
+                });
+              }
 
-                if (userinfoError || !userinfoResponse.ok) {
-                  throw new APIError('UNAUTHORIZED', {
-                    message: 'Failed to fetch user info from userinfo endpoint',
-                    code: 'USERINFO_FETCH_FAILED'
-                  });
-                }
+              const parseResult =
+                openIDDiscoverySchema.safeParse(discoveryJson);
 
-                const [userinfoData, userinfoJsonError] = await tryCatch(
-                  userinfoResponse.json()
+              if (!parseResult.success) {
+                console.error(
+                  '[externalJWT] Discovery schema validation failed:',
+                  parseResult.error
                 );
-
-                if (userinfoJsonError) {
-                  throw new APIError('BAD_REQUEST', {
-                    message: 'Invalid user info response format',
-                    code: 'INVALID_USERINFO_RESPONSE'
-                  });
-                }
-
-                /** Automatically create user with data from userinfo endpoint */
-                user = await c.context.internalAdapter.createUser({
-                  id: sub,
-                  email: userinfoData.email,
-                  emailVerified: true,
-                  name: userinfoData.name || userinfoData.preferred_username
+                throw new APIError('BAD_REQUEST', {
+                  message: 'OpenID discovery document validation failed',
+                  code: 'INVALID_DISCOVERY_SCHEMA'
                 });
               }
 
-              if (!user) {
-                throw new APIError('NOT_FOUND', {
-                  message:
-                    'User not found and userinfo endpoint not configured',
-                  code: 'USER_NOT_FOUND'
-                });
-              }
+              jwksUri = parseResult.data.jwks_uri;
+              userinfoEndpoint = parseResult.data.userinfo_endpoint;
+              console.log('[externalJWT] JWKS URI:', jwksUri);
+              console.log('[externalJWT] Userinfo endpoint:', userinfoEndpoint);
+            }
 
-              /**
-               * Step 6: Find or create session based on JWT token Try to find
-               * existing session by token
-               */
-              const existingSession =
-                await c.context.internalAdapter.findSession(token);
+            const jwksCache = createRemoteJWKSet(new URL(jwksUri));
 
-              const session = existingSession
-                ? existingSession.session
-                : {
-                    id: payload.jti ?? token,
-                    token,
-                    userId: user.id,
-                    userAgent: c.request?.headers.get('user-agent') ?? null,
-                    ipAddress:
-                      c.request?.headers.get('x-forwarded-for') ?? null,
-                    createdAt: payload.iat
-                      ? new Date(payload.iat * 1000)
-                      : new Date(),
-                    updatedAt: new Date(),
-                    expiresAt: payload.exp
-                      ? new Date(payload.exp * 1000)
-                      : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-                  };
+            /**
+             * Step 2: Validate JWT token against JWKS (with caching for
+             * performance)
+             */
+            console.log('[externalJWT] Step 2: Validating JWT...');
 
-              /** Step 7: Set session context and cookie */
-              c.context.session = {
-                user,
-                session
-              };
+            console.log('[externalJWT] Verifying JWT signature...');
+            console.log(
+              '[externalJWT] Verification options:',
+              JSON.stringify(options.claimVerificationOptions, null, 2)
+            );
+            const [verifyResult, verifyError] = await tryCatch(
+              jwtVerify(token, jwksCache, options.claimVerificationOptions)
+            );
 
-              await setSessionCookie(c, {
-                session,
-                user
-              });
-            } catch (error) {
-              if (error instanceof APIError) {
-                throw error;
-              }
-
-              throw new APIError('INTERNAL_SERVER_ERROR', {
-                message: 'Failed to process bearer token',
-                code: 'TOKEN_PROCESSING_FAILED'
+            if (verifyError) {
+              console.error('[externalJWT] JWT verification failed!');
+              console.error('[externalJWT] Error name:', verifyError.name);
+              console.error(
+                '[externalJWT] Error message:',
+                verifyError.message
+              );
+              console.error('[externalJWT] Error stack:', verifyError.stack);
+              throw new APIError('UNAUTHORIZED', {
+                message: `JWT token validation failed: ${verifyError.message}`,
+                code: 'INVALID_TOKEN'
               });
             }
+
+            console.log('[externalJWT] JWT verified successfully');
+
+            const { payload } = verifyResult;
+
+            /** Step 3: Extract and validate required claims */
+            console.log('[externalJWT] Step 3: Extracting claims...');
+            const sub = payload.sub;
+            console.log('[externalJWT] Subject (sub):', sub);
+
+            if (!sub) {
+              console.error('[externalJWT] Missing sub claim in JWT');
+              throw new APIError('BAD_REQUEST', {
+                message: 'JWT token missing required sub claim',
+                code: 'MISSING_SUB_CLAIM'
+              });
+            }
+
+            const accounts = await db.query.accounts.findMany({
+              where: {
+                accountId: sub
+              },
+              with: {
+                user: true
+              }
+            });
+
+            let user = accounts.length > 0 ? accounts[0].user : null;
+
+            if (user) {
+              console.log('[externalJWT] User found:', user.email);
+            } else {
+              console.log('[externalJWT] User not found in database');
+            }
+
+            /** Step 5: Fetch user info from userinfo endpoint if user not found */
+            if (!user && userinfoEndpoint) {
+              console.log(
+                '[externalJWT] Step 5: Fetching user info from:',
+                userinfoEndpoint
+              );
+              const [userinfoResponse, userinfoError] = await tryCatch(
+                fetch(userinfoEndpoint, {
+                  headers: {
+                    Authorization: `Bearer ${token}`
+                  }
+                })
+              );
+
+              if (userinfoError || !userinfoResponse.ok) {
+                throw new APIError('UNAUTHORIZED', {
+                  message: 'Failed to fetch user info from userinfo endpoint',
+                  code: 'USERINFO_FETCH_FAILED'
+                });
+              }
+
+              const [userinfoData, userinfoJsonError] = await tryCatch(
+                userinfoResponse.json()
+              );
+
+              if (userinfoJsonError) {
+                throw new APIError('BAD_REQUEST', {
+                  message: 'Invalid user info response format',
+                  code: 'INVALID_USERINFO_RESPONSE'
+                });
+              }
+
+              /** Automatically create user with data from userinfo endpoint */
+              user = await c.context.internalAdapter.createUser({
+                email: userinfoData.email,
+                emailVerified: true,
+                name: userinfoData.name || userinfoData.preferred_username
+              });
+            }
+
+            if (!user) {
+              throw new APIError('NOT_FOUND', {
+                message: 'User not found and userinfo endpoint not configured',
+                code: 'USER_NOT_FOUND'
+              });
+            }
+
+            if (
+              !accounts.some((account) => account.providerId === 'external-jwt')
+            ) {
+              await c.context.internalAdapter.createAccount({
+                userId: user.id,
+                accountId: sub,
+                providerId: 'external-jwt'
+              });
+            }
+
+            /**
+             * Step 6: Find or create session based on JWT token Try to find
+             * existing session by token
+             */
+            const existingSession =
+              await c.context.internalAdapter.findSession(token);
+
+            const session = existingSession
+              ? existingSession.session
+              : {
+                  id: payload.jti ?? token,
+                  token,
+                  userId: user.id,
+                  userAgent: c.request?.headers.get('user-agent') ?? null,
+                  ipAddress: c.request?.headers.get('x-forwarded-for') ?? null,
+                  createdAt: payload.iat
+                    ? new Date(payload.iat * 1000)
+                    : new Date(),
+                  updatedAt: new Date(),
+                  expiresAt: payload.exp
+                    ? new Date(payload.exp * 1000)
+                    : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                };
+
+            /** Step 7: Set session context and cookie */
+            c.context.session = {
+              user,
+              session
+            };
+
+            return {
+              user,
+              session
+            };
           })
         }
       ]
