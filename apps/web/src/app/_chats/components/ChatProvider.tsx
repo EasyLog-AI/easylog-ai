@@ -2,9 +2,8 @@
 
 import { UseChatHelpers, useChat } from '@ai-sdk/react';
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { DefaultChatTransport, UIMessage } from 'ai';
+import { DefaultChatTransport } from 'ai';
 import { createContext, useEffect, useState } from 'react';
-import z from 'zod';
 
 import useTRPC from '@/lib/trpc/browser';
 import lastAssistantMessageIsCompleteWithToolCalls from '@/utils/lastAssistantMessageIsCompleteWithToolCalls';
@@ -18,18 +17,7 @@ import {
   pieChartSchema,
   stackedBarChartSchema
 } from '../tools/charts/schemas';
-
-type ChatMessage = UIMessage<
-  unknown,
-  {
-    'bar-chart': z.infer<typeof barChartSchema>;
-    'line-chart': z.infer<typeof lineChartSchema>;
-    'stacked-bar-chart': z.infer<typeof stackedBarChartSchema>;
-    'pie-chart': z.infer<typeof pieChartSchema>;
-    research: z.infer<typeof researchSchema>;
-    'multiple-choice': z.infer<typeof multipleChoiceSchema>;
-  }
->;
+import { ChatMessage } from '../types';
 
 interface ChatContextType extends UseChatHelpers<ChatMessage> {}
 

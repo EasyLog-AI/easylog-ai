@@ -11,6 +11,14 @@ import convertRealtimeToUI from '../utils/convertRealtimeToUI';
 import filterNewMessages from '../utils/filterNewMessages';
 
 const realtimeSyncMessages = chatMiddleware
+  .meta({
+    route: {
+      method: 'POST',
+      path: '/api/orpc/realtime/sync-messages',
+      tags: ['Realtime'],
+      summary: 'Sync realtime messages with a chat'
+    }
+  })
   .input(
     z.object({
       realtimeItems: z.array(realtimeItemSchema)

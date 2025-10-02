@@ -9,6 +9,14 @@ import { chats, multipleChoiceQuestions } from '@/database/schema';
 import multipleChoiceQuestionMiddleware from '../middleware/multipleChoiceQuestionMiddleware';
 
 const multipleChoiceQuestionUpdate = multipleChoiceQuestionMiddleware
+  .meta({
+    route: {
+      method: 'PATCH',
+      path: '/api/orpc/multiple-choice/questions',
+      tags: ['Multiple Choice'],
+      summary: 'Update a multiple choice answer'
+    }
+  })
   .input(
     z.object({
       value: z.string()
