@@ -1291,7 +1291,7 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                 for dp in steps_data
             ]
 
-        async def tool_generate_patient_report(period_days: int = 30) -> str:
+        async def tool_generate_patient_report(period_days: int = 30) -> tuple[str, bool]:
             """Genereer een professioneel patiënt verslag als PDF.
 
             Dit verslag bevat een overzicht van de patient zijn/haar:
@@ -1309,7 +1309,7 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                                   Default is 30 dagen (laatste maand).
 
             Returns:
-                str: Bericht met download URL voor de gegenereerde PDF
+                tuple[str, bool]: (JSON widget data, True) for widget rendering
 
             Raises:
                 ValueError: Als er geen patient data beschikbaar is
@@ -1330,37 +1330,36 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                 generator = PatientReportGenerator()
                 pdf_bytes = generator.generate_report(report_data)
 
-                # Convert PDF to base64 for embedding in chat
+                # Convert PDF to base64
                 import base64
                 pdf_base64 = base64.b64encode(pdf_bytes).decode('utf-8')
 
-                # Generate filename for reference
+                # Generate filename
                 report_id = str(uuid.uuid4())
                 patient_name_safe = report_data["patient_name"].replace(" ", "_")
                 timestamp = datetime.now(pytz.timezone("Europe/Amsterdam")).strftime("%Y-%m")
                 filename = f"COPD_Verslag_{patient_name_safe}_{timestamp}_{report_id[:8]}.pdf"
 
-                # Calculate file size
                 file_size_kb = len(pdf_bytes) // 1024
 
                 self.logger.info(
-                    f"Generated patient report: {filename} ({file_size_kb}KB, {len(pdf_base64)} chars base64) for {report_data['patient_name']}"
+                    f"Generated patient report: {filename} ({file_size_kb}KB) for {report_data['patient_name']}"
                 )
 
-                # Return short message + hidden base64 payload between markers
-                # Flutter app can detect these markers and render a download button
-                return (
-                    f"✅ Je verslag is klaar!\n\n"
-                    f"[📥 Download je COPD verslag]"\
-                    f"\n\n---PDF_BASE64_START---\n"\
-                    f"{pdf_base64}\n"\
-                    f"---PDF_BASE64_END---\n"\
-                    f"FILENAME:{filename}\n"
-                )
+                # Return as widget (like charts) - data comes via metadata, not streaming
+                widget_data = json.dumps({
+                    "type": "pdf",
+                    "filename": filename,
+                    "base64": pdf_base64,
+                    "size_kb": file_size_kb,
+                    "period": report_data["period"],
+                })
+
+                return (widget_data, True)
 
             except Exception as e:
                 self.logger.error(f"Error generating patient report: {e}", exc_info=True)
-                return f"❌ Er ging iets mis bij het genereren van je verslag: {str(e)}"
+                return (f"❌ Er ging iets mis bij het genereren van je verslag: {str(e)}", False)
 
         # Assemble and return the complete tool list
         tools_list = [
