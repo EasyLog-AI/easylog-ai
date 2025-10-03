@@ -275,7 +275,7 @@ class PatientReportDataAggregator:
 
         for memory in memories:
             memory_text = memory.get("memory", "")
-            created_at = memory.get("created_at")
+            created_at = memory.get("created_at") or memory.get("createdAt")
 
             # Check if it's a goal memory
             if "goal-" in memory_text.lower() or "doel" in memory_text.lower():
@@ -287,7 +287,11 @@ class PatientReportDataAggregator:
 
                 # Format date if available
                 date_str = ""
-                if created_at:
+                # 1) Prefer explicit date in memory text e.g. "Vastgesteld: 03-10-2025"
+                m = re.search(r"Vastgesteld[:\s]+(\d{2}-\d{2}-\d{4})", memory_text, re.IGNORECASE)
+                if m:
+                    date_str = m.group(1)
+                elif created_at:
                     try:
                         # Parse the date and format it
                         if isinstance(created_at, str):
@@ -396,7 +400,7 @@ class PatientReportDataAggregator:
         for memory in memories:
             memory_text = memory.get("memory", "")
             memory_lower = memory_text.lower()
-            created_at = memory.get("created_at")
+            created_at = memory.get("created_at") or memory.get("createdAt")
 
             # Check if it's medication memory
             if any(keyword in memory_lower for keyword in ["medication updated:", "medicatie updated:", "medication:", "medicatie:"]):
@@ -465,7 +469,7 @@ class PatientReportDataAggregator:
                 
                 if meds_list:
                     medication_updates.append({
-                        "date": date_str,
+                        "date": date_str or "",
                         "medications": meds_list
                     })
 
