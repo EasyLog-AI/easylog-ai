@@ -327,20 +327,37 @@ class PatientReportDataAggregator:
 
         for memory in memories:
             memory_text = memory.get("memory", "")
+            memory_lower = memory_text.lower()
 
             # Check if it's medication memory
-            if "medication:" in memory_text.lower() or "medicatie:" in memory_text.lower():
-                # Parse medication line
-                # Format: "Medication: [Name] - [Dosage] - [Documentation] - [Timing]"
-                parts = memory_text.split(" - ")
-                if len(parts) >= 2:
-                    name_part = parts[0].split(":", 1)
-                    if len(name_part) == 2:
-                        name = name_part[1].strip()
-                        dosage = parts[1].strip() if len(parts) > 1 else ""
-                        timing = parts[3].strip() if len(parts) > 3 else ""
-
-                        medications.append({"name": name, "dosage": dosage, "timing": timing})
+            if any(keyword in memory_lower for keyword in ["medication updated:", "medicatie updated:", "medication:", "medicatie:"]):
+                # Remove the prefix (e.g., "Medication updated: ")
+                medication_text = re.split(r"(?:medication updated:|medicatie updated:|medication:|medicatie:)\s*", memory_text, maxsplit=1, flags=re.IGNORECASE)
+                if len(medication_text) > 1:
+                    medication_text = medication_text[1]
+                else:
+                    medication_text = memory_text
+                
+                # Split by comma to get individual medications
+                # Format: "Name1 - dosage1 - timing1, Name2 - dosage2 - timing2, ..."
+                individual_meds = medication_text.split(", ")
+                
+                for med_string in individual_meds:
+                    # Parse each medication: [Name] - [Dosage] - [Timing]
+                    parts = med_string.split(" - ")
+                    
+                    if len(parts) >= 2:
+                        name = parts[0].strip()
+                        dosage = parts[1].strip()
+                        timing = parts[2].strip() if len(parts) > 2 else ""
+                        
+                        # Only add if we have at least name and dosage
+                        if name and dosage:
+                            medications.append({
+                                "name": name,
+                                "dosage": dosage,
+                                "timing": timing
+                            })
 
         return medications
 

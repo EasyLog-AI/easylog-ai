@@ -144,9 +144,8 @@ class PatientReportGenerator:
         if report_data.get("profile"):
             story.extend(self._create_profile_section(report_data["profile"]))
 
-        # Medication section (boven ZLM)
+        # Medication section (op zelfde pagina als profiel)
         if report_data.get("medications"):
-            story.append(PageBreak())  # Nieuwe pagina voor Medicatie
             story.extend(self._create_medication_section(report_data["medications"]))
 
         # ZLM section
@@ -636,20 +635,34 @@ class PatientReportGenerator:
         return Image(buf, width=16 * cm, height=8 * cm)
 
     def _create_medication_section(self, medications: list[dict[str, Any]]) -> list:
-        """Create medication section with modern design."""
+        """Create medication section with modern design and text wrapping."""
         story = []
 
         story.append(Paragraph("Medicatie", self.heading_style))
 
         if medications:
-            data = [["Medicijn", "Dosering", "Inname"]]
+            data = [["Medicijn", "Dosering", "Aantal pufjes per dag"]]
+
+            # Style for medication text with wrapping
+            med_text_style = ParagraphStyle(
+                "MedicationText",
+                parent=self.body_style,
+                fontSize=10,
+                leading=14,
+                spaceAfter=0,
+            )
 
             for med in medications:
                 name = med.get("name", "")
                 dosage = med.get("dosage", "")
                 timing = med.get("timing", "")
 
-                data.append([name, dosage, timing])
+                # Wrap medication name in Paragraph for automatic wrapping
+                name_para = Paragraph(name, med_text_style) if name else ""
+                dosage_para = Paragraph(dosage, med_text_style) if dosage else ""
+                timing_para = Paragraph(timing, med_text_style) if timing else ""
+
+                data.append([name_para, dosage_para, timing_para])
 
             table = Table(data, colWidths=[6 * cm, 5 * cm, 5 * cm])
             table.setStyle(
@@ -663,12 +676,11 @@ class PatientReportGenerator:
                         ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
                         ("TOPPADDING", (0, 0), (-1, 0), 12),
                         ("GRID", (0, 0), (-1, -1), 1, colors.HexColor("#e0e0e0")),
-                        ("FONTSIZE", (0, 1), (-1, -1), 10),
-                        ("BOTTOMPADDING", (0, 1), (-1, -1), 10),
-                        ("TOPPADDING", (0, 1), (-1, -1), 10),
+                        ("BOTTOMPADDING", (0, 1), (-1, -1), 8),
+                        ("TOPPADDING", (0, 1), (-1, -1), 8),
                         ("LEFTPADDING", (0, 0), (-1, -1), 12),
                         ("RIGHTPADDING", (0, 0), (-1, -1), 12),
-                        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                        ("VALIGN", (0, 0), (-1, -1), "TOP"),  # Top align for better text flow
                         ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8f9fa")]),
                     ]
                 )
