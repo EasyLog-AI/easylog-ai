@@ -648,7 +648,7 @@ class PatientReportGenerator:
             
             # Add date subtitle if available
             if latest_update.get("date"):
-                date_text = f"Laatst bijgewerkt: {latest_update['date']}"
+                date_text = f"Startdatum: {latest_update['date']}"
                 story.append(Paragraph(date_text, self.subheading_style))
                 story.append(Spacer(1, 0.2 * cm))
             
