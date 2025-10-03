@@ -194,7 +194,7 @@ class PatientReportGenerator:
         # Create info table with modern styling
         info_data = [
             ["Patiënt:", patient_name],
-            ["Periode:", period],
+            ["Rapportageperiode:", period],
             ["Gegenereerd:", generated_date],
         ]
 
@@ -203,15 +203,23 @@ class PatientReportGenerator:
             TableStyle(
                 [
                     ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f8f9fa")),
+                    # Highlight periode row with accent color
+                    ("BACKGROUND", (0, 1), (-1, 1), colors.HexColor("#e3f2fd")),
                     ("TEXTCOLOR", (0, 0), (0, -1), colors.HexColor("#1a4d80")),
                     ("TEXTCOLOR", (1, 0), (1, -1), colors.HexColor("#333333")),
+                    # Make periode row bold and larger
+                    ("FONTNAME", (0, 1), (-1, 1), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 1), (-1, 1), 13),
                     ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
-                    ("FONTNAME", (1, 0), (1, -1), "Helvetica"),
-                    ("FONTSIZE", (0, 0), (-1, -1), 12),
+                    ("FONTNAME", (1, 0), (1, 0), "Helvetica"),  # Patient name regular
+                    ("FONTNAME", (1, 2), (1, 2), "Helvetica"),  # Generated date regular
+                    ("FONTSIZE", (0, 0), (0, 0), 12),  # Other rows
+                    ("FONTSIZE", (1, 0), (1, 0), 12),
+                    ("FONTSIZE", (0, 2), (-1, 2), 12),
                     ("LEFTPADDING", (0, 0), (-1, -1), 20),
                     ("RIGHTPADDING", (0, 0), (-1, -1), 20),
-                    ("TOPPADDING", (0, 0), (-1, -1), 12),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
+                    ("TOPPADDING", (0, 0), (-1, -1), 14),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 14),
                     ("LINEABOVE", (0, 0), (-1, 0), 3, colors.HexColor("#4A90E2")),
                     ("LINEBELOW", (0, -1), (-1, -1), 3, colors.HexColor("#4A90E2")),
                     ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
