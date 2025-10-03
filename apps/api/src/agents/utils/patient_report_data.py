@@ -52,7 +52,12 @@ class PatientReportDataAggregator:
 
         # Collect data from various sources
         profile_data = await self._extract_profile_data(metadata)
+        print(f"📋 DEBUG: Profile data: {profile_data}")
+        
         zlm_data = await self._extract_zlm_data(metadata)
+        print(f"📋 DEBUG: ZLM measurements: {len(zlm_data.get('measurements', []))}")
+        for idx, m in enumerate(zlm_data.get("measurements", [])[:3], 1):
+            print(f"  - Measurement {idx}: date={m.get('date')}, scores={len(m.get('scores', {}))}, bmi={m.get('bmi_value')}")
         
         # Add latest BMI to profile if available
         if zlm_data.get("measurements") and len(zlm_data["measurements"]) > 0:
@@ -61,8 +66,17 @@ class PatientReportDataAggregator:
                 profile_data["bmi"] = latest_bmi
         
         goals_data = await self._extract_goals_data(metadata)
+        print(f"📋 DEBUG: Goals: {len(goals_data)}")
+        for idx, g in enumerate(goals_data[:3], 1):
+            print(f"  - Goal {idx}: {g.get('goal')[:50]}... | date={g.get('date')}")
+        
         steps_data = await self._extract_steps_data(start_date, end_date)
+        print(f"📋 DEBUG: Steps goal: {steps_data.get('goal')}, daily data: {len(steps_data.get('daily_steps', []))}")
+        
         medication_data = await self._extract_medication_data(metadata)
+        print(f"📋 DEBUG: Medication updates: {len(medication_data.get('updates', []))}")
+        for idx, u in enumerate(medication_data.get("updates", [])[:2], 1):
+            print(f"  - Update {idx}: date={u.get('date')}, meds={len(u.get('medications', []))}")
 
         # Patient name from memories
         patient_name = "Patiënt"
