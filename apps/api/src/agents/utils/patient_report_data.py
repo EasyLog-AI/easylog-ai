@@ -127,21 +127,19 @@ class PatientReportDataAggregator:
         return profile
 
     async def _extract_zlm_data(self, metadata: dict[str, Any]) -> dict[str, Any]:
-        """Extract ZLM scores from metadata.
+        """Extract all ZLM measurements from metadata with dates.
 
         Args:
             metadata: Thread metadata containing questionnaire answers
 
         Returns:
-            ZLM data dictionary
+            ZLM data dictionary with measurements grouped by date
         """
-        zlm_data = {"scores": {}, "date": None, "bmi_value": None}
-
+        # Group measurements by date
+        measurements_by_date: dict[str, dict[str, Any]] = {}
+        
         # Extract ZLM scores from memories
         memories = metadata.get("memories", [])
-        latest_zlm_date = None
-
-        domain_scores = {}
 
         for memory in memories:
             memory_text = memory.get("memory", "")
@@ -150,14 +148,18 @@ class PatientReportDataAggregator:
             if "zlm-score" in memory_text.lower() or "zlm-bmi" in memory_text.lower():
                 # Extract date
                 date_match = re.search(r"(\d{2}-\d{2}-\d{4})", memory_text)
-                if date_match:
-                    memory_date_str = date_match.group(1)
-                    try:
-                        memory_date = datetime.strptime(memory_date_str, "%d-%m-%Y")
-                        if latest_zlm_date is None or memory_date > latest_zlm_date:
-                            latest_zlm_date = memory_date
-                    except ValueError:
-                        pass
+                if not date_match:
+                    continue
+                    
+                date_str = date_match.group(1)
+                
+                # Initialize measurement for this date if not exists
+                if date_str not in measurements_by_date:
+                    measurements_by_date[date_str] = {
+                        "date": date_str,
+                        "scores": {},
+                        "bmi_value": None
+                    }
 
                 # Extract score
                 score_match = re.search(r"Score\s*=\s*(\d+\.?\d*)", memory_text)
@@ -183,20 +185,23 @@ class PatientReportDataAggregator:
                         if domain_key in memory_text:
                             # Convert to key format
                             domain_key_normalized = domain_key.lower().replace(" ", "_")
-                            domain_scores[domain_key_normalized] = score_value
+                            measurements_by_date[date_str]["scores"][domain_key_normalized] = score_value
                             break
 
                 # Extract BMI meta value
                 if "zlm-bmi-meta_value" in memory_text.lower():
                     bmi_match = re.search(r"meta_value\s+\d{2}-\d{2}-\d{4}\s+(\d+\.?\d*)", memory_text)
                     if bmi_match:
-                        zlm_data["bmi_value"] = float(bmi_match.group(1))
+                        measurements_by_date[date_str]["bmi_value"] = float(bmi_match.group(1))
 
-        zlm_data["scores"] = domain_scores
-        if latest_zlm_date:
-            zlm_data["date"] = latest_zlm_date.strftime("%d-%m-%Y")
+        # Sort measurements by date (newest first)
+        sorted_measurements = sorted(
+            measurements_by_date.values(),
+            key=lambda x: datetime.strptime(x["date"], "%d-%m-%Y"),
+            reverse=True
+        )
 
-        return zlm_data
+        return {"measurements": sorted_measurements}
 
     async def _extract_goals_data(self, metadata: dict[str, Any]) -> list[dict[str, Any]]:
         """Extract goals from metadata with creation dates.
@@ -313,24 +318,38 @@ class PatientReportDataAggregator:
             "daily_data": daily_data,
         }
 
-    async def _extract_medication_data(self, metadata: dict[str, Any]) -> list[dict[str, Any]]:
-        """Extract medication information from metadata.
+    async def _extract_medication_data(self, metadata: dict[str, Any]) -> dict[str, Any]:
+        """Extract medication information from metadata with update dates.
 
         Args:
             metadata: Thread metadata containing memories
 
         Returns:
-            List of medications
+            Dictionary with medication updates grouped by date
         """
-        medications = []
+        medication_updates: list[dict[str, Any]] = []
         memories = metadata.get("memories", [])
 
         for memory in memories:
             memory_text = memory.get("memory", "")
             memory_lower = memory_text.lower()
+            created_at = memory.get("created_at")
 
             # Check if it's medication memory
             if any(keyword in memory_lower for keyword in ["medication updated:", "medicatie updated:", "medication:", "medicatie:"]):
+                # Extract date from created_at
+                date_str = ""
+                if created_at:
+                    try:
+                        if isinstance(created_at, str):
+                            date_obj = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                        else:
+                            date_obj = created_at
+                        date_obj = date_obj.astimezone(self.amsterdam_tz)
+                        date_str = date_obj.strftime("%d-%m-%Y")
+                    except Exception:
+                        date_str = ""
+                
                 # Remove the prefix (e.g., "Medication updated: ")
                 medication_text = re.split(r"(?:medication updated:|medicatie updated:|medication:|medicatie:)\s*", memory_text, maxsplit=1, flags=re.IGNORECASE)
                 if len(medication_text) > 1:
@@ -342,6 +361,7 @@ class PatientReportDataAggregator:
                 # Format: "Name1 - dosage1 - timing1, Name2 - dosage2 - timing2, ..."
                 individual_meds = medication_text.split(", ")
                 
+                meds_list = []
                 for med_string in individual_meds:
                     # Parse each medication: [Name] - [Dosage] - [Timing]
                     parts = med_string.split(" - ")
@@ -353,11 +373,23 @@ class PatientReportDataAggregator:
                         
                         # Only add if we have at least name and dosage
                         if name and dosage:
-                            medications.append({
+                            meds_list.append({
                                 "name": name,
                                 "dosage": dosage,
                                 "timing": timing
                             })
+                
+                if meds_list:
+                    medication_updates.append({
+                        "date": date_str,
+                        "medications": meds_list
+                    })
 
-        return medications
+        # Sort by date (newest first)
+        medication_updates.sort(
+            key=lambda x: datetime.strptime(x["date"], "%d-%m-%Y") if x["date"] else datetime.min,
+            reverse=True
+        )
+
+        return {"updates": medication_updates}
 
