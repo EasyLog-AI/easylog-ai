@@ -294,7 +294,7 @@ class PatientReportGenerator:
         return story
 
     def _create_zlm_section(self, zlm_scores: dict[str, Any]) -> list:
-        """Create ZLM (Ziektelastmeter) section with multiple measurements over time."""
+        """Create ZLM (Ziektelastmeter) section with beautiful colored badges per measurement."""
         story = []
 
         story.append(Paragraph("Ziektelast (ZLM)", self.heading_style))
@@ -331,95 +331,109 @@ class PatientReportGenerator:
                 "roken": "Roken",
             }
             
-            # Get all unique domains from all measurements
-            all_domains = set()
-            for measurement in measurements:
-                all_domains.update(measurement["scores"].keys())
-            
-            # Remove gewicht_bmi from domains (we'll add BMI separately)
-            all_domains.discard("gewicht_bmi")
-            all_domains.discard("bmi")
-            
-            # Build header row: Domein | Date1 | Date2 | ...
-            header = ["Domein"]
-            for measurement in measurements:
-                header.append(measurement["date"])
-            data = [header]
-            
-            # Add rows for each domain
-            for domain_key in sorted(all_domains):
-                label = domain_labels.get(domain_key, domain_key.title())
-                row = [label]
+            # Create a table for each measurement
+            for idx, measurement in enumerate(measurements):
+                # Add date subtitle
+                if measurement.get("date"):
+                    date_text = f"Meting op: {measurement['date']}"
+                    story.append(Paragraph(date_text, self.subheading_style))
+                    story.append(Spacer(1, 0.2 * cm))
                 
-                for measurement in measurements:
-                    score = measurement["scores"].get(domain_key)
-                    if score is not None:
-                        # Create colored cell
-                        score_text = f"{score:.1f}"
-                        if score <= 2:
-                            cell_text = f"🟢 {score_text}"
-                        elif score <= 4:
-                            cell_text = f"🟡 {score_text}"
-                        else:
-                            cell_text = f"🔴 {score_text}"
-                        row.append(cell_text)
+                scores = measurement.get("scores", {})
+                data = [["Domein", "Score", "Beoordeling"]]
+                
+                # Track row colors for styling
+                row_styles = []
+                assessment_colors = []
+                
+                for key, score in scores.items():
+                    if key in ["gewicht_bmi", "bmi"]:
+                        continue  # Skip, we'll add BMI separately
+                    
+                    label = domain_labels.get(key, key.title())
+                    score_str = f"{score:.1f}"
+                    
+                    # Determine color and assessment based on score
+                    if score <= 2:
+                        assessment = "Groen - Goed"
+                        bg_color = colors.HexColor("#e8f5e9")  # Light green background
+                        assessment_bg = colors.HexColor("#66bb6a")  # Green badge
+                    elif score <= 4:
+                        assessment = "Geel - Matig"
+                        bg_color = colors.HexColor("#fff9e6")  # Light yellow background
+                        assessment_bg = colors.HexColor("#ffca28")  # Yellow badge
                     else:
-                        row.append("-")
+                        assessment = "Rood - Aandacht nodig"
+                        bg_color = colors.HexColor("#ffebee")  # Light red background
+                        assessment_bg = colors.HexColor("#ef5350")  # Red badge
+                    
+                    data.append([label, score_str, assessment])
+                    row_styles.append((len(data) - 1, bg_color))
+                    assessment_colors.append((len(data) - 1, assessment_bg))
                 
-                data.append(row)
-            
-            # Add BMI row
-            bmi_row = ["BMI"]
-            for measurement in measurements:
-                bmi_value = measurement.get("bmi_value")
-                if bmi_value:
+                # Add BMI as separate row with actual value
+                if measurement.get("bmi_value"):
+                    bmi_value = measurement["bmi_value"]
                     bmi_str = f"{bmi_value:.1f}"
+                    
+                    # Determine BMI assessment based on standard ranges
                     if bmi_value < 18.5:
-                        bmi_row.append(f"🟡 {bmi_str}")
+                        bmi_assessment = "Ondergewicht"
+                        bg_color = colors.HexColor("#fff9e6")
+                        assessment_bg = colors.HexColor("#ffca28")
                     elif 18.5 <= bmi_value < 25:
-                        bmi_row.append(f"🟢 {bmi_str}")
+                        bmi_assessment = "Normaal gewicht"
+                        bg_color = colors.HexColor("#e8f5e9")
+                        assessment_bg = colors.HexColor("#66bb6a")
                     elif 25 <= bmi_value < 30:
-                        bmi_row.append(f"🟡 {bmi_str}")
+                        bmi_assessment = "Overgewicht"
+                        bg_color = colors.HexColor("#fff9e6")
+                        assessment_bg = colors.HexColor("#ffca28")
                     else:
-                        bmi_row.append(f"🔴 {bmi_str}")
-                else:
-                    bmi_row.append("-")
-            data.append(bmi_row)
-            
-            # Calculate column widths dynamically
-            num_measurements = len(measurements)
-            if num_measurements == 1:
-                col_widths = [8 * cm, 8 * cm]
-            elif num_measurements == 2:
-                col_widths = [7 * cm, 4.5 * cm, 4.5 * cm]
-            else:
-                # More than 2 measurements: distribute space
-                date_col_width = 12 * cm / num_measurements
-                col_widths = [4 * cm] + [date_col_width] * num_measurements
-            
-            table = Table(data, colWidths=col_widths)
-            
-            # Build style commands
-            style_commands = [
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1a4d80")),
-                ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-                ("ALIGN", (0, 0), (0, -1), "LEFT"),  # Left align domain names
-                ("ALIGN", (1, 0), (-1, -1), "CENTER"),  # Center align scores
-                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                ("FONTNAME", (0, 1), (0, -1), "Helvetica-Bold"),  # Bold domain names
-                ("FONTSIZE", (0, 0), (-1, 0), 11),
-                ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
-                ("TOPPADDING", (0, 0), (-1, 0), 12),
-                ("GRID", (0, 0), (-1, -1), 1, colors.HexColor("#e0e0e0")),
-                ("FONTSIZE", (0, 1), (-1, -1), 10),
-                ("BOTTOMPADDING", (0, 1), (-1, -1), 8),
-                ("TOPPADDING", (0, 1), (-1, -1), 8),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8f9fa")]),
-            ]
-            
-            table.setStyle(TableStyle(style_commands))
-            story.append(table)
+                        bmi_assessment = "Obesitas"
+                        bg_color = colors.HexColor("#ffebee")
+                        assessment_bg = colors.HexColor("#ef5350")
+                    
+                    data.append(["BMI", bmi_str, bmi_assessment])
+                    row_styles.append((len(data) - 1, bg_color))
+                    assessment_colors.append((len(data) - 1, assessment_bg))
+                
+                table = Table(data, colWidths=[7 * cm, 3 * cm, 6 * cm])
+                
+                # Build style commands
+                style_commands = [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1a4d80")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                    ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                    ("ALIGN", (1, 1), (1, -1), "CENTER"),  # Center score column
+                    ("ALIGN", (2, 1), (2, -1), "CENTER"),  # Center assessment column
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("FONTNAME", (2, 1), (2, -1), "Helvetica-Bold"),  # Bold assessment text
+                    ("FONTSIZE", (0, 0), (-1, 0), 12),
+                    ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                    ("TOPPADDING", (0, 0), (-1, 0), 12),
+                    ("GRID", (0, 0), (-1, -1), 1, colors.HexColor("#e0e0e0")),
+                    ("FONTSIZE", (0, 1), (-1, -1), 10),
+                    ("BOTTOMPADDING", (0, 1), (-1, -1), 8),
+                    ("TOPPADDING", (0, 1), (-1, -1), 8),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ]
+                
+                # Add row-specific background colors for first two columns
+                for row_idx, bg_color in row_styles:
+                    style_commands.append(("BACKGROUND", (0, row_idx), (1, row_idx), bg_color))
+                
+                # Add assessment column colors (colored badge effect)
+                for row_idx, assessment_bg in assessment_colors:
+                    style_commands.append(("BACKGROUND", (2, row_idx), (2, row_idx), assessment_bg))
+                    style_commands.append(("TEXTCOLOR", (2, row_idx), (2, row_idx), colors.white))
+                
+                table.setStyle(TableStyle(style_commands))
+                story.append(table)
+                
+                # Add spacing between measurements (if there are more)
+                if idx < len(measurements) - 1:
+                    story.append(Spacer(1, 0.8 * cm))
 
         story.append(Spacer(1, 0.5 * cm))
 
@@ -661,11 +675,11 @@ class PatientReportGenerator:
             # Show only the most recent update
             latest_update = updates[0]
             
-            # Add date subtitle if available
-            if latest_update.get("date"):
-                date_text = f"Startdatum: {latest_update['date']}"
-                story.append(Paragraph(date_text, self.subheading_style))
-                story.append(Spacer(1, 0.2 * cm))
+            # Add date subtitle - always show, even if empty
+            date_str = latest_update.get("date", "Onbekend")
+            date_text = f"<b>Startdatum:</b> {date_str}"
+            story.append(Paragraph(date_text, self.body_style))
+            story.append(Spacer(1, 0.3 * cm))
             
             data = [["Medicijn", "Dosering", "Aantal pufjes per dag"]]
 

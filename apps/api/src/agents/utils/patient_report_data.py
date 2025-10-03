@@ -386,27 +386,49 @@ class PatientReportDataAggregator:
                 else:
                     medication_text = memory_text
                 
-                # Split by comma to get individual medications
+                # Split by pattern: ", [MedicijnNaam] - " to get individual medications
+                # This handles commas within timing descriptions
                 # Format: "Name1 - dosage1 - timing1, Name2 - dosage2 - timing2, ..."
-                individual_meds = medication_text.split(", ")
                 
                 meds_list = []
-                for med_string in individual_meds:
+                # Use regex to split more intelligently: look for ", " followed by a word and " - "
+                import re
+                # Split on ", " but only if followed by text and " - " (new medication pattern)
+                med_parts = re.split(r',\s+(?=[A-Z])', medication_text)
+                
+                for med_string in med_parts:
                     # Parse each medication: [Name] - [Dosage] - [Timing]
-                    parts = med_string.split(" - ")
+                    # or sometimes just: [Name] - [Timing] (no dosage)
+                    parts = med_string.split(" - ", 2)  # Only split on first 2 " - " occurrences
                     
                     if len(parts) >= 2:
                         name = parts[0].strip()
-                        dosage = parts[1].strip()
-                        timing = parts[2].strip() if len(parts) > 2 else ""
                         
-                        # Only add if we have at least name and dosage
-                        if name and dosage:
+                        # Check if second part looks like dosering (contains 'mcg', 'mg', numbers)
+                        second_part = parts[1].strip()
+                        if any(unit in second_part.lower() for unit in ['mcg', 'mg', 'ml', 'g']) or any(char.isdigit() for char in second_part):
+                            # Has dosage
+                            dosage = second_part
+                            timing = parts[2].strip() if len(parts) > 2 else ""
+                        else:
+                            # No dosage, second part is timing
+                            dosage = ""
+                            timing = second_part
+                        
+                        # Only add if we have at least a name
+                        if name:
                             meds_list.append({
                                 "name": name,
                                 "dosage": dosage,
                                 "timing": timing
                             })
+                    elif len(parts) == 1 and parts[0].strip():
+                        # Just a name, no dosage or timing
+                        meds_list.append({
+                            "name": parts[0].strip(),
+                            "dosage": "",
+                            "timing": ""
+                        })
                 
                 if meds_list:
                     medication_updates.append({
