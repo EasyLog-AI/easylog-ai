@@ -199,19 +199,20 @@ class PatientReportDataAggregator:
         return zlm_data
 
     async def _extract_goals_data(self, metadata: dict[str, Any]) -> list[dict[str, Any]]:
-        """Extract goals from metadata.
+        """Extract goals from metadata with creation dates.
 
         Args:
             metadata: Thread metadata containing memories
 
         Returns:
-            List of goals
+            List of goals with dates
         """
         goals = []
         memories = metadata.get("memories", [])
 
         for memory in memories:
             memory_text = memory.get("memory", "")
+            created_at = memory.get("created_at")
 
             # Check if it's a goal memory
             if "goal-" in memory_text.lower() or "doel" in memory_text.lower():
@@ -221,7 +222,27 @@ class PatientReportDataAggregator:
                 else:
                     goal_text = memory_text
 
-                goals.append({"goal": goal_text, "status": "In uitvoering"})
+                # Format date if available
+                date_str = ""
+                if created_at:
+                    try:
+                        # Parse the date and format it
+                        if isinstance(created_at, str):
+                            date_obj = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                        else:
+                            date_obj = created_at
+                        
+                        # Convert to Amsterdam timezone
+                        date_obj = date_obj.astimezone(self.amsterdam_tz)
+                        date_str = date_obj.strftime("%d-%m-%Y")
+                    except Exception:
+                        date_str = ""
+
+                goals.append({
+                    "goal": goal_text,
+                    "status": "In uitvoering",
+                    "date": date_str
+                })
 
         return goals
 

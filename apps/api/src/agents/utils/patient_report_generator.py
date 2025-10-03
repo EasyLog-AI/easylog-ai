@@ -43,55 +43,73 @@ class PatientReportGenerator:
 
     def _setup_custom_styles(self) -> None:
         """Set up custom paragraph styles for the report."""
-        # Title style
+        # Title style - larger and bolder
         self.title_style = ParagraphStyle(
             "CustomTitle",
             parent=self.styles["Heading1"],
-            fontSize=24,
-            textColor=colors.HexColor("#2E5984"),
-            spaceAfter=30,
+            fontSize=32,
+            textColor=colors.HexColor("#1a4d80"),
+            spaceAfter=12,
+            alignment=1,  # Center
+            fontName="Helvetica-Bold",
+            leading=38,
+        )
+
+        # Subtitle style
+        self.subtitle_style = ParagraphStyle(
+            "CustomSubtitle",
+            parent=self.styles["Heading2"],
+            fontSize=18,
+            textColor=colors.HexColor("#4A90E2"),
+            spaceAfter=40,
             alignment=1,  # Center
             fontName="Helvetica-Bold",
         )
 
-        # Heading style
+        # Heading style - modern blue
         self.heading_style = ParagraphStyle(
             "CustomHeading",
             parent=self.styles["Heading2"],
-            fontSize=16,
-            textColor=colors.HexColor("#2E5984"),
-            spaceAfter=12,
-            spaceBefore=20,
+            fontSize=18,
+            textColor=colors.HexColor("#1a4d80"),
+            spaceAfter=16,
+            spaceBefore=24,
             fontName="Helvetica-Bold",
+            borderWidth=0,
+            borderColor=colors.HexColor("#4A90E2"),
+            borderPadding=6,
+            leftIndent=0,
         )
 
         # Subheading style
         self.subheading_style = ParagraphStyle(
             "CustomSubHeading",
             parent=self.styles["Heading3"],
-            fontSize=12,
-            textColor=colors.HexColor("#4A6FA5"),
-            spaceAfter=8,
-            spaceBefore=10,
+            fontSize=13,
+            textColor=colors.HexColor("#4A90E2"),
+            spaceAfter=10,
+            spaceBefore=12,
             fontName="Helvetica-Bold",
         )
 
-        # Body style
+        # Body style - better readability
         self.body_style = ParagraphStyle(
             "CustomBody",
             parent=self.styles["Normal"],
-            fontSize=10,
-            spaceAfter=6,
-            leading=14,
+            fontSize=11,
+            spaceAfter=8,
+            leading=16,
+            textColor=colors.HexColor("#333333"),
         )
 
         # Info box style
         self.info_style = ParagraphStyle(
             "InfoStyle",
             parent=self.styles["Normal"],
-            fontSize=9,
+            fontSize=10,
             textColor=colors.HexColor("#666666"),
-            spaceAfter=4,
+            spaceAfter=6,
+            leading=14,
         )
 
     def generate_report(self, report_data: dict[str, Any]) -> bytes:
@@ -150,36 +168,70 @@ class PatientReportGenerator:
         return pdf_bytes
 
     def _create_cover(self, report_data: dict[str, Any]) -> list:
-        """Create cover page."""
+        """Create cover page with modern design."""
         story = []
 
-        # Title
-        story.append(Spacer(1, 3 * cm))
+        # Top spacing
+        story.append(Spacer(1, 4 * cm))
+        
+        # Main title
         story.append(Paragraph("COPD Coach", self.title_style))
-        story.append(Paragraph("Patiënt Verslag", self.title_style))
+        story.append(Spacer(1, 0.3 * cm))
+        story.append(Paragraph("Patiënt Verslag", self.subtitle_style))
 
-        story.append(Spacer(1, 2 * cm))
+        story.append(Spacer(1, 3 * cm))
 
-        # Patient info
+        # Patient info in a nice box
         patient_name = report_data.get("patient_name", "Patiënt")
         period = report_data.get("period", "")
         generated_date = datetime.now(pytz.timezone("Europe/Amsterdam")).strftime("%d %B %Y")
 
-        info_lines = [
-            f"<b>Patiënt:</b> {patient_name}",
-            f"<b>Periode:</b> {period}",
-            f"<b>Gegenereerd op:</b> {generated_date}",
+        # Create info table with modern styling
+        info_data = [
+            ["Patiënt:", patient_name],
+            ["Periode:", period],
+            ["Gegenereerd:", generated_date],
         ]
 
-        for line in info_lines:
-            story.append(Paragraph(line, self.body_style))
+        info_table = Table(info_data, colWidths=[5 * cm, 11 * cm])
+        info_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f8f9fa")),
+                    ("TEXTCOLOR", (0, 0), (0, -1), colors.HexColor("#1a4d80")),
+                    ("TEXTCOLOR", (1, 0), (1, -1), colors.HexColor("#333333")),
+                    ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+                    ("FONTNAME", (1, 0), (1, -1), "Helvetica"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 12),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 20),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 20),
+                    ("TOPPADDING", (0, 0), (-1, -1), 12),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
+                    ("LINEABOVE", (0, 0), (-1, 0), 3, colors.HexColor("#4A90E2")),
+                    ("LINEBELOW", (0, -1), (-1, -1), 3, colors.HexColor("#4A90E2")),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ]
+            )
+        )
+        story.append(info_table)
 
-        story.append(Spacer(1, 1 * cm))
+        story.append(Spacer(1, 3 * cm))
+        
+        # Footer text
+        footer_info = ParagraphStyle(
+            "CoverFooter",
+            parent=self.info_style,
+            alignment=1,  # Center
+            textColor=colors.HexColor("#666666"),
+            fontSize=10,
+        )
+        story.append(Paragraph("Maastricht Universitair Medisch Centrum+", footer_info))
+        story.append(Paragraph("Afdeling Longziekten", footer_info))
 
         return story
 
     def _create_profile_section(self, profile: dict[str, Any]) -> list:
-        """Create profile information section."""
+        """Create profile information section with modern design."""
         story = []
 
         story.append(Paragraph("Profiel", self.heading_style))
@@ -200,14 +252,19 @@ class PatientReportGenerator:
             table.setStyle(
                 TableStyle(
                     [
-                        ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#F0F0F0")),
-                        ("TEXTCOLOR", (0, 0), (-1, -1), colors.black),
+                        ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#f0f7ff")),
+                        ("TEXTCOLOR", (0, 0), (0, -1), colors.HexColor("#1a4d80")),
+                        ("TEXTCOLOR", (1, 0), (1, -1), colors.HexColor("#333333")),
                         ("ALIGN", (0, 0), (0, -1), "LEFT"),
                         ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
-                        ("FONTSIZE", (0, 0), (-1, -1), 10),
-                        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-                        ("TOPPADDING", (0, 0), (-1, -1), 8),
-                        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                        ("FONTNAME", (1, 0), (1, -1), "Helvetica"),
+                        ("FONTSIZE", (0, 0), (-1, -1), 11),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+                        ("TOPPADDING", (0, 0), (-1, -1), 10),
+                        ("LEFTPADDING", (0, 0), (-1, -1), 15),
+                        ("RIGHTPADDING", (0, 0), (-1, -1), 15),
+                        ("GRID", (0, 0), (-1, -1), 1, colors.HexColor("#e0e0e0")),
+                        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                     ]
                 )
             )
@@ -217,7 +274,7 @@ class PatientReportGenerator:
         return story
 
     def _create_zlm_section(self, zlm_scores: dict[str, Any]) -> list:
-        """Create ZLM (Ziektelastmeter) section."""
+        """Create ZLM (Ziektelastmeter) section with color indicators."""
         story = []
 
         story.append(Paragraph("Ziektelast (ZLM)", self.heading_style))
@@ -225,10 +282,10 @@ class PatientReportGenerator:
         # Introduction
         intro_text = (
             "De Ziektelastmeter (ZLM) meet de impact van COPD op verschillende levensdomeinen. "
-            "Scores variëren van 0 (geen last) tot 6 (maximale last)."
+            "Scores variëren van 0 (geen last) tot 6 (maximale last). De ballonkleur geeft de ernst aan."
         )
         story.append(Paragraph(intro_text, self.body_style))
-        story.append(Spacer(1, 0.3 * cm))
+        story.append(Spacer(1, 0.4 * cm))
 
         # Scores table
         scores = zlm_scores.get("scores", {})
@@ -251,43 +308,56 @@ class PatientReportGenerator:
                 "roken": "Roken",
             }
 
-            for key, score in scores.items():
+            # Track row colors for styling
+            row_styles = []
+
+            for idx, (key, score) in enumerate(scores.items(), 1):
                 label = domain_labels.get(key, key.title())
                 score_str = f"{score:.1f}"
 
-                # Assessment based on score
+                # Determine color and assessment based on score
                 if score <= 2:
-                    assessment = "Goed"
+                    assessment = "🟢 Groen - Goed"
+                    bg_color = colors.HexColor("#e8f5e9")  # Light green
                 elif score <= 4:
-                    assessment = "Matig"
+                    assessment = "🟡 Geel - Matig"
+                    bg_color = colors.HexColor("#fff9e6")  # Light yellow
                 else:
-                    assessment = "Aandacht nodig"
+                    assessment = "🔴 Rood - Aandacht nodig"
+                    bg_color = colors.HexColor("#ffebee")  # Light red
 
                 data.append([label, score_str, assessment])
+                row_styles.append((idx, bg_color))
 
             table = Table(data, colWidths=[7 * cm, 3 * cm, 6 * cm])
-            table.setStyle(
-                TableStyle(
-                    [
-                        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2E5984")),
-                        ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-                        ("ALIGN", (0, 0), (-1, -1), "LEFT"),
-                        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                        ("FONTSIZE", (0, 0), (-1, 0), 11),
-                        ("BOTTOMPADDING", (0, 0), (-1, 0), 10),
-                        ("TOPPADDING", (0, 0), (-1, 0), 10),
-                        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-                        ("FONTSIZE", (0, 1), (-1, -1), 9),
-                        ("BOTTOMPADDING", (0, 1), (-1, -1), 6),
-                        ("TOPPADDING", (0, 1), (-1, -1), 6),
-                    ]
-                )
-            )
+            
+            # Build style commands
+            style_commands = [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1a4d80")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                ("ALIGN", (1, 1), (1, -1), "CENTER"),  # Center score column
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTSIZE", (0, 0), (-1, 0), 12),
+                ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                ("TOPPADDING", (0, 0), (-1, 0), 12),
+                ("GRID", (0, 0), (-1, -1), 1, colors.HexColor("#e0e0e0")),
+                ("FONTSIZE", (0, 1), (-1, -1), 10),
+                ("BOTTOMPADDING", (0, 1), (-1, -1), 8),
+                ("TOPPADDING", (0, 1), (-1, -1), 8),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ]
+            
+            # Add row-specific background colors
+            for row_idx, bg_color in row_styles:
+                style_commands.append(("BACKGROUND", (0, row_idx), (-1, row_idx), bg_color))
+            
+            table.setStyle(TableStyle(style_commands))
             story.append(table)
 
         # BMI if available
         if zlm_scores.get("bmi_value"):
-            story.append(Spacer(1, 0.3 * cm))
+            story.append(Spacer(1, 0.4 * cm))
             bmi_text = f"<b>BMI:</b> {zlm_scores['bmi_value']:.1f}"
             story.append(Paragraph(bmi_text, self.body_style))
 
@@ -296,36 +366,55 @@ class PatientReportGenerator:
         return story
 
     def _create_goals_section(self, goals: list[dict[str, Any]]) -> list:
-        """Create goals section."""
+        """Create goals section with modern design and text wrapping."""
         story = []
 
         story.append(Paragraph("Doelen", self.heading_style))
 
         if goals:
-            data = [["#", "Doel", "Status"]]
+            # Use Paragraph objects for text wrapping
+            data = [["#", "Doel", "Vastgesteld", "Status"]]
+
+            # Style for goal text with wrapping
+            goal_text_style = ParagraphStyle(
+                "GoalText",
+                parent=self.body_style,
+                fontSize=10,
+                leading=14,
+                spaceAfter=0,
+            )
 
             for idx, goal in enumerate(goals, 1):
                 goal_text = goal.get("goal", "")
                 status = goal.get("status", "In uitvoering")
+                date = goal.get("date", "")
 
-                data.append([str(idx), goal_text, status])
+                # Wrap goal text in Paragraph for automatic wrapping
+                goal_para = Paragraph(goal_text, goal_text_style)
 
-            table = Table(data, colWidths=[1 * cm, 11 * cm, 4 * cm])
+                data.append([str(idx), goal_para, date, status])
+
+            table = Table(data, colWidths=[1 * cm, 8 * cm, 3.5 * cm, 3.5 * cm])
             table.setStyle(
                 TableStyle(
                     [
-                        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2E5984")),
+                        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1a4d80")),
                         ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
                         ("ALIGN", (0, 0), (0, -1), "CENTER"),
+                        ("ALIGN", (2, 0), (2, -1), "CENTER"),  # Center date column
                         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
                         ("FONTSIZE", (0, 0), (-1, 0), 11),
-                        ("BOTTOMPADDING", (0, 0), (-1, 0), 10),
-                        ("TOPPADDING", (0, 0), (-1, 0), 10),
-                        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-                        ("FONTSIZE", (0, 1), (-1, -1), 9),
-                        ("BOTTOMPADDING", (0, 1), (-1, -1), 6),
-                        ("TOPPADDING", (0, 1), (-1, -1), 6),
-                        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                        ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                        ("TOPPADDING", (0, 0), (-1, 0), 12),
+                        ("GRID", (0, 0), (-1, -1), 1, colors.HexColor("#e0e0e0")),
+                        ("FONTSIZE", (0, 1), (0, -1), 10),  # Number column
+                        ("FONTSIZE", (2, 1), (-1, -1), 9),  # Date and status columns
+                        ("BOTTOMPADDING", (0, 1), (-1, -1), 8),
+                        ("TOPPADDING", (0, 1), (-1, -1), 8),
+                        ("LEFTPADDING", (0, 0), (-1, -1), 10),
+                        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+                        ("VALIGN", (0, 0), (-1, -1), "TOP"),  # Top align for better text flow
+                        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8f9fa")]),
                     ]
                 )
             )
@@ -500,7 +589,7 @@ class PatientReportGenerator:
         return Image(buf, width=16 * cm, height=8 * cm)
 
     def _create_medication_section(self, medications: list[dict[str, Any]]) -> list:
-        """Create medication section."""
+        """Create medication section with modern design."""
         story = []
 
         story.append(Paragraph("Medicatie", self.heading_style))
@@ -519,18 +608,21 @@ class PatientReportGenerator:
             table.setStyle(
                 TableStyle(
                     [
-                        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2E5984")),
+                        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1a4d80")),
                         ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
                         ("ALIGN", (0, 0), (-1, -1), "LEFT"),
                         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                        ("FONTSIZE", (0, 0), (-1, 0), 11),
-                        ("BOTTOMPADDING", (0, 0), (-1, 0), 10),
-                        ("TOPPADDING", (0, 0), (-1, 0), 10),
-                        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-                        ("FONTSIZE", (0, 1), (-1, -1), 9),
-                        ("BOTTOMPADDING", (0, 1), (-1, -1), 6),
-                        ("TOPPADDING", (0, 1), (-1, -1), 6),
-                        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                        ("FONTSIZE", (0, 0), (-1, 0), 12),
+                        ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                        ("TOPPADDING", (0, 0), (-1, 0), 12),
+                        ("GRID", (0, 0), (-1, -1), 1, colors.HexColor("#e0e0e0")),
+                        ("FONTSIZE", (0, 1), (-1, -1), 10),
+                        ("BOTTOMPADDING", (0, 1), (-1, -1), 10),
+                        ("TOPPADDING", (0, 1), (-1, -1), 10),
+                        ("LEFTPADDING", (0, 0), (-1, -1), 12),
+                        ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+                        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8f9fa")]),
                     ]
                 )
             )
