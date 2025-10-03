@@ -392,7 +392,6 @@ class PatientReportDataAggregator:
                 
                 meds_list = []
                 # Use regex to split more intelligently: look for ", " followed by a word and " - "
-                import re
                 # Split on ", " but only if followed by text and " - " (new medication pattern)
                 med_parts = re.split(r',\s+(?=[A-Z])', medication_text)
                 
