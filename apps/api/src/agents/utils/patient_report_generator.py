@@ -22,6 +22,7 @@ from reportlab.lib.units import cm
 from reportlab.pdfgen import canvas
 from reportlab.platypus import (
     Image,
+    PageBreak,
     Paragraph,
     SimpleDocTemplate,
     Spacer,
@@ -137,26 +138,31 @@ class PatientReportGenerator:
 
         # Cover page
         story.extend(self._create_cover(report_data))
+        story.append(PageBreak())  # Start nieuwe pagina na cover
 
         # Profile section
         if report_data.get("profile"):
             story.extend(self._create_profile_section(report_data["profile"]))
 
+        # Medication section (boven ZLM)
+        if report_data.get("medications"):
+            story.append(PageBreak())  # Nieuwe pagina voor Medicatie
+            story.extend(self._create_medication_section(report_data["medications"]))
+
         # ZLM section
         if report_data.get("zlm_scores"):
+            story.append(PageBreak())  # Nieuwe pagina voor ZLM
             story.extend(self._create_zlm_section(report_data["zlm_scores"]))
 
         # Goals section
         if report_data.get("goals"):
+            story.append(PageBreak())  # Nieuwe pagina voor Doelen
             story.extend(self._create_goals_section(report_data["goals"]))
 
-        # Steps section
+        # Steps section (onderaan)
         if report_data.get("steps_data"):
+            story.append(PageBreak())  # Nieuwe pagina voor Stappen
             story.extend(self._create_steps_section(report_data["steps_data"]))
-
-        # Medication section
-        if report_data.get("medications"):
-            story.extend(self._create_medication_section(report_data["medications"]))
 
         # Build PDF
         doc.build(story, onFirstPage=self._add_header_footer, onLaterPages=self._add_header_footer)
@@ -310,6 +316,7 @@ class PatientReportGenerator:
 
             # Track row colors for styling
             row_styles = []
+            assessment_colors = []
 
             for idx, (key, score) in enumerate(scores.items(), 1):
                 label = domain_labels.get(key, key.title())
@@ -317,17 +324,24 @@ class PatientReportGenerator:
 
                 # Determine color and assessment based on score
                 if score <= 2:
-                    assessment = "🟢 Groen - Goed"
-                    bg_color = colors.HexColor("#e8f5e9")  # Light green
+                    assessment = "Groen - Goed"
+                    bg_color = colors.HexColor("#e8f5e9")  # Light green background
+                    assessment_color = colors.HexColor("#2e7d32")  # Dark green text
+                    assessment_bg = colors.HexColor("#66bb6a")  # Green badge
                 elif score <= 4:
-                    assessment = "🟡 Geel - Matig"
-                    bg_color = colors.HexColor("#fff9e6")  # Light yellow
+                    assessment = "Geel - Matig"
+                    bg_color = colors.HexColor("#fff9e6")  # Light yellow background
+                    assessment_color = colors.HexColor("#f57c00")  # Dark orange text
+                    assessment_bg = colors.HexColor("#ffca28")  # Yellow badge
                 else:
-                    assessment = "🔴 Rood - Aandacht nodig"
-                    bg_color = colors.HexColor("#ffebee")  # Light red
+                    assessment = "Rood - Aandacht nodig"
+                    bg_color = colors.HexColor("#ffebee")  # Light red background
+                    assessment_color = colors.HexColor("#c62828")  # Dark red text
+                    assessment_bg = colors.HexColor("#ef5350")  # Red badge
 
                 data.append([label, score_str, assessment])
                 row_styles.append((idx, bg_color))
+                assessment_colors.append((idx, assessment_bg, assessment_color))
 
             table = Table(data, colWidths=[7 * cm, 3 * cm, 6 * cm])
             
@@ -337,7 +351,9 @@ class PatientReportGenerator:
                 ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
                 ("ALIGN", (0, 0), (-1, -1), "LEFT"),
                 ("ALIGN", (1, 1), (1, -1), "CENTER"),  # Center score column
+                ("ALIGN", (2, 1), (2, -1), "CENTER"),  # Center assessment column
                 ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTNAME", (2, 1), (2, -1), "Helvetica-Bold"),  # Bold assessment text
                 ("FONTSIZE", (0, 0), (-1, 0), 12),
                 ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
                 ("TOPPADDING", (0, 0), (-1, 0), 12),
@@ -348,9 +364,14 @@ class PatientReportGenerator:
                 ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
             ]
             
-            # Add row-specific background colors
+            # Add row-specific background colors for entire row
             for row_idx, bg_color in row_styles:
-                style_commands.append(("BACKGROUND", (0, row_idx), (-1, row_idx), bg_color))
+                style_commands.append(("BACKGROUND", (0, row_idx), (1, row_idx), bg_color))
+            
+            # Add assessment column colors (colored badge effect)
+            for row_idx, assessment_bg, assessment_color in assessment_colors:
+                style_commands.append(("BACKGROUND", (2, row_idx), (2, row_idx), assessment_bg))
+                style_commands.append(("TEXTCOLOR", (2, row_idx), (2, row_idx), colors.white))
             
             table.setStyle(TableStyle(style_commands))
             story.append(table)
