@@ -1291,7 +1291,10 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                 for dp in steps_data
             ]
 
-        async def tool_generate_patient_report(period_days: int = 30) -> tuple[str, bool]:
+        async def tool_generate_patient_report(
+            period_days: int = 30,
+            reason: str = "Periodieke evaluatie"
+        ) -> tuple[str, bool]:
             """Genereer een professioneel patiënt verslag als PDF.
 
             Dit verslag bevat een overzicht van de patient zijn/haar:
@@ -1307,6 +1310,9 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
             Args:
                 period_days (int): Aantal dagen terug om data te verzamelen.
                                   Default is 30 dagen (laatste maand).
+                reason (str): De aanleiding voor het verslag. Bijvoorbeeld:
+                             "Bezoek huisarts", "Controle POH", "Bezoek longarts",
+                             "Opname ziekenhuis", "Periodieke evaluatie".
 
             Returns:
                 tuple[str, bool]: (JSON widget data, True) for widget rendering
@@ -1324,7 +1330,10 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                 aggregator = PatientReportDataAggregator(
                     thread_id=self.thread_id, onesignal_id=onesignal_id
                 )
-                report_data = await aggregator.aggregate_report_data(period_days=period_days)
+                report_data = await aggregator.aggregate_report_data(
+                    period_days=period_days,
+                    reason=reason
+                )
 
                 # Generate PDF
                 generator = PatientReportGenerator()

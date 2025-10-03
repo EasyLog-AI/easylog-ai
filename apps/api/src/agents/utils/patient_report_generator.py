@@ -189,11 +189,13 @@ class PatientReportGenerator:
         # Patient info in a nice box
         patient_name = report_data.get("patient_name", "Patiënt")
         period = report_data.get("period", "")
+        reason = report_data.get("reason", "Periodieke evaluatie")
         generated_date = datetime.now(pytz.timezone("Europe/Amsterdam")).strftime("%d %B %Y")
 
         # Create info table with modern styling
         info_data = [
             ["Patiënt:", patient_name],
+            ["Aanleiding:", reason],
             ["Rapportageperiode:", period],
             ["Gegenereerd:", generated_date],
         ]
@@ -203,19 +205,18 @@ class PatientReportGenerator:
             TableStyle(
                 [
                     ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f8f9fa")),
-                    # Highlight periode row with accent color
-                    ("BACKGROUND", (0, 1), (-1, 1), colors.HexColor("#e3f2fd")),
+                    # Highlight periode row (now row 2) with accent color
+                    ("BACKGROUND", (0, 2), (-1, 2), colors.HexColor("#e3f2fd")),
                     ("TEXTCOLOR", (0, 0), (0, -1), colors.HexColor("#1a4d80")),
                     ("TEXTCOLOR", (1, 0), (1, -1), colors.HexColor("#333333")),
                     # Make periode row bold and larger
-                    ("FONTNAME", (0, 1), (-1, 1), "Helvetica-Bold"),
-                    ("FONTSIZE", (0, 1), (-1, 1), 13),
+                    ("FONTNAME", (0, 2), (-1, 2), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 2), (-1, 2), 13),
                     ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
                     ("FONTNAME", (1, 0), (1, 0), "Helvetica"),  # Patient name regular
-                    ("FONTNAME", (1, 2), (1, 2), "Helvetica"),  # Generated date regular
-                    ("FONTSIZE", (0, 0), (0, 0), 12),  # Other rows
-                    ("FONTSIZE", (1, 0), (1, 0), 12),
-                    ("FONTSIZE", (0, 2), (-1, 2), 12),
+                    ("FONTNAME", (1, 1), (1, 1), "Helvetica"),  # Reason regular
+                    ("FONTNAME", (1, 3), (1, 3), "Helvetica"),  # Generated date regular
+                    ("FONTSIZE", (0, 0), (-1, -1), 12),  # Default for all rows
                     ("LEFTPADDING", (0, 0), (-1, -1), 20),
                     ("RIGHTPADDING", (0, 0), (-1, -1), 20),
                     ("TOPPADDING", (0, 0), (-1, -1), 14),
@@ -255,10 +256,16 @@ class PatientReportGenerator:
             data.append(["Leeftijd", str(profile["age"]) + " jaar"])
         if profile.get("gender"):
             data.append(["Geslacht", profile["gender"]])
+        if profile.get("bmi"):
+            data.append(["BMI", f"{profile['bmi']:.1f}"])
         if profile.get("diagnosis"):
             data.append(["Diagnose", profile["diagnosis"]])
         if profile.get("comorbidities"):
             data.append(["Comorbiditeit", profile["comorbidities"]])
+        if profile.get("living_situation"):
+            data.append(["Leefsituatie", profile["living_situation"]])
+        if profile.get("support"):
+            data.append(["Support", profile["support"]])
 
         if data:
             table = Table(data, colWidths=[5 * cm, 11 * cm])

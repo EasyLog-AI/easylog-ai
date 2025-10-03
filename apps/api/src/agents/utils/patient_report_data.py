@@ -28,11 +28,12 @@ class PatientReportDataAggregator:
         self.onesignal_id = onesignal_id
         self.amsterdam_tz = pytz.timezone("Europe/Amsterdam")
 
-    async def aggregate_report_data(self, period_days: int = 30) -> dict[str, Any]:
+    async def aggregate_report_data(self, period_days: int = 30, reason: str = "Periodieke evaluatie") -> dict[str, Any]:
         """Aggregate all report data for the patient.
 
         Args:
             period_days: Number of days to look back for data
+            reason: Reason for generating the report (e.g., "Bezoek arts", "Controle POH")
 
         Returns:
             Dictionary containing all report sections
@@ -52,6 +53,13 @@ class PatientReportDataAggregator:
         # Collect data from various sources
         profile_data = await self._extract_profile_data(metadata)
         zlm_data = await self._extract_zlm_data(metadata)
+        
+        # Add latest BMI to profile if available
+        if zlm_data.get("measurements") and len(zlm_data["measurements"]) > 0:
+            latest_bmi = zlm_data["measurements"][0].get("bmi_value")
+            if latest_bmi:
+                profile_data["bmi"] = latest_bmi
+        
         goals_data = await self._extract_goals_data(metadata)
         steps_data = await self._extract_steps_data(start_date, end_date)
         medication_data = await self._extract_medication_data(metadata)
@@ -74,6 +82,7 @@ class PatientReportDataAggregator:
             "patient_name": patient_name,
             "period": period_str,
             "period_days": period_days,
+            "reason": reason,
             "profile": profile_data,
             "zlm_scores": zlm_data,
             "goals": goals_data,
@@ -123,6 +132,26 @@ class PatientReportDataAggregator:
                 match = re.search(r"comorbid[^\n]*:\s*([^\n]+)", memory_text, re.IGNORECASE)
                 if match:
                     profile["comorbidities"] = match.group(1).strip()
+            
+            # Extract living situation
+            if "leefsituatie" in memory_text or "living situation" in memory_text or "woonsituatie" in memory_text:
+                # Look for patterns like "woont alleen", "woont samen", etc.
+                if "alleen" in memory_text:
+                    profile["living_situation"] = "Woont alleen"
+                elif "samen" in memory_text or "partner" in memory_text:
+                    profile["living_situation"] = "Woont samen met partner"
+                elif "familie" in memory_text:
+                    profile["living_situation"] = "Woont bij familie"
+                # Or extract directly after colon
+                match = re.search(r"(?:leefsituatie|living situation|woonsituatie)[:\s]+([^\n]+)", memory_text, re.IGNORECASE)
+                if match:
+                    profile["living_situation"] = match.group(1).strip()
+            
+            # Extract support system
+            if "support" in memory_text or "mantelzorg" in memory_text or "ondersteuning" in memory_text:
+                match = re.search(r"(?:support|mantelzorg|ondersteuning)[:\s]+([^\n]+)", memory_text, re.IGNORECASE)
+                if match:
+                    profile["support"] = match.group(1).strip()
 
         return profile
 
