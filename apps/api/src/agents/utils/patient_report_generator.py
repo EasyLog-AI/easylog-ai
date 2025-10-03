@@ -9,9 +9,11 @@ This module generates professional PDF reports for COPD patients containing:
 """
 
 import io
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any
 
+import matplotlib
+import matplotlib.pyplot as plt
 import pytz
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -19,12 +21,16 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
 from reportlab.pdfgen import canvas
 from reportlab.platypus import (
+    Image,
     Paragraph,
     SimpleDocTemplate,
     Spacer,
     Table,
     TableStyle,
 )
+
+# Use non-interactive backend for matplotlib
+matplotlib.use("Agg")
 
 
 class PatientReportGenerator:
@@ -376,7 +382,122 @@ class PatientReportGenerator:
 
         story.append(Spacer(1, 0.5 * cm))
 
+        # Add chart if daily data is available
+        daily_data = steps_data.get("daily_data", [])
+        if daily_data and len(daily_data) > 1:
+            chart_image = self._generate_steps_chart(daily_data, goal)
+            story.append(chart_image)
+            story.append(Spacer(1, 0.3 * cm))
+
         return story
+
+    def _generate_steps_chart(self, daily_data: list[dict[str, Any]], goal: int) -> Image:
+        """Generate a line chart showing daily steps over time.
+
+        Args:
+            daily_data: List of dicts with 'date' (YYYY-MM-DD) and 'steps' keys
+            goal: Daily steps goal
+
+        Returns:
+            ReportLab Image object containing the chart
+        """
+        # Extract dates and steps
+        dates = [datetime.strptime(d["date"], "%Y-%m-%d") for d in daily_data]
+        steps = [d["steps"] for d in daily_data]
+
+        # Create figure with professional styling
+        fig, ax = plt.subplots(figsize=(10, 5), dpi=100)
+        fig.patch.set_facecolor("white")
+
+        # Plot steps line
+        ax.plot(
+            dates,
+            steps,
+            linewidth=2.5,
+            color="#4A90E2",  # Professional blue
+            marker="o",
+            markersize=6,
+            markerfacecolor="#4A90E2",
+            markeredgecolor="white",
+            markeredgewidth=1.5,
+            label="Dagelijkse stappen",
+            zorder=3,
+        )
+
+        # Plot goal line
+        ax.axhline(
+            y=goal,
+            color="#28A745",  # Green for goal
+            linestyle="--",
+            linewidth=2,
+            label=f"Doel ({goal:,} stappen)",
+            zorder=2,
+        )
+
+        # Styling
+        ax.set_xlabel("Datum", fontsize=11, fontweight="bold", color="#2E5984")
+        ax.set_ylabel("Aantal stappen", fontsize=11, fontweight="bold", color="#2E5984")
+        ax.set_title(
+            "Stappen per dag",
+            fontsize=14,
+            fontweight="bold",
+            color="#2E5984",
+            pad=15,
+        )
+
+        # Grid
+        ax.grid(True, alpha=0.3, linestyle="-", linewidth=0.5, color="#CCCCCC", zorder=1)
+        ax.set_axisbelow(True)
+
+        # Format x-axis dates
+        if len(dates) <= 7:
+            # Week view: show all dates
+            date_format = "%d %b"
+        elif len(dates) <= 31:
+            # Month view: show every few days
+            ax.xaxis.set_major_locator(plt.MaxNLocator(7))
+            date_format = "%d %b"
+        else:
+            # Longer period: show weeks
+            ax.xaxis.set_major_locator(plt.MaxNLocator(8))
+            date_format = "%d %b"
+
+        ax.xaxis.set_major_formatter(plt.matplotlib.dates.DateFormatter(date_format))
+        plt.xticks(rotation=45, ha="right")
+
+        # Y-axis formatting with thousands separator
+        ax.yaxis.set_major_formatter(plt.matplotlib.ticker.FuncFormatter(
+            lambda x, p: f"{int(x):,}"
+        ))
+
+        # Set y-axis limits with some padding
+        max_steps = max(steps + [goal])
+        ax.set_ylim(0, max_steps * 1.15)
+
+        # Legend
+        ax.legend(
+            loc="upper left",
+            framealpha=0.95,
+            edgecolor="#CCCCCC",
+            fontsize=10,
+        )
+
+        # Spine styling
+        for spine in ax.spines.values():
+            spine.set_color("#CCCCCC")
+            spine.set_linewidth(1)
+
+        # Tight layout
+        plt.tight_layout()
+
+        # Save to bytes buffer
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png", dpi=150, bbox_inches="tight", facecolor="white")
+        plt.close(fig)
+        buf.seek(0)
+
+        # Return as ReportLab Image
+        return Image(buf, width=16 * cm, height=8 * cm)
 
     def _create_medication_section(self, medications: list[dict[str, Any]]) -> list:
         """Create medication section."""

@@ -278,11 +278,18 @@ class PatientReportDataAggregator:
                         goal = int(goal_match.group(1))
                         break
 
+        # Convert daily_totals to list of dicts for chart
+        daily_data = [
+            {"date": date_str, "steps": steps}
+            for date_str, steps in sorted(daily_totals.items())
+        ]
+
         return {
             "average_steps": average_steps,
             "total_steps": total_steps,
             "days_tracked": days_tracked,
             "goal": goal,
+            "daily_data": daily_data,
         }
 
     async def _extract_medication_data(self, metadata: dict[str, Any]) -> list[dict[str, Any]]:
