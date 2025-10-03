@@ -447,7 +447,7 @@ class PatientReportGenerator:
 
         if goals:
             # Use Paragraph objects for text wrapping
-            data = [["#", "Doel", "Vastgesteld", "Status"]]
+            data = [["#", "Doel", "Startdatum", "Status"]]
 
             # Style for goal text with wrapping
             goal_text_style = ParagraphStyle(
@@ -681,7 +681,7 @@ class PatientReportGenerator:
             story.append(Paragraph(date_text, self.body_style))
             story.append(Spacer(1, 0.3 * cm))
             
-            data = [["Medicijn", "Dosering", "Aantal pufjes per dag"]]
+            data = [["Medicijn", "Dosering", "Aantal pufjes per dag", "Start medicatie"]]
 
             # Style for medication text with wrapping
             med_text_style = ParagraphStyle(
@@ -696,15 +696,16 @@ class PatientReportGenerator:
                 name = med.get("name", "")
                 dosage = med.get("dosage", "")
                 timing = med.get("timing", "")
+                start_date = latest_update.get("date", "")
 
                 # Wrap medication in Paragraph for automatic wrapping
                 name_para = Paragraph(name, med_text_style) if name else ""
                 dosage_para = Paragraph(dosage, med_text_style) if dosage else ""
                 timing_para = Paragraph(timing, med_text_style) if timing else ""
 
-                data.append([name_para, dosage_para, timing_para])
+                data.append([name_para, dosage_para, timing_para, start_date])
 
-            table = Table(data, colWidths=[6 * cm, 5 * cm, 5 * cm])
+            table = Table(data, colWidths=[5.5 * cm, 4.5 * cm, 4.5 * cm, 2.5 * cm])
             table.setStyle(
                 TableStyle(
                     [
