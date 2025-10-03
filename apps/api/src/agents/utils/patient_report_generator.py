@@ -320,6 +320,11 @@ class PatientReportGenerator:
 
             for idx, (key, score) in enumerate(scores.items(), 1):
                 label = domain_labels.get(key, key.title())
+                
+                # Skip gewicht_bmi as we'll add actual BMI value separately
+                if key == "gewicht_bmi":
+                    continue
+                
                 score_str = f"{score:.1f}"
 
                 # Determine color and assessment based on score
@@ -340,8 +345,35 @@ class PatientReportGenerator:
                     assessment_bg = colors.HexColor("#ef5350")  # Red badge
 
                 data.append([label, score_str, assessment])
-                row_styles.append((idx, bg_color))
-                assessment_colors.append((idx, assessment_bg, assessment_color))
+                row_styles.append((len(data) - 1, bg_color))
+                assessment_colors.append((len(data) - 1, assessment_bg, assessment_color))
+            
+            # Add BMI as separate row with actual value
+            if zlm_scores.get("bmi_value"):
+                bmi_value = zlm_scores["bmi_value"]
+                bmi_str = f"{bmi_value:.1f}"
+                
+                # Determine BMI assessment based on standard ranges
+                if bmi_value < 18.5:
+                    bmi_assessment = "Ondergewicht"
+                    bg_color = colors.HexColor("#fff9e6")
+                    assessment_bg = colors.HexColor("#ffca28")
+                elif 18.5 <= bmi_value < 25:
+                    bmi_assessment = "Normaal gewicht"
+                    bg_color = colors.HexColor("#e8f5e9")
+                    assessment_bg = colors.HexColor("#66bb6a")
+                elif 25 <= bmi_value < 30:
+                    bmi_assessment = "Overgewicht"
+                    bg_color = colors.HexColor("#fff9e6")
+                    assessment_bg = colors.HexColor("#ffca28")
+                else:
+                    bmi_assessment = "Obesitas"
+                    bg_color = colors.HexColor("#ffebee")
+                    assessment_bg = colors.HexColor("#ef5350")
+                
+                data.append(["BMI", bmi_str, bmi_assessment])
+                row_styles.append((len(data) - 1, bg_color))
+                assessment_colors.append((len(data) - 1, assessment_bg, colors.white))
 
             table = Table(data, colWidths=[7 * cm, 3 * cm, 6 * cm])
             
@@ -375,12 +407,6 @@ class PatientReportGenerator:
             
             table.setStyle(TableStyle(style_commands))
             story.append(table)
-
-        # BMI if available
-        if zlm_scores.get("bmi_value"):
-            story.append(Spacer(1, 0.4 * cm))
-            bmi_text = f"<b>BMI:</b> {zlm_scores['bmi_value']:.1f}"
-            story.append(Paragraph(bmi_text, self.body_style))
 
         story.append(Spacer(1, 0.5 * cm))
 
