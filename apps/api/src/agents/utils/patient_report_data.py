@@ -287,8 +287,13 @@ class PatientReportDataAggregator:
 
                 # Format date if available
                 date_str = ""
-                # 1) Prefer explicit date in memory text e.g. "Vastgesteld: 03-10-2025"
-                m = re.search(r"Vastgesteld[:\s]+(\d{2}-\d{2}-\d{4})", memory_text, re.IGNORECASE)
+                # 1) Try various date patterns in memory text
+                # Pattern 1: "Vastgesteld: DD-MM-YYYY" or "vastgesteld op DD-MM-YYYY"
+                m = re.search(r"(?:Vastgesteld|vastgesteld|Started|started)[\s:op]+(\d{2}-\d{2}-\d{4})", memory_text, re.IGNORECASE)
+                if not m:
+                    # Pattern 2: Any DD-MM-YYYY in the text
+                    m = re.search(r"(\d{2}-\d{2}-\d{4})", memory_text)
+                
                 if m:
                     date_str = m.group(1)
                 elif created_at:
@@ -404,9 +409,19 @@ class PatientReportDataAggregator:
 
             # Check if it's medication memory
             if any(keyword in memory_lower for keyword in ["medication updated:", "medicatie updated:", "medication:", "medicatie:"]):
-                # Extract date from created_at
+                # Extract date - prioritize date in text, then created_at
                 date_str = ""
-                if created_at:
+                
+                # Try to find date in memory text (various patterns)
+                # Pattern 1: "Updated: DD-MM-YYYY" or "Gestart: DD-MM-YYYY"
+                date_match = re.search(r"(?:Updated|Gestart|Started|Since|Sinds)[\s:]+(\d{2}-\d{2}-\d{4})", memory_text, re.IGNORECASE)
+                if not date_match:
+                    # Pattern 2: Any DD-MM-YYYY in the text
+                    date_match = re.search(r"(\d{2}-\d{2}-\d{4})", memory_text)
+                
+                if date_match:
+                    date_str = date_match.group(1)
+                elif created_at:
                     try:
                         if isinstance(created_at, str):
                             date_obj = datetime.fromisoformat(created_at.replace("Z", "+00:00"))

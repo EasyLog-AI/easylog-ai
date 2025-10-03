@@ -675,13 +675,7 @@ class PatientReportGenerator:
             # Show only the most recent update
             latest_update = updates[0]
             
-            # Add date subtitle - always show, even if empty
-            date_str = latest_update.get("date", "Onbekend")
-            date_text = f"<b>Start datum:</b> {date_str}"
-            story.append(Paragraph(date_text, self.body_style))
-            story.append(Spacer(1, 0.3 * cm))
-            
-            data = [["Medicijn", "Dosering", "Dosis", "Start datum"]]
+            data = [["Medicijn", "Dosering", "Dosis", "StartDatum"]]
 
             # Style for medication text with wrapping
             med_text_style = ParagraphStyle(
