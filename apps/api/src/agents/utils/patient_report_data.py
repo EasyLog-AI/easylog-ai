@@ -68,15 +68,24 @@ class PatientReportDataAggregator:
         goals_data = await self._extract_goals_data(metadata)
         print(f"📋 DEBUG: Goals: {len(goals_data)}")
         for idx, g in enumerate(goals_data[:3], 1):
-            print(f"  - Goal {idx}: {g.get('goal')[:50]}... | date={g.get('date')}")
+            goal_text = g.get('goal', '')
+            goal_preview = goal_text[:50] if len(goal_text) > 50 else goal_text
+            print(f"  - Goal {idx}: {goal_preview} | date='{g.get('date', 'NO DATE')}'")  
+
         
         steps_data = await self._extract_steps_data(start_date, end_date)
         print(f"📋 DEBUG: Steps goal: {steps_data.get('goal')}, daily data: {len(steps_data.get('daily_steps', []))}")
+        if steps_data.get('goal') == 0:
+            print("  ⚠️  Steps goal is 0! Checking memories for goal pattern...")
+            for memory in metadata.get('memories', []):
+                mem_text = memory.get('memory', '')
+                if 'stappen' in mem_text.lower() or 'steps' in mem_text.lower():
+                    print(f"    Found memory: {mem_text[:100]}")
         
         medication_data = await self._extract_medication_data(metadata)
         print(f"📋 DEBUG: Medication updates: {len(medication_data.get('updates', []))}")
         for idx, u in enumerate(medication_data.get("updates", [])[:2], 1):
-            print(f"  - Update {idx}: date={u.get('date')}, meds={len(u.get('medications', []))}")
+            print(f"  - Update {idx}: date='{u.get('date', 'NO DATE')}', meds={len(u.get('medications', []))}")
 
         # Patient name from memories
         patient_name = "Patiënt"
@@ -183,6 +192,12 @@ class PatientReportDataAggregator:
         
         # Extract ZLM scores from memories
         memories = metadata.get("memories", [])
+        
+        zlm_memory_count = 0
+        for m in memories:
+            if 'zlm' in m.get('memory', '').lower():
+                zlm_memory_count += 1
+        print(f"  🔍 Found {zlm_memory_count} ZLM-related memories")
 
         for memory in memories:
             memory_text = memory.get("memory", "")
@@ -340,11 +355,16 @@ class PatientReportDataAggregator:
         if thread and thread.metadata:
             memories = thread.metadata.get("memories", [])
             for memory in memories:
-                memory_text = memory.get("memory", "").lower()
-                if "stappen" in memory_text or "steps" in memory_text:
-                    goal_match = re.search(r"(\d+)\s*stappen", memory_text)
+                memory_text = memory.get("memory", "")
+                memory_lower = memory_text.lower()
+                if "stappen" in memory_lower or "steps" in memory_lower:
+                    # Match numbers with optional thousand separators (dots or commas)
+                    # E.g., "8000", "8.000", "12,000", "12.000 stappen"
+                    goal_match = re.search(r"(\d{1,3}(?:[.,]\d{3})*)\s*stappen", memory_lower)
                     if goal_match:
-                        goal = int(goal_match.group(1))
+                        # Remove thousand separators and convert to int
+                        goal_str = goal_match.group(1).replace('.', '').replace(',', '')
+                        goal = int(goal_str)
                         break
 
         # Convert daily_totals to list of dicts for chart
