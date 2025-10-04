@@ -301,7 +301,7 @@ class PatientReportGenerator:
         # Introduction
         intro_text = (
             "De Ziektelastmeter (ZLM) meet de impact van COPD op verschillende levensdomeinen. "
-            "Scores variëren van 0 (geen last) tot 6 (maximale last). De ballonkleur geeft de ernst aan."
+            "Scores variëren van 0 (geen last) tot 6 (maximale last). De kleur geeft de ernst aan."
         )
         story.append(Paragraph(intro_text, self.body_style))
         story.append(Spacer(1, 0.4 * cm))
@@ -332,9 +332,13 @@ class PatientReportGenerator:
             
             # Create a table for each measurement
             for idx, measurement in enumerate(measurements):
+                # Add page break before 2nd and subsequent measurements
+                if idx > 0:
+                    story.append(PageBreak())
+                
                 # Add date subtitle
                 if measurement.get("date"):
-                    date_text = f"Meting op: {measurement['date']}"
+                    date_text = f"ZLM Meting op: {measurement['date']}"
                     story.append(Paragraph(date_text, self.subheading_style))
                     story.append(Spacer(1, 0.2 * cm))
                 
@@ -429,10 +433,6 @@ class PatientReportGenerator:
                 
                 table.setStyle(TableStyle(style_commands))
                 story.append(table)
-                
-                # Add spacing between measurements (if there are more)
-                if idx < len(measurements) - 1:
-                    story.append(Spacer(1, 0.8 * cm))
 
         story.append(Spacer(1, 0.5 * cm))
 
