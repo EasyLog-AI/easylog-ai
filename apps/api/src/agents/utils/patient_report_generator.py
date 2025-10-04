@@ -675,7 +675,7 @@ class PatientReportGenerator:
             # Show only the most recent update
             latest_update = updates[0]
             
-            data = [["Medicijn", "Dosering", "Dosis", "StartDatum"]]
+            data = [["Medicijn", "Dosering", "Dosis", "Datum"]]
 
             # Style for medication text with wrapping
             med_text_style = ParagraphStyle(

@@ -174,7 +174,10 @@ class PatientReportDataAggregator:
             if "support" in memory_text or "mantelzorg" in memory_text or "ondersteuning" in memory_text:
                 match = re.search(r"(?:support|mantelzorg|ondersteuning)[:\s]+([^\n]+)", memory_text, re.IGNORECASE)
                 if match:
-                    profile["support"] = match.group(1).strip()
+                    support_value = match.group(1).strip()
+                    # Only add if there's meaningful content (not empty, not just "geen")
+                    if support_value and support_value.lower() not in ["geen", "niet", "nvt", "n.v.t.", "n/a"]:
+                        profile["support"] = support_value
 
         return profile
 
