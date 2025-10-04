@@ -427,7 +427,7 @@ class PatientReportDataAggregator:
             created_at = memory.get("created_at") or memory.get("createdAt")
 
             # Check if it's medication memory
-            if any(keyword in memory_lower for keyword in ["medication updated:", "medicatie updated:", "medication:", "medicatie:"]):
+            if any(keyword in memory_lower for keyword in ["medication updated:", "medicatie updated:", "medication dosage:", "medication:", "medicatie:"]):
                 # Extract date - prioritize date in text, then created_at
                 date_str = ""
                 
@@ -463,8 +463,8 @@ class PatientReportDataAggregator:
                     except Exception:
                         date_str = ""
                 
-                # Remove the prefix (e.g., "Medication updated: ")
-                medication_text = re.split(r"(?:medication updated:|medicatie updated:|medication:|medicatie:)\s*", memory_text, maxsplit=1, flags=re.IGNORECASE)
+                # Remove the prefix (e.g., "Medication updated: ", "Medication dosage: ")
+                medication_text = re.split(r"(?:medication updated:|medicatie updated:|medication dosage:|medication:|medicatie:)\s*", memory_text, maxsplit=1, flags=re.IGNORECASE)
                 if len(medication_text) > 1:
                     medication_text = medication_text[1]
                 else:
