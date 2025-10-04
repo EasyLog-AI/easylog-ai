@@ -489,7 +489,7 @@ class PatientReportDataAggregator:
                         
                         # Check if second part looks like dosering (contains 'mcg', 'mg', numbers)
                         second_part = parts[1].strip()
-                        if any(unit in second_part.lower() for unit in ['mcg', 'mg', 'ml', 'g']) or any(char.isdigit() for char in second_part):
+                        if any(unit in second_part.lower() for unit in ['mcg', 'mg', 'ml', 'g', 'ug', 'microgram']) or any(char.isdigit() for char in second_part):
                             # Has dosage
                             dosage = second_part
                             timing = parts[2].strip() if len(parts) > 2 else ""
@@ -497,6 +497,19 @@ class PatientReportDataAggregator:
                             # No dosage, second part is timing
                             dosage = ""
                             timing = second_part
+                        
+                        # Extract dosage from name if it contains dosage info
+                        # Pattern: number + unit (mcg, mg, ug, microgram) potentially with /puf, /dosis, /actuatie
+                        dosage_pattern = r'(\d+(?:[./]\d+)*\s*(?:mcg|mg|ug|microgram)(?:\s*[/]?\s*(?:puf|dosis|actuatie|per\s+puf|per\s+dosis|per\s+actuatie))?)'
+                        name_dosage_match = re.search(dosage_pattern, name, re.IGNORECASE)
+                        
+                        if name_dosage_match and not dosage:
+                            # Dosage found in name, extract it
+                            dosage = name_dosage_match.group(1).strip()
+                            # Remove dosage from name
+                            name = re.sub(dosage_pattern, '', name, flags=re.IGNORECASE).strip()
+                            # Clean up extra spaces
+                            name = re.sub(r'\s+', ' ', name).strip()
                         
                         # Only add if we have at least a name
                         if name:
@@ -506,10 +519,24 @@ class PatientReportDataAggregator:
                                 "timing": timing
                             })
                     elif len(parts) == 1 and parts[0].strip():
-                        # Just a name, no dosage or timing
+                        # Just a name, possibly with dosage embedded
+                        full_text = parts[0].strip()
+                        
+                        # Try to extract dosage from the text
+                        dosage_pattern = r'(\d+(?:[./]\d+)*\s*(?:mcg|mg|ug|microgram)(?:\s*[/]?\s*(?:puf|dosis|actuatie|per\s+puf|per\s+dosis|per\s+actuatie))?)'
+                        dosage_match = re.search(dosage_pattern, full_text, re.IGNORECASE)
+                        
+                        if dosage_match:
+                            dosage = dosage_match.group(1).strip()
+                            name = re.sub(dosage_pattern, '', full_text, flags=re.IGNORECASE).strip()
+                            name = re.sub(r'\s+', ' ', name).strip()
+                        else:
+                            name = full_text
+                            dosage = ""
+                        
                         meds_list.append({
-                            "name": parts[0].strip(),
-                            "dosage": "",
+                            "name": name,
+                            "dosage": dosage,
                             "timing": ""
                         })
                 
