@@ -1971,13 +1971,37 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
                 
                 steps_today = sum(dp.value for dp in steps_data)
                 
-                # Extract steps goal from memories
+                # Extract steps goal from memories with priority
+                # 1. Look for explicit "Goal" memories first (highest priority)
+                # 2. Handle progressive goals (van X naar Y -> take X)
+                # 3. Skip ZLM scores (contain "score")
                 for mem in memories:
                     mem_text = mem.get("memory", "").lower()
+                    
+                    # Skip ZLM score memories
+                    if "score" in mem_text or "zlm-" in mem_text:
+                        continue
+                        
                     if "stappen" in mem_text or "steps" in mem_text:
-                        match = re.search(r'(\d+)\s*stappen', mem_text)
+                        # Check for progressive goal pattern: "van X naar Y" or "start met X"
+                        progressive_match = re.search(r'(?:van|start met)\s*(\d{1,3}(?:\.\d{3})*)\s*stappen', mem_text)
+                        if progressive_match:
+                            steps_goal = int(progressive_match.group(1).replace('.', ''))
+                            self.logger.info(f"Found progressive steps goal: {steps_goal} (from: {mem_text[:50]}...)")
+                            break
+                        
+                        # Check for explicit goal with "per dag"
+                        daily_match = re.search(r'(\d{1,3}(?:\.\d{3})*)\s*stappen\s*per\s*dag', mem_text)
+                        if daily_match:
+                            steps_goal = int(daily_match.group(1).replace('.', ''))
+                            self.logger.info(f"Found daily steps goal: {steps_goal} (from: {mem_text[:50]}...)")
+                            break
+                        
+                        # Fallback: any number followed by stappen
+                        match = re.search(r'(\d{1,3}(?:\.\d{3})*)\s*stappen', mem_text)
                         if match:
-                            steps_goal = int(match.group(1))
+                            steps_goal = int(match.group(1).replace('.', ''))
+                            self.logger.info(f"Found steps goal: {steps_goal} (from: {mem_text[:50]}...)")
                             break
                 
                 if steps_goal == 0:
