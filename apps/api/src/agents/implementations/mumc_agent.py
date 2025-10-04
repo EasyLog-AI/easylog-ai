@@ -973,17 +973,25 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
 
         # Memory tools
         async def tool_store_memory(memory: str) -> str:
-            """Store a memory.
+            """Store a memory with automatic timestamp.
 
             Args:
                 memory (str): The memory to store.
             """
+            amsterdam_tz = pytz.timezone("Europe/Amsterdam")
+            timestamp = datetime.now(amsterdam_tz).strftime("%Y-%m-%d %H:%M")
+            
+            # Add timestamp to memory if not already present
+            if "(datum:" not in memory.lower():
+                memory_with_date = f"{memory} (datum: {timestamp})"
+            else:
+                memory_with_date = memory
 
             memories = await self.get_metadata("memories", [])
-            memories.append({"id": str(uuid.uuid4())[0:8], "memory": memory})
+            memories.append({"id": str(uuid.uuid4())[0:8], "memory": memory_with_date})
             await self.set_metadata("memories", memories)
 
-            return f"Memory stored: {memory}"
+            return f"Memory stored: {memory_with_date}"
 
         async def tool_get_memory(id: str) -> str:
             """Get a memory.
