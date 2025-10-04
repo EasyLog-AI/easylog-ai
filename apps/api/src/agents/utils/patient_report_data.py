@@ -487,9 +487,10 @@ class PatientReportDataAggregator:
                     if len(parts) >= 2:
                         name = parts[0].strip()
                         
-                        # Check if second part looks like dosering (contains 'mcg', 'mg', numbers)
+                        # Check if second part looks like dosering (contains dosage units)
+                        # Must contain actual dosage units, not just numbers (to avoid confusing "2x daags" with dosage)
                         second_part = parts[1].strip()
-                        if any(unit in second_part.lower() for unit in ['mcg', 'mg', 'ml', 'g', 'ug', 'microgram']) or any(char.isdigit() for char in second_part):
+                        if any(unit in second_part.lower() for unit in ['mcg', 'mg', 'ml', ' g ', 'ug', 'microgram', 'μg']):
                             # Has dosage
                             dosage = second_part
                             timing = parts[2].strip() if len(parts) > 2 else ""
@@ -499,8 +500,8 @@ class PatientReportDataAggregator:
                             timing = second_part
                         
                         # Extract dosage from name if it contains dosage info
-                        # Pattern: number + unit (mcg, mg, ug, microgram) potentially with /puf, /dosis, /actuatie
-                        dosage_pattern = r'(\d+(?:[./]\d+)*\s*(?:mcg|mg|ug|microgram)(?:\s*[/]?\s*(?:puf|dosis|actuatie|per\s+puf|per\s+dosis|per\s+actuatie))?)'
+                        # Pattern: number + unit (mcg, mg, ug, microgram, μg) potentially with per puf, /puf, per dosis, etc.
+                        dosage_pattern = r'(\d+(?:[./]\d+)*\s*(?:mcg|mg|ug|microgram|μg)(?:\s*(?:per|/)?\s*(?:puf|dosis|actuatie|spray))?)'
                         name_dosage_match = re.search(dosage_pattern, name, re.IGNORECASE)
                         
                         if name_dosage_match and not dosage:
@@ -523,7 +524,7 @@ class PatientReportDataAggregator:
                         full_text = parts[0].strip()
                         
                         # Try to extract dosage from the text
-                        dosage_pattern = r'(\d+(?:[./]\d+)*\s*(?:mcg|mg|ug|microgram)(?:\s*[/]?\s*(?:puf|dosis|actuatie|per\s+puf|per\s+dosis|per\s+actuatie))?)'
+                        dosage_pattern = r'(\d+(?:[./]\d+)*\s*(?:mcg|mg|ug|microgram|μg)(?:\s*(?:per|/)?\s*(?:puf|dosis|actuatie|spray))?)'
                         dosage_match = re.search(dosage_pattern, full_text, re.IGNORECASE)
                         
                         if dosage_match:
