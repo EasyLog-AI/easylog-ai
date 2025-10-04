@@ -239,8 +239,7 @@ class PatientReportGenerator:
             textColor=colors.HexColor("#666666"),
             fontSize=10,
         )
-        story.append(Paragraph("Maastricht Universitair Medisch Centrum+", footer_info))
-        story.append(Paragraph("Afdeling Longziekten", footer_info))
+        story.append(Paragraph("Maastricht UMC+", footer_info))
 
         return story
 

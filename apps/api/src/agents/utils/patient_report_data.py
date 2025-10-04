@@ -287,19 +287,35 @@ class PatientReportDataAggregator:
                     goal_text = memory_text.split(":", 1)[1].strip()
                 else:
                     goal_text = memory_text
+                
+                # Remove date pattern from goal text if present
+                # Pattern: (datum: YYYY-MM-DD HH:MM) or (datum: YYYY-MM-DD)
+                goal_text = re.sub(r"\s*\(datum:\s*\d{4}-\d{2}-\d{2}[^\)]*\)", "", goal_text, flags=re.IGNORECASE).strip()
 
                 # Format date if available
                 date_str = ""
                 # 1) Try various date patterns in memory text
-                # Pattern 1: "Vastgesteld: DD-MM-YYYY" or "vastgesteld op DD-MM-YYYY"
-                m = re.search(r"(?:Vastgesteld|vastgesteld|Started|started)[\s:op]+(\d{2}-\d{2}-\d{4})", memory_text, re.IGNORECASE)
-                if not m:
-                    # Pattern 2: Any DD-MM-YYYY in the text
-                    m = re.search(r"(\d{2}-\d{2}-\d{4})", memory_text)
+                # Pattern 1: ISO format with "(datum: YYYY-MM-DD HH:MM)" or "(datum: YYYY-MM-DD)"
+                iso_match = re.search(r"\(datum:\s*(\d{4}-\d{2}-\d{2})", memory_text, re.IGNORECASE)
+                if iso_match:
+                    # Convert ISO format to Dutch format DD-MM-YYYY
+                    try:
+                        date_obj = datetime.strptime(iso_match.group(1), "%Y-%m-%d")
+                        date_str = date_obj.strftime("%d-%m-%Y")
+                    except Exception:
+                        pass
                 
-                if m:
-                    date_str = m.group(1)
-                elif created_at:
+                if not date_str:
+                    # Pattern 2: "Vastgesteld: DD-MM-YYYY" or "vastgesteld op DD-MM-YYYY"
+                    m = re.search(r"(?:Vastgesteld|vastgesteld|Started|started)[\s:op]+(\d{2}-\d{2}-\d{4})", memory_text, re.IGNORECASE)
+                    if not m:
+                        # Pattern 3: Any DD-MM-YYYY in the text
+                        m = re.search(r"(\d{2}-\d{2}-\d{4})", memory_text)
+                    
+                    if m:
+                        date_str = m.group(1)
+                
+                if not date_str and created_at:
                     try:
                         # Parse the date and format it
                         if isinstance(created_at, str):
@@ -416,15 +432,27 @@ class PatientReportDataAggregator:
                 date_str = ""
                 
                 # Try to find date in memory text (various patterns)
-                # Pattern 1: "Updated: DD-MM-YYYY" or "Gestart: DD-MM-YYYY"
-                date_match = re.search(r"(?:Updated|Gestart|Started|Since|Sinds)[\s:]+(\d{2}-\d{2}-\d{4})", memory_text, re.IGNORECASE)
-                if not date_match:
-                    # Pattern 2: Any DD-MM-YYYY in the text
-                    date_match = re.search(r"(\d{2}-\d{2}-\d{4})", memory_text)
+                # Pattern 1: ISO format with "(datum: YYYY-MM-DD HH:MM)" or "(datum: YYYY-MM-DD)"
+                iso_match = re.search(r"\(datum:\s*(\d{4}-\d{2}-\d{2})", memory_text, re.IGNORECASE)
+                if iso_match:
+                    # Convert ISO format to Dutch format DD-MM-YYYY
+                    try:
+                        date_obj = datetime.strptime(iso_match.group(1), "%Y-%m-%d")
+                        date_str = date_obj.strftime("%d-%m-%Y")
+                    except Exception:
+                        pass
                 
-                if date_match:
-                    date_str = date_match.group(1)
-                elif created_at:
+                if not date_str:
+                    # Pattern 2: "Updated: DD-MM-YYYY" or "Gestart: DD-MM-YYYY"
+                    date_match = re.search(r"(?:Updated|Gestart|Started|Since|Sinds)[\s:]+(\d{2}-\d{2}-\d{4})", memory_text, re.IGNORECASE)
+                    if not date_match:
+                        # Pattern 3: Any DD-MM-YYYY in the text
+                        date_match = re.search(r"(\d{2}-\d{2}-\d{4})", memory_text)
+                    
+                    if date_match:
+                        date_str = date_match.group(1)
+                
+                if not date_str and created_at:
                     try:
                         if isinstance(created_at, str):
                             date_obj = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
