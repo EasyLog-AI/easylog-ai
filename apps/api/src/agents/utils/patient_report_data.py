@@ -168,13 +168,18 @@ class PatientReportDataAggregator:
                 # Or extract directly after colon
                 match = re.search(r"(?:leefsituatie|living situation|woonsituatie)[:\s]+([^\n]+)", memory_text, re.IGNORECASE)
                 if match:
-                    profile["living_situation"] = match.group(1).strip()
+                    living_situation = match.group(1).strip()
+                    # Remove date pattern like "(datum: 2025-10-04 13:03)"
+                    living_situation = re.sub(r"\s*\(datum:\s*[^)]+\)", "", living_situation).strip()
+                    profile["living_situation"] = living_situation
             
             # Extract support system
             if "support" in memory_text or "mantelzorg" in memory_text or "ondersteuning" in memory_text:
                 match = re.search(r"(?:support|mantelzorg|ondersteuning)[:\s]+([^\n]+)", memory_text, re.IGNORECASE)
                 if match:
                     support_value = match.group(1).strip()
+                    # Remove date pattern like "(datum: 2025-10-04 13:04)"
+                    support_value = re.sub(r"\s*\(datum:\s*[^)]+\)", "", support_value).strip()
                     # Only add if there's meaningful content (not empty, not just "geen")
                     if support_value and support_value.lower() not in ["geen", "niet", "nvt", "n.v.t.", "n/a"]:
                         profile["support"] = support_value
