@@ -246,7 +246,7 @@ export const superAgents = pgTable('super_agents', {
     .references(() => agents.id, { onDelete: 'cascade' })
     .notNull(),
   prompt: text('prompt').notNull().default('You are a helpful assistant.'),
-  cronExpression: text('cron_expression').notNull(),
+  scheduleId: text('schedule_id'),
   ...timestamps
 });
 

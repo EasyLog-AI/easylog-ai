@@ -1,5 +1,8 @@
 import { AbortTaskRunError, logger, schemaTask } from '@trigger.dev/sdk';
 import {
+  UIDataTypes,
+  UIMessage,
+  UITools,
   convertToModelMessages,
   generateId,
   generateText,
@@ -20,6 +23,7 @@ import {
   scratchpadMessages as scratchpadMessagesTable
 } from '@/database/schema';
 import openrouter from '@/lib/ai-providers/openrouter';
+import tryCatch from '@/utils/try-catch';
 
 export const runSuperAgentJob = schemaTask({
   id: 'run-super-agent',
@@ -36,7 +40,7 @@ export const runSuperAgentJob = schemaTask({
   },
   run: async ({ superAgentId, chatId, userId }) => {
     const skipReason: string | null = null;
-    const writeChatMessages: string[] = [];
+    const writeChatMessageParts: string[] = [];
 
     const [superAgent, chat, scratchpadMessages] = await Promise.all([
       db.query.superAgents.findFirst({
@@ -79,7 +83,7 @@ export const runSuperAgentJob = schemaTask({
     // Construct comprehensive system prompt
     const systemPrompt = `# Super Agent System
 
-You are a super agent that runs autonomously on a scheduled interval (${superAgent.cronExpression}) to analyze user conversations and perform background tasks.
+You are a super agent that runs autonomously on a schedule to analyze user conversations and perform background tasks.
 
 ## Your Role
 <start_of_role_instructions>
@@ -88,8 +92,7 @@ ${superAgent.prompt}
 
 ## Execution Context
 
-### Schedule Information
-- **Cron Expression**: ${superAgent.cronExpression}
+### Time Information
 - **Current Time**: ${new Date().toISOString()}
 
 ### User Information
@@ -180,75 +183,114 @@ Silently monitor and analyze conversations, storing insights in your scratchpad.
       `Validated messages: ${JSON.stringify(validatedMessages, null, 2)}`
     );
 
-    const result = await generateText({
-      model: openrouter(superAgent.model, {
-        reasoning: {
-          enabled: superAgent.reasoning,
-          effort: superAgent.reasoningEffort
-        }
-      }),
-      messages: [
-        {
-          role: 'system',
-          content: systemPrompt
-        },
-        ...convertToModelMessages(validatedMessages),
-        {
-          role: 'user',
-          content: 'start your super agent job'
-        }
-      ],
-      stopWhen: [stepCountIs(20)],
-      tools: {
-        writeScratchpadMessage: tool({
-          description: 'Write a message to the scratchpad',
-          inputSchema: z.object({
-            message: z.string()
-          }),
-          execute: async ({ message }) => {
-            await db.insert(scratchpadMessagesTable).values({
-              superAgentId: superAgentId,
-              userId: userId,
-              message: message
-            });
+    const previousMessages = convertToModelMessages(chat.messages, {
+      ignoreIncompleteToolCalls: true
+    }).flatMap((message) => ({
+      role: message.role,
+      content:
+        typeof message.content === 'string'
+          ? message.content
+          : message.content
+              .map((content) =>
+                content.type === 'text'
+                  ? content.text
+                  : content.type === 'tool-call'
+                    ? JSON.stringify({
+                        name: content.toolName,
+                        input: content.input
+                      })
+                    : content.type === 'tool-result'
+                      ? JSON.stringify({
+                          name: content.toolName,
+                          output: content.output
+                        })
+                      : null
+              )
+              .filter(Boolean)
+              .join('\n')
+    }));
 
-            return 'Message written to scratchpad';
-          }
-        }),
-        deleteScratchpadMessage: tool({
-          description: 'Delete a message from the scratchpad',
-          inputSchema: z.object({
-            messageId: z.string()
-          }),
-          execute: async ({ messageId }) => {
-            await db
-              .delete(scratchpadMessagesTable)
-              .where(eq(scratchpadMessagesTable.id, messageId));
+    logger.info(
+      `Previous messages: ${JSON.stringify(previousMessages, null, 2)}`
+    );
 
-            return 'Message deleted from scratchpad';
+    const [result, error] = await tryCatch(
+      generateText({
+        model: openrouter(superAgent.model, {
+          reasoning: {
+            enabled: superAgent.reasoning,
+            effort: superAgent.reasoningEffort
           }
         }),
-        writeChatMessage: tool({
-          description: 'Write a message to the chat',
-          inputSchema: z.object({
-            message: z.string()
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompt
+          },
+          {
+            role: 'user',
+            content: `<previous_messages>
+-${previousMessages.map((message) => `${message.role}: ${message.content}`).join('\n-')}
+</previous_messages>`
+          }
+        ],
+        stopWhen: [stepCountIs(20)],
+        tools: {
+          writeScratchpadMessage: tool({
+            description: 'Write a message to the scratchpad',
+            inputSchema: z.object({
+              message: z.string()
+            }),
+            execute: async ({ message }) => {
+              await db.insert(scratchpadMessagesTable).values({
+                superAgentId: superAgentId,
+                userId: userId,
+                message: message
+              });
+
+              return 'Message written to scratchpad';
+            }
           }),
-          execute: async ({ message }) => {
-            writeChatMessages.push(message);
-            return 'Message will be written to chat when the super agent is finished';
-          }
-        }),
-        createMemory: toolCreateMemory(userId),
-        deleteMemory: toolDeleteMemory(),
-        executeSql: toolExecuteSQL(),
-        searchKnowledgeBase: toolSearchKnowledgeBase({
-          agentId: chat.agentId
-        })
-      }
-    });
+          deleteScratchpadMessage: tool({
+            description: 'Delete a message from the scratchpad',
+            inputSchema: z.object({
+              messageId: z.string()
+            }),
+            execute: async ({ messageId }) => {
+              await db
+                .delete(scratchpadMessagesTable)
+                .where(eq(scratchpadMessagesTable.id, messageId));
+
+              return 'Message deleted from scratchpad';
+            }
+          }),
+          writeChatMessagePart: tool({
+            description:
+              'Write a message part to the chat. IMPORTANT: Only call this tool once per iteration. If you have multiple things to say, combine them into a single message.',
+            inputSchema: z.object({
+              message: z.string()
+            }),
+            execute: async ({ message }) => {
+              writeChatMessageParts.push(message);
+              return 'Message will be written to chat when the super agent is finished.';
+            }
+          }),
+          createMemory: toolCreateMemory(userId),
+          deleteMemory: toolDeleteMemory(),
+          executeSql: toolExecuteSQL(),
+          searchKnowledgeBase: toolSearchKnowledgeBase({
+            agentId: chat.agentId
+          })
+        }
+      })
+    );
+
+    if (error) {
+      logger.error(`Error: ${error}`);
+      throw error;
+    }
 
     logger.info(`Result text: ${result.text}`);
-    logger.info(`Result: ${result.toolCalls}`);
 
     logger.info(`Response ID: ${result.response.id}`);
 
@@ -261,25 +303,38 @@ Silently monitor and analyze conversations, storing insights in your scratchpad.
       return;
     }
 
-    if (writeChatMessages.length > 0) {
-      logger.info(`Writing ${writeChatMessages.length} messages to chat`);
-
-      await db
-        .update(chats)
-        .set({
-          messages: [
-            ...chat.messages,
-            {
-              id: generateId(),
-              role: 'assistant',
-              parts: writeChatMessages.map((message) => ({
-                type: 'text',
-                text: message
-              }))
-            }
-          ]
-        })
-        .where(eq(chats.id, chatId));
+    if (writeChatMessageParts.length === 0) {
+      logger.info('No messages to write to chat');
+      return;
     }
+
+    logger.info(
+      `Writing ${writeChatMessageParts.length} message parts to chat`
+    );
+
+    const newMessage: UIMessage<unknown, UIDataTypes, UITools> =
+      chat.messages.at(-1)?.role === 'assistant'
+        ? chat.messages.at(-1)!
+        : {
+            id: generateId(),
+            role: 'assistant',
+            parts: []
+          };
+
+    newMessage.parts.push(
+      ...writeChatMessageParts.map((message) => ({
+        type: 'text' as const,
+        text: message
+      }))
+    );
+
+    logger.info(`New message`, JSON.parse(JSON.stringify(newMessage)));
+
+    await db
+      .update(chats)
+      .set({
+        messages: [...chat.messages.slice(0, -1), newMessage]
+      })
+      .where(eq(chats.id, chatId));
   }
 });
