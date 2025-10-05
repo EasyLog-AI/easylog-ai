@@ -309,7 +309,10 @@ Silently monitor and analyze conversations, storing insights in your scratchpad.
     }
 
     logger.info(
-      `Writing ${writeChatMessageParts.length} message parts to chat`
+      `Writing ${writeChatMessageParts.length} message parts to chat`,
+      {
+        writeChatMessageParts
+      }
     );
 
     const newMessage: UIMessage<unknown, UIDataTypes, UITools> =

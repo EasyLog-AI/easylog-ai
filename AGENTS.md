@@ -99,13 +99,114 @@ This is a monorepo containing a Python FastAPI backend (`apps/api`) and Next.js 
 
 ### Creating New Super Agents
 
-When creating a new super agent, follow these steps:
+Super agents are autonomous AI agents that run on scheduled intervals to perform background tasks. They operate on existing user chats and can send messages, analyze data, and perform automated actions.
 
-1. **Create Database Record**: First create a record in the database for the super agent
-2. **Schedule with Trigger.dev**: Use the Trigger MCP server to schedule the job
-   - Use the `dispatchSuperAgentJob` task
-   - Set the external ID to the ID of the super agent from the database
-   - Configure the schedule interval as needed
+#### Prerequisites
+
+- Access to Neon database (production project: `still-wind-33703124`)
+- Trigger.dev production API key (starts with `tr_prod_`)
+- Database schema reference: `apps/web/src/database/schema.ts`
+
+#### Step-by-Step Process
+
+**1. Confirm the Target Environment**
+   - Always ask the user which environment to use (dev/staging/production)
+   - For production, use the Neon project `still-wind-33703124`
+
+**2. List Available Agents**
+   ```sql
+   SELECT id, name, slug FROM agents ORDER BY created_at DESC LIMIT 10
+   ```
+   - Ask the user which agent the super agent should be attached to
+   - Common options: Develop, MUMC, HG, etc.
+
+**3. Create the Super Agent Database Record**
+   ```sql
+   INSERT INTO super_agents (name, model, reasoning, reasoning_effort, agent_id, prompt)
+   VALUES (
+     'Your Super Agent Name',
+     'gpt-4o-mini',  -- or another model
+     false,          -- enable reasoning if needed
+     'low',          -- reasoning effort: low/medium/high
+     '<agent-id>',   -- from step 2
+     'Your detailed prompt explaining what the super agent should do'
+   )
+   RETURNING id, name, agent_id
+   ```
+   - Save the returned `id` - this is your `superAgentId`
+
+**4. Create the Trigger.dev Schedule**
+
+   Use curl to create the schedule via the Trigger.dev API:
+
+   ```bash
+   curl -X POST https://api.trigger.dev/api/v1/schedules \
+     -H "Authorization: Bearer <TRIGGER_SECRET_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "task": "dispatch-super-agents",
+       "cron": "*/10 * * * *",  # Cron expression for interval
+       "timezone": "Europe/Amsterdam",  # Always use Amsterdam timezone
+       "externalId": "<superAgentId>",
+       "deduplicationKey": "superAgentId:<superAgentId>"
+     }'
+   ```
+
+   - The response will include a `schedule.id` (starts with `sched_`)
+   - **IMPORTANT**: Always include `"timezone": "Europe/Amsterdam"` in the request body to schedule in Amsterdam timezone (IANA format)
+   - Common cron intervals:
+     - `*/10 * * * *` - Every 10 minutes
+     - `0 */2 * * *` - Every 2 hours
+     - `0 */3 * * *` - Every 3 hours
+     - `0 7 * * *` - Every day at 7:00 AM (Amsterdam time if timezone is set)
+
+**5. Update Super Agent with Schedule ID**
+   ```sql
+   UPDATE super_agents
+   SET schedule_id = '<schedule-id-from-step-4>'
+   WHERE id = '<superAgentId>'
+   RETURNING id, name, schedule_id
+   ```
+
+#### Important Notes
+
+- **Environment Keys**: Make sure to use the correct Trigger.dev API key:
+  - Dev: `tr_dev_...` (in `apps/web/.env`)
+  - Production: `tr_prod_...` (in `apps/web/.env`, commented by default)
+
+- **Task Reference**: The schedule always uses `dispatch-super-agents` as the task ID. This task:
+  - Finds the super agent by `externalId`
+  - Gets all user chats for the associated agent
+  - Dispatches individual jobs for each user's latest chat
+
+- **Prompt Design**: The super agent prompt should:
+  - Clearly explain the autonomous task
+  - Specify conditions for when to act (e.g., "if last message was from user")
+  - Include available tools to use
+  - Be concise but complete
+
+#### Example: Emoji Agent
+
+This example creates a super agent that adds random emojis to user messages:
+
+1. Environment: Production (`still-wind-33703124`)
+2. Agent: Develop (`309b0d7b-ef52-4824-b413-4cddd1b8abee`)
+3. Database record created with prompt:
+   ```
+   You are the Emoji Agent. Your task is to check if the last message in
+   the conversation was from a user. If it was, add a random emoji as a
+   new assistant message. Use the send_message tool to add the emoji.
+   Be creative and match the emoji to the context when possible.
+   ```
+4. Schedule: Every 10 minutes (`*/10 * * * *`)
+5. Result: Super Agent ID `d78c7a18-bc22-4986-a7c7-27a34fcd1bf3` with Schedule ID `sched_7m1vpinxmsjwww3bzn8kh`
+
+#### Troubleshooting
+
+- **Missing API Key**: Check `apps/web/.env` for `TRIGGER_SECRET_KEY`
+- **Schedule Not Running**: Verify the schedule is active in Trigger.dev dashboard
+- **No Tasks Executing**: Ensure there are active chats for the associated agent
+- **Permission Errors**: Verify the API key matches the environment (dev vs prod)
 
 ### Tool Categories
 
