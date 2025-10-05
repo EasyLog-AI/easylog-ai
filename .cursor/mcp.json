@@ -6,6 +6,14 @@
         "trigger.dev@latest",
         "mcp"
       ]
+    },
+    "neon": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://mcp.neon.tech/mcp"
+      ]
     }
   }
 }
