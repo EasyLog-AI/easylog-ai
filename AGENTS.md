@@ -201,6 +201,42 @@ This example creates a super agent that adds random emojis to user messages:
 4. Schedule: Every 10 minutes (`*/10 * * * *`)
 5. Result: Super Agent ID `d78c7a18-bc22-4986-a7c7-27a34fcd1bf3` with Schedule ID `sched_7m1vpinxmsjwww3bzn8kh`
 
+#### Modifying Super Agent Schedules
+
+When you need to change a super agent's schedule (cron expression, timezone, etc.), it's best to delete and recreate the schedule in Trigger.dev rather than trying to update it:
+
+1. Delete the existing schedule from Trigger.dev
+2. Create a new schedule with the updated parameters
+3. Update the super agent with the new schedule ID
+
+**IMPORTANT**: Always delete and recreate schedules instead of updating them to avoid potential issues with schedule synchronization.
+
+#### Removing Super Agents
+
+To completely remove a super agent, you must delete it from both Trigger.dev and the database:
+
+**1. List all super agents to find the schedule IDs:**
+```sql
+SELECT id, name, schedule_id FROM super_agents
+```
+
+**2. Delete schedules from Trigger.dev:**
+```bash
+curl -X DELETE https://api.trigger.dev/api/v1/schedules/<schedule_id> \
+  -H "Authorization: Bearer <TRIGGER_SECRET_KEY>"
+```
+
+**3. Delete super agents from database:**
+```sql
+-- Delete a specific super agent
+DELETE FROM super_agents WHERE id = '<superAgentId>' RETURNING id, name
+
+-- Or delete all super agents
+DELETE FROM super_agents RETURNING id, name
+```
+
+**Note**: Always delete from Trigger.dev first, then from the database to avoid orphaned schedules.
+
 #### Troubleshooting
 
 - **Missing API Key**: Check `apps/web/.env` for `TRIGGER_SECRET_KEY`
