@@ -78,7 +78,9 @@ This is a monorepo containing a Python FastAPI backend (`apps/api`) and Next.js 
 
 - Agents inherit from `BaseAgent[TConfig]` with type-safe configuration
 - Role-based access control with regex filtering for tool permissions
-- Super agents run autonomously on configurable intervals for background tasks
+- Two super agent implementations:
+  - **Web Environment** (TypeScript/Next.js) - **Current/Recommended** - Trigger.dev-based scheduling
+  - **Python Environment** (FastAPI) - Legacy - APScheduler-based scheduling
 - OpenRouter.ai integration for access to 300+ AI models
 
 **Key Integrations**
@@ -88,18 +90,83 @@ This is a monorepo containing a Python FastAPI backend (`apps/api`) and Next.js 
 - **Knowledge Graph**: Neo4j via Graphiti for relationship mapping
 - **AI Models**: OpenRouter.ai for model routing (Claude, GPT-4, etc.)
 - **Notifications**: OneSignal for push notifications
-- **Scheduling**: APScheduler for background jobs
+- **Scheduling**:
+  - **Web Environment**: Trigger.dev for distributed task scheduling (current)
+  - **Python Environment**: APScheduler for background jobs (legacy)
 
-### Agent Implementations
+### Agent Implementations (Python Environment)
 
-- `easylog_agent.py` - Production agent with comprehensive tools (3-hour super agent)
+These are Python-based agent implementations in `apps/api/src/agents/implementations/`:
+
+- `easylog_agent.py` - Production agent with comprehensive tools
 - `mumc_agent.py` - Healthcare/COPD-focused agent with ZLM charts
-- `debug_agent.py` - Development agent with enhanced logging (2-hour super agent)
+- `debug_agent.py` - Development agent with enhanced logging
 - `rick_thropic_agent.py` - Personal assistant agent
 
-### Creating New Super Agents
+**Note**: These Python agents have built-in super agent capabilities via `on_super_agent_call()` and `super_agent_config()`, but the scheduling is handled differently than the web environment (see below).
+
+## Super Agents
 
 Super agents are autonomous AI agents that run on scheduled intervals to perform background tasks. They operate on existing user chats and can send messages, analyze data, and perform automated actions.
+
+### Two Super Agent Implementations
+
+This project has **two different super agent systems**:
+
+| Feature | Web Environment ✨ | Python Environment (Legacy) |
+|---------|-------------------|----------------------------|
+| **Status** | Current & Recommended | Legacy/Maintenance Only |
+| **Location** | `apps/web/src/jobs/super-agent/` | `apps/api/src/agents/base_agent.py` |
+| **Language** | TypeScript/Next.js | Python/FastAPI |
+| **Scheduling** | Trigger.dev (distributed) | APScheduler (local) |
+| **Configuration** | Database (`super_agents` table) | Code (`super_agent_config()`) |
+| **Management** | API/Database updates | Code changes + restart |
+| **Scalability** | High (distributed tasks) | Low (single server) |
+| **Observability** | Trigger.dev dashboard | Server logs |
+| **When to Use** | **All new super agents** | Maintaining existing only |
+
+**Summary:**
+1. **Web Environment (TypeScript/Next.js)** - **✨ Current & Recommended**
+   - Located in `apps/web/src/jobs/super-agent/`
+   - Uses Trigger.dev for distributed scheduling
+   - Database-driven configuration via `super_agents` table
+   - More flexible and scalable
+   - **Use this for new super agents**
+
+2. **Python Environment (FastAPI)** - **Legacy**
+   - Built into agent classes via `BaseAgent.on_super_agent_call()`
+   - Uses APScheduler for local scheduling
+   - Configured via `super_agent_config()` in agent implementations
+   - Less flexible, harder to manage
+   - **Only modify if maintaining existing Python super agents**
+
+### Creating New Super Agents (Web Environment)
+
+**When working on this project, you should typically use the web environment for super agents unless specifically told otherwise.**
+
+#### How It Works
+
+The web environment super agent system uses a database-driven approach:
+
+1. **Database Storage**: Super agents are stored in the `super_agents` table with configuration
+2. **Trigger.dev Scheduling**: Schedules are created via Trigger.dev API and stored by schedule ID
+3. **Dispatch Job** (`dispatch-super-agent-agent-job.ts`):
+   - Triggered by Trigger.dev on schedule
+   - Finds the super agent by `externalId` (super agent ID)
+   - Gets all users' latest chats for the associated agent
+   - Dispatches individual `run-super-agent` jobs for each chat
+4. **Run Job** (`run-super-agent-job.ts`):
+   - Executes for a specific user chat
+   - Uses AI SDK with OpenRouter models
+   - Has access to tools: scratchpad, memory, SQL, knowledge base, chat messaging
+   - Can write messages back to the chat
+
+**Key Features:**
+- **Scratchpad**: Private notes that persist between runs for state tracking
+- **User Memories**: Access to user-specific memories for context
+- **Chat History**: Full access to conversation history
+- **Flexible Tools**: SQL queries, knowledge base search, memory management
+- **Language Awareness**: Automatically matches conversation language
 
 #### Prerequisites
 
@@ -174,10 +241,10 @@ Super agents are autonomous AI agents that run on scheduled intervals to perform
   - Dev: `tr_dev_...` (in `apps/web/.env`)
   - Production: `tr_prod_...` (in `apps/web/.env`, commented by default)
 
-- **Task Reference**: The schedule always uses `dispatch-super-agents` as the task ID. This task:
-  - Finds the super agent by `externalId`
+- **Task Reference**: The schedule always uses `dispatch-super-agents` as the task ID (defined in `dispatch-super-agent-agent-job.ts`). This task:
+  - Finds the super agent by `externalId` (the super agent database ID)
   - Gets all user chats for the associated agent
-  - Dispatches individual jobs for each user's latest chat
+  - Dispatches individual `run-super-agent` jobs (from `run-super-agent-job.ts`) for each user's latest chat
 
 - **Prompt Design**: The super agent prompt should:
   - Clearly explain the autonomous task
@@ -243,6 +310,39 @@ DELETE FROM super_agents RETURNING id, name
 - **Schedule Not Running**: Verify the schedule is active in Trigger.dev dashboard
 - **No Tasks Executing**: Ensure there are active chats for the associated agent
 - **Permission Errors**: Verify the API key matches the environment (dev vs prod)
+
+### Python Super Agents (Legacy)
+
+**⚠️ This section is for reference only. For new super agents, use the Web Environment (above).**
+
+The Python FastAPI backend has a legacy super agent system built into the agent classes:
+
+**Architecture:**
+- Agents inherit from `BaseAgent[TConfig]` which provides super agent functionality
+- Each agent can implement `on_super_agent_call()` to define autonomous behavior
+- Agents return a `SuperAgentConfig` via `super_agent_config()` to enable scheduling
+- APScheduler handles the scheduling within the FastAPI application
+
+**Key Files:**
+- `apps/api/src/agents/base_agent.py` - Base agent class with super agent support
+- `apps/api/src/agents/tools/base_tools.py` - Contains `tool_call_super_agent()` tool
+
+**How It Works:**
+1. Agent defines `super_agent_config()` with cron expression
+2. APScheduler triggers the agent's `run_super_agent()` method
+3. Agent can use `tool_call_super_agent()` to trigger its own super agent behavior
+4. The `on_super_agent_call()` method handles the autonomous logic
+
+**Limitations:**
+- Runs only on the FastAPI server (no distributed execution)
+- Harder to configure and manage than web environment
+- Requires server restart to update schedules
+- Limited observability compared to Trigger.dev
+
+**When to Use:**
+- Only when maintaining existing Python agent super agent functionality
+- When the super agent logic is tightly coupled to Python-specific tools
+- For debugging or testing agent behavior locally
 
 ### Tool Categories
 
