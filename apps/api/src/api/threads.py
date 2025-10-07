@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from typing import Literal
 
@@ -116,24 +117,44 @@ async def _ensure_welcome_message(
                             continue
                         memory_text = mem.get("memory", "").strip()
                         memory_lower = memory_text.lower()
-                        
-                        # Pattern 1: "[naam]" as the entire memory
-                        if memory_text.startswith("[") and memory_text.endswith("]"):
-                            user_name = memory_text[1:-1].strip()
+
+                        # Remove timestamp from memory (datum: YYYY-MM-DD HH:MM)
+                        memory_text_clean = re.sub(
+                            r'\s*\(datum:\s*[^)]+\)\s*', '', memory_text
+                        ).strip()
+
+                        # Pattern 1: "[naam]" as entire memory
+                        if (
+                            memory_text_clean.startswith("[")
+                            and memory_text_clean.endswith("]")
+                        ):
+                            user_name = memory_text_clean[1:-1].strip()
                             break
                         # Pattern 2: "naam: John" or "naam : John"
-                        elif "naam" in memory_lower and ":" in memory_text:
-                            parts = memory_text.split(":", 1)
+                        elif (
+                            "naam" in memory_lower
+                            and ":" in memory_text_clean
+                        ):
+                            parts = memory_text_clean.split(":", 1)
                             if "naam" in parts[0].lower():
                                 user_name = parts[1].split(",")[0].strip()
                                 break
-                        # Pattern 3: Just the name (short text, starts with capital)
+                        # Pattern 3: Just the name (short text, capital)
                         elif (
-                            len(memory_text.split()) <= 3 
-                            and memory_text[0].isupper()
-                            and not any(x in memory_lower for x in ["goal", "zlm", "score", "stappen", "medicatie"])
+                            len(memory_text_clean.split()) <= 3
+                            and memory_text_clean[0].isupper()
+                            and not any(
+                                x in memory_lower
+                                for x in [
+                                    "goal",
+                                    "zlm",
+                                    "score",
+                                    "stappen",
+                                    "medicatie",
+                                ]
+                            )
                         ):
-                            user_name = memory_text
+                            user_name = memory_text_clean
                             break
 
                     logger.info(
