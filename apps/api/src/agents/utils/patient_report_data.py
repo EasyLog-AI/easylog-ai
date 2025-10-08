@@ -148,13 +148,19 @@ class PatientReportDataAggregator:
                 # Extract COPD stage and type
                 match = re.search(r"COPD[^\n]*", memory_text, re.IGNORECASE)
                 if match:
-                    profile["diagnosis"] = match.group().strip()
+                    diagnosis = match.group().strip()
+                    # Remove date pattern like "(datum: 2025-10-07 18:15)"
+                    diagnosis = re.sub(r"\s*\(datum:\s*[^)]+\)", "", diagnosis).strip()
+                    profile["diagnosis"] = diagnosis
 
             # Extract comorbidities
             if "comorbiditeit" in memory_text or "comorbidities:" in memory_text:
                 match = re.search(r"comorbid[^\n]*:\s*([^\n]+)", memory_text, re.IGNORECASE)
                 if match:
-                    profile["comorbidities"] = match.group(1).strip()
+                    comorbidities = match.group(1).strip()
+                    # Remove date pattern like "(datum: 2025-10-07 18:18)"
+                    comorbidities = re.sub(r"\s*\(datum:\s*[^)]+\)", "", comorbidities).strip()
+                    profile["comorbidities"] = comorbidities
             
             # Extract living situation
             if "leefsituatie" in memory_text or "living situation" in memory_text or "woonsituatie" in memory_text:

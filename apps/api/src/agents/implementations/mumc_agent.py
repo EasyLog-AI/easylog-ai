@@ -1300,8 +1300,8 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
             ]
 
         async def tool_generate_patient_report(
-            period_days: int = 30,
-            reason: str = "Periodieke evaluatie"
+            reason: str,
+            period_days: int = 30
         ) -> tuple[str, bool]:
             """Genereer een professioneel patiënt verslag als PDF.
 
@@ -1316,11 +1316,10 @@ class MUMCAgent(BaseAgent[MUMCAgentConfig]):
             met bijvoorbeeld hun arts.
 
             Args:
-                period_days (int): Aantal dagen terug om data te verzamelen.
-                                  Default is 30 dagen (laatste maand).
-                reason (str): De aanleiding voor het verslag. Bijvoorbeeld:
-                             "Bezoek huisarts", "Controle POH", "Bezoek longarts",
-                             "Opname ziekenhuis", "Periodieke evaluatie".
+                reason (str): De aanleiding voor het verslag (VERPLICHT). Bijvoorbeeld:
+                             "Bezoek arts", "Bezoek POH", "Anders".
+                period_days (int): OPTIONEEL - Gebruik altijd de default waarde van 30 dagen.
+                                  Vraag NOOIT naar deze parameter.
 
             Returns:
                 tuple[str, bool]: (JSON widget data, True) for widget rendering
