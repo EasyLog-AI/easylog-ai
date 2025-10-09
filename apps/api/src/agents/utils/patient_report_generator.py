@@ -674,7 +674,7 @@ class PatientReportGenerator:
             # Show only the most recent update
             latest_update = updates[0]
             
-            data = [["Medicijn", "Dosering", "Dosis", "Datum"]]
+            data = [["Medicijn", "Dosis", "Startdatum"]]
 
             # Style for medication text with wrapping
             med_text_style = ParagraphStyle(
@@ -691,14 +691,22 @@ class PatientReportGenerator:
                 timing = med.get("timing", "")
                 start_date = latest_update.get("date", "")
 
+                # Combine dosage and timing
+                dosage_timing = ""
+                if dosage and timing:
+                    dosage_timing = f"{dosage} - {timing}"
+                elif dosage:
+                    dosage_timing = dosage
+                elif timing:
+                    dosage_timing = timing
+
                 # Wrap medication in Paragraph for automatic wrapping
                 name_para = Paragraph(name, med_text_style) if name else ""
-                dosage_para = Paragraph(dosage, med_text_style) if dosage else ""
-                timing_para = Paragraph(timing, med_text_style) if timing else ""
+                dosage_timing_para = Paragraph(dosage_timing, med_text_style) if dosage_timing else ""
 
-                data.append([name_para, dosage_para, timing_para, start_date])
+                data.append([name_para, dosage_timing_para, start_date])
 
-            table = Table(data, colWidths=[5.5 * cm, 4.5 * cm, 4.5 * cm, 2.5 * cm])
+            table = Table(data, colWidths=[6 * cm, 8 * cm, 3.5 * cm])
             table.setStyle(
                 TableStyle(
                     [
