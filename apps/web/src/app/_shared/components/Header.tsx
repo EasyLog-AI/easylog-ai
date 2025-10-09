@@ -24,10 +24,10 @@ const Header = ({ user, agentSlug }: HeaderProps) => {
   }
 
   return (
-    <div className="bg-surface-primary border-border-muted sticky top-0 z-10 flex h-12 border-b">
+    <div className="bg-surface-primary border-border-muted sticky top-0 z-10 flex h-14 border-b">
       <div className="container flex items-center justify-between">
         <Link href="/chat">
-          <Logo className="h-10 w-auto" />
+          <Logo className="h-12 w-auto" />
         </Link>
         <UserDropdown user={user} agentId={agentSlug} />
       </div>

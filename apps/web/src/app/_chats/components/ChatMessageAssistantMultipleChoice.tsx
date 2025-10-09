@@ -124,34 +124,47 @@ const ChatMessageAssistantMultipleChoice = ({
   const currentValue = multipleChoiceQuestion?.value || answer;
 
   return (
-    <div className="bg-surface-muted shadow-short my-2 max-w-lg space-y-4 overflow-auto rounded-xl p-3">
+    <div className="bg-surface-muted shadow-short my-2 max-w-4xl space-y-4 overflow-auto rounded-xl p-3">
       <Typography variant="labelMd">{question}</Typography>
 
       <div className="grid gap-2">
-        {options.map((option) => (
-          <Button
-            key={option}
-            isToggled={currentValue === option}
-            isDisabled={Boolean(currentValue && currentValue !== option)}
-            disabled={isPending}
-            size="lg"
-            colorRole="brand"
-            onClick={() => {
-              updateMultipleChoiceAnswer({
-                value: option,
-                chatId: chatId,
-                multipleChoiceQuestionId: multipleChoiceQuestionId
-              });
-              if (isLastMessage) {
-                void sendMessage({
-                  text: `[${option}]`
+        {options.map((option) => {
+          const isSelected = currentValue === option;
+          const isDisabled = Boolean(currentValue && currentValue !== option);
+
+          return (
+            <Button
+              key={option}
+              size="lg"
+              colorRole="brand"
+              className="w-full"
+              isDisabled={isPending || isDisabled}
+              isToggled={isSelected}
+              onClick={() => {
+                updateMultipleChoiceAnswer({
+                  value: option,
+                  chatId: chatId,
+                  multipleChoiceQuestionId: multipleChoiceQuestionId
                 });
-              }
-            }}
-          >
-            <ButtonContent>{option}</ButtonContent>
-          </Button>
-        ))}
+                if (isLastMessage) {
+                  void sendMessage({
+                    text: `[${option}]`
+                  });
+                }
+              }}
+            >
+              <ButtonContent className="w-full justify-center" size="lg">
+                <Typography
+                  variant="labelSm"
+                  className="text-text-brand-on-fill"
+                  asChild
+                >
+                  <span>{option}</span>
+                </Typography>
+              </ButtonContent>
+            </Button>
+          );
+        })}
       </div>
     </div>
   );
