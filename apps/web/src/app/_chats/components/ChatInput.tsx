@@ -152,11 +152,9 @@ const ChatInput = () => {
                   className="bg-fill-muted flex items-center gap-0.5 rounded-full py-1 pl-2.5 pr-1 text-sm"
                 >
                   <span className="max-w-[200px] truncate">{file.name}</span>
-                  <Button
+                  <button
                     type="button"
-                    size="xs"
-                    variant="ghost"
-                    shape="circle"
+                    className="flex size-6 items-center justify-center rounded-full hover:bg-black/5"
                     onClick={() => {
                       const dt = new DataTransfer();
 
@@ -170,10 +168,8 @@ const ChatInput = () => {
                       );
                     }}
                   >
-                    <ButtonContent>
-                      <Icon icon={IconX} size="sm" />
-                    </ButtonContent>
-                  </Button>
+                    <Icon icon={IconX} size="sm" />
+                  </button>
                 </div>
               ))}
             </div>
