@@ -1,12 +1,11 @@
 'use client';
 
 import {
-  IconArrowUp,
   IconMicrophone,
   IconMicrophoneFilled,
   IconMicrophoneOff,
-  IconPlus,
   IconPlayerStop,
+  IconPlus,
   IconSend,
   IconX
 } from '@tabler/icons-react';
@@ -17,6 +16,8 @@ import TextareaAutosize from 'react-textarea-autosize';
 import { z } from 'zod';
 
 import { useRealTime } from '@/app/_realtime/hooks/useRealTime';
+import Button from '@/app/_ui/components/Button/Button';
+import ButtonContent from '@/app/_ui/components/Button/ButtonContent';
 import Icon from '@/app/_ui/components/Icon/Icon';
 import IconSpinner from '@/app/_ui/components/Icon/IconSpinner';
 import useZodForm from '@/app/_ui/hooks/useZodForm';
@@ -152,9 +153,11 @@ const ChatInput = () => {
                   className="bg-fill-muted flex items-center gap-0.5 rounded-full py-1 pl-2.5 pr-1 text-sm"
                 >
                   <span className="max-w-[200px] truncate">{file.name}</span>
-                  <button
+                  <Button
                     type="button"
-                    className="flex size-6 items-center justify-center rounded-full hover:bg-black/5"
+                    size="xs"
+                    variant="ghost"
+                    shape="circle"
                     onClick={() => {
                       const dt = new DataTransfer();
 
@@ -168,8 +171,10 @@ const ChatInput = () => {
                       );
                     }}
                   >
-                    <Icon icon={IconX} size="sm" />
-                  </button>
+                    <ButtonContent>
+                      <Icon icon={IconX} size="sm" />
+                    </ButtonContent>
+                  </Button>
                 </div>
               ))}
             </div>
@@ -218,24 +223,28 @@ const ChatInput = () => {
 
         <div className="flex items-center justify-between gap-2 px-2.5 pb-2.5">
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              shape="circle"
+              size="lg"
               type="button"
-              disabled={isLoading}
+              colorRole="brand"
+              isDisabled={isLoading}
               onClick={() => fileInputRef.current?.click()}
-              className="flex h-10 w-10 items-center justify-center rounded-full transition-opacity hover:opacity-90 disabled:opacity-50"
-              style={{
-                background: 'linear-gradient(135deg, #73C3FF 0%, #9DD7FF 100%)'
-              }}
             >
-              <Icon icon={IconPlus} size="lg" className="text-white" />
-            </button>
+              <ButtonContent>
+                <Icon icon={IconPlus} size="lg" className="stroke-current" />
+              </ButtonContent>
+            </Button>
           </div>
 
           <div className="flex items-center gap-2">
             {isEnabled && (
-              <button
+              <Button
+                shape="circle"
+                size="lg"
                 type="button"
-                disabled={
+                colorRole="brand"
+                isDisabled={
                   isLoading ||
                   connectionState === 'connecting' ||
                   connectionState === 'disconnecting' ||
@@ -279,32 +288,38 @@ const ChatInput = () => {
                     connect();
                   }
                 }}
-                className="flex h-10 w-10 items-center justify-center rounded-full transition-opacity hover:opacity-90 disabled:opacity-50"
-                style={{
-                  background:
-                    'linear-gradient(135deg, #73C3FF 0%, #9DD7FF 100%)'
-                }}
               >
-                <Icon
-                  icon={
-                    connectionState === 'connecting' ||
-                    connectionState === 'disconnecting' ||
-                    isRealTimeLoading
-                      ? IconSpinner
-                      : connectionState === 'connected'
-                        ? isMuted
-                          ? IconMicrophoneOff
-                          : IconMicrophoneFilled
-                        : IconMicrophone
-                  }
-                  size="lg"
-                  className="text-white"
-                />
-              </button>
+                <ButtonContent>
+                  <Icon
+                    icon={
+                      connectionState === 'connecting' ||
+                      connectionState === 'disconnecting' ||
+                      isRealTimeLoading
+                        ? IconSpinner
+                        : connectionState === 'connected'
+                          ? isMuted
+                            ? IconMicrophoneOff
+                            : IconMicrophoneFilled
+                          : IconMicrophone
+                    }
+                    size="lg"
+                    className={
+                      connectionState === 'connecting' ||
+                      connectionState === 'disconnecting' ||
+                      isRealTimeLoading
+                        ? 'text-current'
+                        : 'stroke-current'
+                    }
+                  />
+                </ButtonContent>
+              </Button>
             )}
-            <button
+            <Button
+              shape="circle"
+              size="lg"
               type="submit"
-              disabled={
+              colorRole="brand"
+              isDisabled={
                 (!isStreaming &&
                   (!isValid || isSubmitting) &&
                   !(
@@ -321,26 +336,35 @@ const ChatInput = () => {
                     ? () => interrupt()
                     : handleSubmit(submitHandler)
               }
-              className="flex h-10 w-10 items-center justify-center rounded-full transition-opacity hover:opacity-90 disabled:opacity-50"
-              style={{
-                background: 'linear-gradient(135deg, #73C3FF 0%, #9DD7FF 100%)'
-              }}
             >
-              <Icon
-                icon={
-                  isLoading && !isStreaming
-                    ? IconSpinner
-                    : isStreaming ||
-                        (connectionState === 'connected' &&
-                          isAgentTurn &&
-                          session)
-                      ? IconPlayerStop
-                      : IconSend
-                }
-                size="lg"
-                className="text-white"
-              />
-            </button>
+              <ButtonContent>
+                <Icon
+                  icon={
+                    connectionState === 'connecting' ||
+                    connectionState === 'disconnecting' ||
+                    isRealTimeLoading
+                      ? IconSpinner
+                      : isLoading && !isStreaming
+                        ? IconSpinner
+                        : isStreaming ||
+                            (connectionState === 'connected' &&
+                              isAgentTurn &&
+                              session)
+                          ? IconPlayerStop
+                          : IconSend
+                  }
+                  size="lg"
+                  className={
+                    connectionState === 'connecting' ||
+                    connectionState === 'disconnecting' ||
+                    isRealTimeLoading ||
+                    (isLoading && !isStreaming)
+                      ? 'text-current'
+                      : 'stroke-current'
+                  }
+                />
+              </ButtonContent>
+            </Button>
           </div>
         </div>
       </div>

@@ -1,3 +1,5 @@
+import Typography from '@/app/_ui/components/Typography/Typography';
+
 export interface ChatMessageUserTextContentProps {
   text: string;
 }
@@ -10,14 +12,16 @@ const ChatMessageUserTextContent = ({
   }
 
   return (
-    <div
-      className="prose max-w-2xl whitespace-pre-wrap rounded-xl px-3 py-2"
-      style={{
-        background: 'linear-gradient(135deg, #73C3FF 0%, #9DD7FF 100%)',
-        color: 'white'
-      }}
-    >
-      {text}
+    <div className="max-w-[52rem]">
+      <div className="from-fill-brand to-fill-brand-2 shadow-fill-brand/20 inline-flex rounded-2xl bg-gradient-to-tr px-4 py-3 shadow-md">
+        <Typography
+          variant="bodyMd"
+          asChild
+          className="text-text-brand-on-fill whitespace-pre-wrap"
+        >
+          <span>{text}</span>
+        </Typography>
+      </div>
     </div>
   );
 };
