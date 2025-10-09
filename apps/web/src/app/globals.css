@@ -112,12 +112,12 @@
   --color-text-brand: color-mix(in oklch, var(--brand-1) 95%, black);
   --color-text-brand-hover: color-mix(in oklch, var(--brand-1) 97%, black);
   --color-text-brand-active: color-mix(in oklch, var(--brand-1) 95%, black);
-  --color-text-brand-on-fill: var(--color-white);
+  --color-text-brand-on-fill: var(--color-stone-900);
 
   --color-text-brand-2: color-mix(in oklch, var(--brand-2) 95%, black);
   --color-text-brand-2-hover: color-mix(in oklch, var(--brand-2) 97%, black);
   --color-text-brand-2-active: color-mix(in oklch, var(--brand-2) 95%, black);
-  --color-text-brand-2-on-fill: var(--color-white);
+  --color-text-brand-2-on-fill: var(--color-stone-900);
 
   --color-text-success: var(--color-green-700);
   --color-text-success-hover: color-mix(in oklch, var(--color-green-700) 97%, black);
