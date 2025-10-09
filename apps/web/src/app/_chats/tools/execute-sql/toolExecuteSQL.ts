@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 
 import openrouterProvider from '@/lib/ai-providers/openrouter';
-import easylogDb from '@/lib/easylog/db';
+import getEasylogDb from '@/lib/easylog/db';
 import tryCatch from '@/utils/try-catch';
 
 import { executeSQLConfig } from './config';
@@ -181,9 +181,8 @@ ${query.queryIntent}
                   }
                 });
 
-                const [result, error] = await tryCatch(
-                  easylogDb.execute(query.query)
-                );
+                const db = await getEasylogDb();
+                const [result, error] = await tryCatch(db.execute(query.query));
 
                 if (error) {
                   Sentry.captureException(error);

@@ -10,7 +10,13 @@ const ChatMessageUserTextContent = ({
   }
 
   return (
-    <div className="bg-surface-muted prose max-w-lg rounded-xl p-3 whitespace-pre-wrap">
+    <div
+      className="prose max-w-2xl whitespace-pre-wrap rounded-xl px-3 py-2"
+      style={{
+        background: 'linear-gradient(135deg, #73C3FF 0%, #9DD7FF 100%)',
+        color: 'white'
+      }}
+    >
       {text}
     </div>
   );

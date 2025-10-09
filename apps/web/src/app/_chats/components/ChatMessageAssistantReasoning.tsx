@@ -28,7 +28,7 @@ const ChatMessageAssistantReasoning = ({
   }
 
   return (
-    <div className="bg-surface-muted shadow-short relative my-2 max-w-lg space-y-2 rounded-xl p-3">
+    <div className="bg-surface-muted shadow-short relative my-2 max-w-2xl space-y-2 rounded-xl p-3">
       <Typography variant="labelSm" className="w-full">
         <ContentWrapper
           className="w-full"

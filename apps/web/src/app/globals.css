@@ -310,7 +310,7 @@
 
 /** 
  * Prose styling aanpassingen voor chat berichten
- * Vermindert de ruimte tussen paragrafen en regels
+ * Vermindert de ruimte tussen paragrafen, regels en lijsten
  */
 .prose p {
   margin-top: 0.5em;
@@ -323,5 +323,27 @@
 }
 
 .prose p:last-child {
+  margin-bottom: 0;
+}
+
+/** Compactere list styling */
+.prose ul,
+.prose ol {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose li {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+.prose ul:first-child,
+.prose ol:first-child {
+  margin-top: 0;
+}
+
+.prose ul:last-child,
+.prose ol:last-child {
   margin-bottom: 0;
 }

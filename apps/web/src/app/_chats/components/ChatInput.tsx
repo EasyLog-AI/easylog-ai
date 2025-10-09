@@ -5,8 +5,9 @@ import {
   IconMicrophone,
   IconMicrophoneFilled,
   IconMicrophoneOff,
-  IconPaperclip,
+  IconPlus,
   IconPlayerStop,
+  IconSend,
   IconX
 } from '@tabler/icons-react';
 import { motion } from 'motion/react';
@@ -16,8 +17,6 @@ import TextareaAutosize from 'react-textarea-autosize';
 import { z } from 'zod';
 
 import { useRealTime } from '@/app/_realtime/hooks/useRealTime';
-import Button from '@/app/_ui/components/Button/Button';
-import ButtonContent from '@/app/_ui/components/Button/ButtonContent';
 import Icon from '@/app/_ui/components/Icon/Icon';
 import IconSpinner from '@/app/_ui/components/Icon/IconSpinner';
 import useZodForm from '@/app/_ui/hooks/useZodForm';
@@ -143,7 +142,7 @@ const ChatInput = () => {
         }
       }}
     >
-      <div className="bg-surface-primary shadow-short mx-auto w-full max-w-2xl overflow-clip rounded-2xl bg-clip-padding contain-inline-size">
+      <div className="bg-surface-primary shadow-short mx-auto w-full max-w-4xl overflow-clip rounded-2xl bg-clip-padding contain-inline-size">
         <div className="space-y-5 px-5 pt-5">
           {watchedFiles && watchedFiles.length > 0 && (
             <div className="flex flex-wrap gap-2">
@@ -223,28 +222,24 @@ const ChatInput = () => {
 
         <div className="flex items-center justify-between gap-2 px-2.5 pb-2.5">
           <div className="flex items-center gap-2">
-            <Button
-              shape="circle"
-              size="lg"
+            <button
               type="button"
-              variant="ghost"
-              isDisabled={isLoading}
+              disabled={isLoading}
               onClick={() => fileInputRef.current?.click()}
+              className="flex h-10 w-10 items-center justify-center rounded-full transition-opacity hover:opacity-90 disabled:opacity-50"
+              style={{
+                background: 'linear-gradient(135deg, #73C3FF 0%, #9DD7FF 100%)'
+              }}
             >
-              <ButtonContent>
-                <Icon icon={IconPaperclip} />
-              </ButtonContent>
-            </Button>
+              <Icon icon={IconPlus} size="lg" style={{ color: 'white' }} />
+            </button>
           </div>
 
           <div className="flex items-center gap-2">
             {isEnabled && (
-              <Button
-                shape="circle"
-                size="lg"
+              <button
                 type="button"
-                variant="ghost"
-                isDisabled={
+                disabled={
                   isLoading ||
                   connectionState === 'connecting' ||
                   connectionState === 'disconnecting' ||
@@ -288,29 +283,32 @@ const ChatInput = () => {
                     connect();
                   }
                 }}
+                className="flex h-10 w-10 items-center justify-center rounded-full transition-opacity hover:opacity-90 disabled:opacity-50"
+                style={{
+                  background:
+                    'linear-gradient(135deg, #73C3FF 0%, #9DD7FF 100%)'
+                }}
               >
-                <ButtonContent>
-                  <Icon
-                    icon={
-                      connectionState === 'connecting' ||
-                      connectionState === 'disconnecting' ||
-                      isRealTimeLoading
-                        ? IconSpinner
-                        : connectionState === 'connected'
-                          ? isMuted
-                            ? IconMicrophoneOff
-                            : IconMicrophoneFilled
-                          : IconMicrophone
-                    }
-                  />
-                </ButtonContent>
-              </Button>
+                <Icon
+                  icon={
+                    connectionState === 'connecting' ||
+                    connectionState === 'disconnecting' ||
+                    isRealTimeLoading
+                      ? IconSpinner
+                      : connectionState === 'connected'
+                        ? isMuted
+                          ? IconMicrophoneOff
+                          : IconMicrophoneFilled
+                        : IconMicrophone
+                  }
+                  size="lg"
+                  style={{ color: 'white' }}
+                />
+              </button>
             )}
-            <Button
-              shape="circle"
-              size="lg"
+            <button
               type="submit"
-              isDisabled={
+              disabled={
                 (!isStreaming &&
                   (!isValid || isSubmitting) &&
                   !(
@@ -327,22 +325,26 @@ const ChatInput = () => {
                     ? () => interrupt()
                     : handleSubmit(submitHandler)
               }
+              className="flex h-10 w-10 items-center justify-center rounded-full transition-opacity hover:opacity-90 disabled:opacity-50"
+              style={{
+                background: 'linear-gradient(135deg, #73C3FF 0%, #9DD7FF 100%)'
+              }}
             >
-              <ButtonContent>
-                <Icon
-                  icon={
-                    isLoading && !isStreaming
-                      ? IconSpinner
-                      : isStreaming ||
-                          (connectionState === 'connected' &&
-                            isAgentTurn &&
-                            session)
-                        ? IconPlayerStop
-                        : IconArrowUp
-                  }
-                />
-              </ButtonContent>
-            </Button>
+              <Icon
+                icon={
+                  isLoading && !isStreaming
+                    ? IconSpinner
+                    : isStreaming ||
+                        (connectionState === 'connected' &&
+                          isAgentTurn &&
+                          session)
+                      ? IconPlayerStop
+                      : IconSend
+                }
+                size="lg"
+                style={{ color: 'white' }}
+              />
+            </button>
           </div>
         </div>
       </div>

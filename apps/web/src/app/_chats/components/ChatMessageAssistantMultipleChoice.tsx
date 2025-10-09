@@ -6,8 +6,6 @@ import {
 } from '@tanstack/react-query';
 
 import useAgentSlug from '@/app/_agents/hooks/useAgentSlug';
-import Button from '@/app/_ui/components/Button/Button';
-import ButtonContent from '@/app/_ui/components/Button/ButtonContent';
 import Typography from '@/app/_ui/components/Typography/Typography';
 import useTRPC from '@/lib/trpc/browser';
 
@@ -124,34 +122,48 @@ const ChatMessageAssistantMultipleChoice = ({
   const currentValue = multipleChoiceQuestion?.value || answer;
 
   return (
-    <div className="bg-surface-muted shadow-short my-2 max-w-lg space-y-4 overflow-auto rounded-xl p-3">
+    <div className="bg-surface-muted shadow-short my-2 max-w-2xl space-y-4 overflow-auto rounded-xl p-3">
       <Typography variant="labelMd">{question}</Typography>
 
       <div className="grid gap-2">
-        {options.map((option) => (
-          <Button
-            key={option}
-            isToggled={currentValue === option}
-            isDisabled={Boolean(currentValue && currentValue !== option)}
-            disabled={isPending}
-            size="lg"
-            colorRole="brand"
-            onClick={() => {
-              updateMultipleChoiceAnswer({
-                value: option,
-                chatId: chatId,
-                multipleChoiceQuestionId: multipleChoiceQuestionId
-              });
-              if (isLastMessage) {
-                void sendMessage({
-                  text: `[${option}]`
+        {options.map((option) => {
+          const isSelected = currentValue === option;
+          const isDisabled = Boolean(currentValue && currentValue !== option);
+
+          return (
+            <button
+              key={option}
+              disabled={isPending || isDisabled}
+              className="flex h-10 items-center justify-center rounded-lg px-3 text-sm transition-all duration-150"
+              style={{
+                background: isSelected
+                  ? 'linear-gradient(135deg, #4A9FD8 0%, #5BB3E6 100%)' // Selected: donkerdere gradient
+                  : 'linear-gradient(135deg, #73C3FF 0%, #9DD7FF 100%)', // Unselected: gradient
+                color: 'white',
+                border: 'none',
+                boxShadow: isSelected
+                  ? '0 2px 8px rgba(74, 159, 216, 0.3)'
+                  : 'none',
+                cursor: isPending || isDisabled ? 'not-allowed' : 'pointer',
+                opacity: isDisabled ? 0.5 : 1
+              }}
+              onClick={() => {
+                updateMultipleChoiceAnswer({
+                  value: option,
+                  chatId: chatId,
+                  multipleChoiceQuestionId: multipleChoiceQuestionId
                 });
-              }
-            }}
-          >
-            <ButtonContent>{option}</ButtonContent>
-          </Button>
-        ))}
+                if (isLastMessage) {
+                  void sendMessage({
+                    text: `[${option}]`
+                  });
+                }
+              }}
+            >
+              {option}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
