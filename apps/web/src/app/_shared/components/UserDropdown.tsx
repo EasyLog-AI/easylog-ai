@@ -30,13 +30,13 @@ const UserDropdown = ({ user, agentId }: UserDropdownProps) => {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" shape="circle" className="p-0">
           <ButtonContent>
-            <Image
-              src={`https://ui-avatars.com/api/?name=${user.name}&background=73C3FF&color=fff&size=64`}
-              alt={user.name ?? 'User avatar'}
-              width={32}
-              height={32}
-              className="size-8 rounded-full"
-            />
+          <Image
+            src={`https://ui-avatars.com/api/?name=${user.name}&background=73C3FF&color=1c1917&size=64`}
+            alt={user.name ?? 'User avatar'}
+            width={32}
+            height={32}
+            className="size-8 rounded-full"
+          />
           </ButtonContent>
         </Button>
       </DropdownMenuTrigger>
