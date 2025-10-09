@@ -59,26 +59,22 @@ export const ingestDocumentJob = schemaTask({
 
     logger.info('Processing document', {
       filename: dbDocument.name,
-      downloadUrl:
-        'https://lxlfgubcvm0qmjs9.public.blob.vercel-storage.com/db6d1cf9-1f69-483b-b3ca-ed602f545c5e/ERTMS-Locomotieven_Stops_Incidenten_Database-b9EqPUfvrEZ54NpU1b0gBcH1P64LkI.xlsx?download=1',
+      downloadUrl: headResponse.downloadUrl,
       contentType
     });
 
     const processingResult =
       contentType === 'application/pdf'
         ? await processPdfJob.triggerAndWait({
-            downloadUrl:
-              'https://lxlfgubcvm0qmjs9.public.blob.vercel-storage.com/db6d1cf9-1f69-483b-b3ca-ed602f545c5e/ERTMS-Locomotieven_Stops_Incidenten_Database-b9EqPUfvrEZ54NpU1b0gBcH1P64LkI.xlsx?download=1',
+            downloadUrl: headResponse.downloadUrl,
             basePath: dbDocument.path
           })
         : contentType === 'application/xml' || contentType === 'text/xml'
           ? await processXmlJob.triggerAndWait({
-              downloadUrl:
-                'https://lxlfgubcvm0qmjs9.public.blob.vercel-storage.com/db6d1cf9-1f69-483b-b3ca-ed602f545c5e/ERTMS-Locomotieven_Stops_Incidenten_Database-b9EqPUfvrEZ54NpU1b0gBcH1P64LkI.xlsx?download=1'
+              downloadUrl: headResponse.downloadUrl
             })
           : await processXlsxJob.triggerAndWait({
-              downloadUrl:
-                'https://lxlfgubcvm0qmjs9.public.blob.vercel-storage.com/db6d1cf9-1f69-483b-b3ca-ed602f545c5e/ERTMS-Locomotieven_Stops_Incidenten_Database-b9EqPUfvrEZ54NpU1b0gBcH1P64LkI.xlsx?download=1'
+              downloadUrl: headResponse.downloadUrl
             });
 
     if (!processingResult.ok) {
