@@ -12,12 +12,12 @@ const ChatMessageUserTextContent = ({
   }
 
   return (
-    <div className="max-w-4xl self-end">
-      <div className="from-fill-brand to-fill-brand-2 shadow-fill-brand/20 inline-flex rounded-2xl bg-gradient-to-tr px-4 py-3 shadow-md">
+    <div className="flex w-full justify-end">
+      <div className="from-fill-brand to-fill-brand-2 shadow-fill-brand/20 inline-flex max-w-2xl rounded-2xl bg-gradient-to-tr px-4 py-3 shadow-md">
         <Typography
           variant="bodyMd"
           asChild
-          className="text-text-brand-on-fill whitespace-pre-wrap"
+          className="text-text-brand-on-fill whitespace-pre-wrap break-words"
         >
           <span>{text}</span>
         </Typography>
