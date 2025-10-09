@@ -31,7 +31,7 @@ const UserDropdown = ({ user, agentId }: UserDropdownProps) => {
         <Button variant="ghost" shape="circle" className="p-0">
           <ButtonContent>
             <Image
-              src={`https://ui-avatars.com/api/?name=${user.name}&background=73C3FF&color=fff&size=64`}
+              src={`https://ui-avatars.com/api/?name=${user.name}&background=0088dd&color=fff&size=64`}
               alt={user.name ?? 'User avatar'}
               width={32}
               height={32}
