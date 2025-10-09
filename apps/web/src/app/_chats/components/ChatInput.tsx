@@ -227,7 +227,7 @@ const ChatInput = () => {
                 background: 'linear-gradient(135deg, #73C3FF 0%, #9DD7FF 100%)'
               }}
             >
-              <Icon icon={IconPlus} size="lg" style={{ color: 'white' }} />
+              <Icon icon={IconPlus} size="lg" className="text-white" />
             </button>
           </div>
 
@@ -298,7 +298,7 @@ const ChatInput = () => {
                         : IconMicrophone
                   }
                   size="lg"
-                  style={{ color: 'white' }}
+                  className="text-white"
                 />
               </button>
             )}
@@ -338,7 +338,7 @@ const ChatInput = () => {
                       : IconSend
                 }
                 size="lg"
-                style={{ color: 'white' }}
+                className="text-white"
               />
             </button>
           </div>
