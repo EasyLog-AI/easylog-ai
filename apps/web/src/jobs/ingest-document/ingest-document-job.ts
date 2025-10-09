@@ -59,22 +59,26 @@ export const ingestDocumentJob = schemaTask({
 
     logger.info('Processing document', {
       filename: dbDocument.name,
-      downloadUrl: headResponse.downloadUrl,
+      downloadUrl:
+        'https://lxlfgubcvm0qmjs9.public.blob.vercel-storage.com/db6d1cf9-1f69-483b-b3ca-ed602f545c5e/ERTMS-Locomotieven_Stops_Incidenten_Database-b9EqPUfvrEZ54NpU1b0gBcH1P64LkI.xlsx?download=1',
       contentType
     });
 
     const processingResult =
       contentType === 'application/pdf'
         ? await processPdfJob.triggerAndWait({
-            downloadUrl: headResponse.downloadUrl,
+            downloadUrl:
+              'https://lxlfgubcvm0qmjs9.public.blob.vercel-storage.com/db6d1cf9-1f69-483b-b3ca-ed602f545c5e/ERTMS-Locomotieven_Stops_Incidenten_Database-b9EqPUfvrEZ54NpU1b0gBcH1P64LkI.xlsx?download=1',
             basePath: dbDocument.path
           })
         : contentType === 'application/xml' || contentType === 'text/xml'
           ? await processXmlJob.triggerAndWait({
-              downloadUrl: headResponse.downloadUrl
+              downloadUrl:
+                'https://lxlfgubcvm0qmjs9.public.blob.vercel-storage.com/db6d1cf9-1f69-483b-b3ca-ed602f545c5e/ERTMS-Locomotieven_Stops_Incidenten_Database-b9EqPUfvrEZ54NpU1b0gBcH1P64LkI.xlsx?download=1'
             })
           : await processXlsxJob.triggerAndWait({
-              downloadUrl: headResponse.downloadUrl
+              downloadUrl:
+                'https://lxlfgubcvm0qmjs9.public.blob.vercel-storage.com/db6d1cf9-1f69-483b-b3ca-ed602f545c5e/ERTMS-Locomotieven_Stops_Incidenten_Database-b9EqPUfvrEZ54NpU1b0gBcH1P64LkI.xlsx?download=1'
             });
 
     if (!processingResult.ok) {
@@ -97,7 +101,7 @@ export const ingestDocumentJob = schemaTask({
     const {
       object: { summary, tags }
     } = await generateObject({
-      model: openrouterProvider(dbDocument.agent.defaultModel),
+      model: openrouterProvider('google/gemini-2.5-flash'),
       prompt: `You are a professional data analyst and summarizer. Your task is to analyze the provided data structure and create a comprehensive summary with relevant tags.
 
 ## TASK
