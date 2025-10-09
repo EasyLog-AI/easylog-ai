@@ -23,6 +23,10 @@ const relations = defineRelations(schema, (r) => ({
     memories: r.many.memories({
       from: r.users.id,
       to: r.memories.userId
+    }),
+    scratchpadMessages: r.many.scratchpadMessages({
+      from: r.users.id,
+      to: r.scratchpadMessages.userId
     })
   },
   sessions: {
@@ -65,6 +69,10 @@ const relations = defineRelations(schema, (r) => ({
     roles: r.many.agentRoles({
       from: r.agents.id,
       to: r.agentRoles.agentId
+    }),
+    superAgents: r.many.superAgents({
+      from: r.agents.id,
+      to: r.superAgents.agentId
     })
   },
   agentRoles: {
@@ -121,6 +129,29 @@ const relations = defineRelations(schema, (r) => ({
     chat: r.one.chats({
       from: r.multipleChoiceQuestions.chatId,
       to: r.chats.id,
+      optional: false
+    })
+  },
+  superAgents: {
+    agent: r.one.agents({
+      from: r.superAgents.agentId,
+      to: r.agents.id,
+      optional: false
+    }),
+    scratchpadMessages: r.many.scratchpadMessages({
+      from: r.superAgents.id,
+      to: r.scratchpadMessages.superAgentId
+    })
+  },
+  scratchpadMessages: {
+    superAgent: r.one.superAgents({
+      from: r.scratchpadMessages.superAgentId,
+      to: r.superAgents.id,
+      optional: false
+    }),
+    user: r.one.users({
+      from: r.scratchpadMessages.userId,
+      to: r.users.id,
       optional: false
     })
   }

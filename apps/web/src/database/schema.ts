@@ -234,3 +234,31 @@ export const multipleChoiceQuestions = pgTable('multiple_choice_questions', {
   value: text('value'),
   ...timestamps
 });
+
+export const superAgents = pgTable('super_agents', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  model: text('model').notNull().default('gpt-5'),
+  reasoning: boolean('reasoning').notNull().default(false),
+  reasoningEffort: reasoningEffortEnum('reasoning_effort')
+    .notNull()
+    .default('medium'),
+  agentId: uuid('agent_id')
+    .references(() => agents.id, { onDelete: 'cascade' })
+    .notNull(),
+  prompt: text('prompt').notNull().default('You are a helpful assistant.'),
+  scheduleId: text('schedule_id'),
+  ...timestamps
+});
+
+export const scratchpadMessages = pgTable('scratchpad_messages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  superAgentId: uuid('super_agent_id')
+    .references(() => superAgents.id, { onDelete: 'cascade' })
+    .notNull(),
+  userId: uuid('user_id')
+    .references(() => users.id, { onDelete: 'cascade' })
+    .notNull(),
+  message: text().notNull().default(''),
+  ...timestamps
+});

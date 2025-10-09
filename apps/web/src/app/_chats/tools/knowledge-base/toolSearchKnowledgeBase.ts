@@ -22,14 +22,14 @@ interface ToolSearchKnowledgeBaseProps {
 
 const getToolSearchKnowledgeBase = (
   { agentId }: ToolSearchKnowledgeBaseProps,
-  messageStreamWriter: UIMessageStreamWriter
+  messageStreamWriter?: UIMessageStreamWriter
 ) => {
   return tool({
     ...searchKnowledgeBaseConfig,
     execute: async ({ userSearchQuery }) => {
       const id = uuidv4();
 
-      messageStreamWriter.write({
+      messageStreamWriter?.write({
         type: 'data-research',
         id,
         data: {
@@ -110,7 +110,7 @@ const getToolSearchKnowledgeBase = (
         reason: d.reason
       }));
 
-      messageStreamWriter.write({
+      messageStreamWriter?.write({
         type: 'data-research',
         id,
         data: {
@@ -138,7 +138,7 @@ const getToolSearchKnowledgeBase = (
               return;
             }
 
-            messageStreamWriter.write({
+            messageStreamWriter?.write({
               type: 'data-research',
               id,
               data: {
@@ -252,7 +252,7 @@ Return only the relevant information as plain text without commentary. If you do
 
             relevantInformationObject.relevantInformation = text;
 
-            messageStreamWriter.write({
+            messageStreamWriter?.write({
               type: 'data-research',
               id,
               data: {
@@ -265,7 +265,7 @@ Return only the relevant information as plain text without commentary. If you do
         );
       }
 
-      messageStreamWriter.write({
+      messageStreamWriter?.write({
         type: 'data-research',
         id,
         data: {

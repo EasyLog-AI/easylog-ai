@@ -36,6 +36,8 @@ dependencies = [
     "python-slugify>=8.0.4",
     "apscheduler>=3.11.0",
     "onesignal-python-api>=2.0.2",
+    "reportlab>=4.2.5",
+    "pillow>=11.0.0",
 ]
 
 [tool.ruff]
