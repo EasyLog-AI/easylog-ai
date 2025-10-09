@@ -10,10 +10,8 @@ const ChatMessageUserTextContent = ({
   }
 
   return (
-    <div className="bg-surface-muted prose max-w-lg rounded-xl p-3">
-      {text.split('\n').map((line, index) => (
-        <p key={index}>{line}</p>
-      ))}
+    <div className="bg-surface-muted prose max-w-lg rounded-xl p-3 whitespace-pre-wrap">
+      {text}
     </div>
   );
 };

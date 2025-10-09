@@ -307,3 +307,21 @@
   padding-inline: 1.5rem;
   margin-inline: auto;
 }
+
+/** 
+ * Prose styling aanpassingen voor chat berichten
+ * Vermindert de ruimte tussen paragrafen en regels
+ */
+.prose p {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  line-height: 1.5;
+}
+
+.prose p:first-child {
+  margin-top: 0;
+}
+
+.prose p:last-child {
+  margin-bottom: 0;
+}
