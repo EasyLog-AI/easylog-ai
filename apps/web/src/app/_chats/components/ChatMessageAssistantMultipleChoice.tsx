@@ -124,7 +124,7 @@ const ChatMessageAssistantMultipleChoice = ({
   const currentValue = multipleChoiceQuestion?.value || answer;
 
   return (
-    <div className="bg-surface-muted shadow-short my-2 max-w-[52rem] space-y-4 overflow-auto rounded-xl p-3">
+    <div className="bg-surface-muted shadow-short my-2 max-w-4xl space-y-4 overflow-auto rounded-xl p-3">
       <Typography variant="labelMd">{question}</Typography>
 
       <div className="grid gap-2">

@@ -11,7 +11,7 @@ const ChatMessageFileContent = ({ file }: ChatMessageFileContentProps) => {
   }
 
   return (
-    <div className="bg-surface-muted prose max-w-[52rem] overflow-hidden rounded-xl">
+    <div className="bg-surface-muted prose max-w-4xl overflow-hidden rounded-xl">
       <Image
         src={file.url}
         alt={file.filename ?? 'File'}

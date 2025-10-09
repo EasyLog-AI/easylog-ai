@@ -62,7 +62,7 @@ const ChatHistory = () => {
       ref={scrollRef}
       onScroll={handleScroll}
     >
-      <div className="mx-auto w-full max-w-[56rem]">
+      <div className="mx-auto w-full max-w-4xl">
         <AnimatePresence>
           {messages.map((message) =>
             message.role === 'user' ? (
