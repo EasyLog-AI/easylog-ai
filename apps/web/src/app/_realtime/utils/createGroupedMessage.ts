@@ -1,11 +1,13 @@
-import { UIMessage } from 'ai';
+import { ChatMessage } from '@/app/_chats/types';
 
 import { RealtimeMessageItem } from '../schemas/realtimeItemSchema';
 
 const createGroupedMessage = (
   items: RealtimeMessageItem[]
-): UIMessage | null => {
+): ChatMessage | null => {
   if (items.length === 0) return null;
+
+  type TextPart = Extract<ChatMessage['parts'][number], { type: 'text' }>;
 
   const parts = items
     .map((item) => {
@@ -29,8 +31,8 @@ const createGroupedMessage = (
       return textContent;
     })
     .filter(Boolean)
-    .map((text) => ({
-      type: 'text' as const,
+    .map((text): TextPart => ({
+      type: 'text',
       text
     }));
 

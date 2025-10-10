@@ -1,6 +1,5 @@
 import * as Sentry from '@sentry/nextjs';
 import {
-  UIMessage,
   convertToModelMessages,
   createUIMessageStream,
   createUIMessageStreamResponse,
@@ -50,6 +49,7 @@ import toolLoadDocument from '@/app/_chats/tools/knowledge-base/toolLoadDocument
 import toolSearchKnowledgeBase from '@/app/_chats/tools/knowledge-base/toolSearchKnowledgeBase';
 import toolAnswerMultipleChoice from '@/app/_chats/tools/multiple-choice/toolAnswerMultipleChoice';
 import toolCreateMultipleChoice from '@/app/_chats/tools/multiple-choice/toolCreateMultipleChoice';
+import { ChatMessage } from '@/app/_chats/types';
 import db from '@/database/client';
 import { chats } from '@/database/schema';
 import openrouter from '@/lib/ai-providers/openrouter';
@@ -69,7 +69,10 @@ export const POST = async (
     return new NextResponse('Unauthorized', { status: 401 });
   }
 
-  const { message, id }: { message: UIMessage; id: string } = await req.json();
+  const { message, id } = (await req.json()) as {
+    message: ChatMessage;
+    id: string;
+  };
 
   const chat = await db.query.chats.findFirst({
     where: {
@@ -94,8 +97,11 @@ export const POST = async (
     return new NextResponse('Chat not found', { status: 404 });
   }
 
-  const validatedMessages = await validateUIMessages({
-    messages: [...chat.messages, message],
+  const existingMessages = chat.messages as ChatMessage[];
+  const combinedMessages: ChatMessage[] = [...existingMessages, message];
+
+  const validatedMessages = await validateUIMessages<ChatMessage>({
+    messages: combinedMessages,
     dataSchemas: {
       'bar-chart': barChartSchema,
       'line-chart': lineChartSchema,
@@ -180,9 +186,7 @@ export const POST = async (
     effort: activeRole?.reasoningEffort ?? chat.agent.defaultReasoningEffort
   };
 
-  const messages = [...(chat.messages as UIMessage[]), message];
-
-  const stream = createUIMessageStream({
+  const stream = createUIMessageStream<ChatMessage>({
     execute: async ({ writer }) => {
       const result = streamText({
         model: openrouter(model, {
@@ -246,12 +250,12 @@ export const POST = async (
 
       writer.merge(result.toUIMessageStream({ sendStart: false }));
     },
-    originalMessages: messages,
-    onFinish: async ({ messages }) => {
+    originalMessages: combinedMessages,
+    onFinish: async ({ messages: finishedMessages }) => {
       await db
         .update(chats)
         .set({
-          messages
+          messages: finishedMessages
         })
         .where(eq(chats.id, id));
     },

@@ -38,15 +38,16 @@ const NavigationItem = ({
   children,
   ...props
 }: React.PropsWithChildren<NavigationItemProps>) => {
-  const path = usePathname();
+  const pathname = usePathname();
+  const currentPath = pathname ?? '';
 
   const isRouteActive = useMemo(() => {
     if (matchPartial) {
-      return path.includes(matchPartial);
+      return currentPath.includes(matchPartial);
     }
 
-    return href.endsWith(path);
-  }, [matchPartial, href, path]);
+    return href.endsWith(currentPath);
+  }, [currentPath, matchPartial, href]);
 
   useEffect(() => {
     if (isActive !== undefined && isRouteActive !== isActive) {

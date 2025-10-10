@@ -14,6 +14,8 @@
     "generate:easylog": "docker run --rm -v ${PWD}:/local openapitools/openapi-generator-cli generate -i /local/src/lib/easylog/api-docs.yaml -g typescript-fetch -o /local/src/lib/easylog/generated-client --additional-properties modelPropertyNaming=camelCase,operationIdNaming=original,supportsES6=true,useSingleRequestParameter=true"
   },
   "dependencies": {
+    "@ai-sdk/provider": "^2.0.0",
+    "@ai-sdk/provider-utils": "^3.0.10",
     "@ai-sdk/openai": "^2.0.46",
     "@ai-sdk/react": "^2.0.62",
     "@aws-sdk/client-s3": "^3.812.0",
@@ -25,6 +27,11 @@
     "@openai/agents-realtime": "^0.1.8",
     "@openrouter/ai-sdk-provider": "^1.2.0",
     "@opentelemetry/api": "^1.9.0",
+    "@orpc/client": "^1.9.0",
+    "@orpc/openapi": "^1.9.0",
+    "@orpc/server": "^1.9.0",
+    "@orpc/trpc": "^1.9.0",
+    "@orpc/zod": "^1.9.0",
     "@radix-ui/react-alert-dialog": "^1.1.7",
     "@radix-ui/react-checkbox": "^1.1.5",
     "@radix-ui/react-collapsible": "^1.1.4",
@@ -123,6 +130,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "postcss": "^8",
     "tailwindcss": "^4.1.7",
+    "ts-to-zod": "^4.0.1",
     "typescript": "^5.7.2",
     "vitest": "^3.2.4"
   }

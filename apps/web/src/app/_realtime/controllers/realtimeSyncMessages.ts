@@ -1,8 +1,8 @@
-import { UIMessage } from 'ai';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 import chatMiddleware from '@/app/_chats/middleware/chatMiddleware';
+import { ChatMessage } from '@/app/_chats/types';
 import db from '@/database/client';
 import { chats } from '@/database/schema';
 
@@ -11,6 +11,14 @@ import convertRealtimeToUI from '../utils/convertRealtimeToUI';
 import filterNewMessages from '../utils/filterNewMessages';
 
 const realtimeSyncMessages = chatMiddleware
+  .meta({
+    route: {
+      method: 'POST',
+      path: '/api/orpc/realtime/sync-messages',
+      tags: ['Realtime'],
+      summary: 'Sync realtime messages with a chat'
+    }
+  })
   .input(
     z.object({
       realtimeItems: z.array(realtimeItemSchema)
@@ -21,7 +29,7 @@ const realtimeSyncMessages = chatMiddleware
     const { realtimeItems } = input;
 
     // Get current messages from chat
-    const currentMessages = (chat.messages as UIMessage[]) || [];
+    const currentMessages = (chat.messages as ChatMessage[]) || [];
 
     // Filter out messages that already exist
     const newRealtimeItems = filterNewMessages(realtimeItems, currentMessages);

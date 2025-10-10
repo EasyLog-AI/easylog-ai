@@ -6,6 +6,14 @@ import db from '@/database/client';
 import { documents } from '@/database/schema';
 
 const documentsGetMany = agentMiddleware
+  .meta({
+    route: {
+      method: 'GET',
+      path: '/api/orpc/documents',
+      tags: ['Documents'],
+      summary: 'List documents for an agent'
+    }
+  })
   .input(
     z.object({
       cursor: z.number().default(0),

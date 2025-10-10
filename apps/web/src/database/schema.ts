@@ -1,4 +1,3 @@
-import { UIMessage } from 'ai';
 import {
   boolean,
   integer,
@@ -9,6 +8,8 @@ import {
   timestamp,
   uuid
 } from 'drizzle-orm/pg-core';
+
+import { ChatMessage } from '@/app/_chats/types';
 
 export const timestamps = {
   createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
@@ -208,7 +209,7 @@ export const chats = pgTable('chats', {
     onDelete: 'cascade'
   }),
   /** TODO: come on jappie, we can do better than this */
-  messages: jsonb('messages').notNull().default([]).$type<UIMessage[]>(),
+  messages: jsonb('messages').notNull().default([]).$type<ChatMessage[]>(),
   ...timestamps
 });
 

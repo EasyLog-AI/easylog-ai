@@ -7,6 +7,14 @@ import { protectedProcedure } from '@/lib/trpc/procedures';
 import serverConfig from '@/server.config';
 
 const documentsCreateUploadUrls = protectedProcedure
+  .meta({
+    route: {
+      method: 'POST',
+      path: '/api/orpc/documents/upload-urls',
+      tags: ['Documents'],
+      summary: 'Create signed upload URLs for documents'
+    }
+  })
   .input(
     z
       .object({
