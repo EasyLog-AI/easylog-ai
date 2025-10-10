@@ -1,4 +1,4 @@
-import { UIMessage } from 'ai';
+import { ChatMessage } from '@/app/_chats/types';
 
 import createGroupedMessage from './createGroupedMessage';
 import createIndividualMessage from './createIndividualMessage';
@@ -12,13 +12,13 @@ import {
  * consecutive user messages into parts - keeps assistant messages separate
  * Includes both completed and in-progress messages to show live transcription
  */
-const convertRealtimeToUI = (realtimeItems: RealtimeItem[]): UIMessage[] => {
+const convertRealtimeToUI = (realtimeItems: RealtimeItem[]): ChatMessage[] => {
   const messageItems = realtimeItems.filter(
     (item): item is RealtimeMessageItem => item.type === 'message'
     // Don't filter by status - include in-progress for live updates
   );
 
-  const groupedMessages: UIMessage[] = [];
+  const groupedMessages: ChatMessage[] = [];
   let currentUserGroup: RealtimeMessageItem[] = [];
 
   for (const item of messageItems) {

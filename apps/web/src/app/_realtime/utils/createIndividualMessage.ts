@@ -1,10 +1,10 @@
-import { UIMessage } from 'ai';
+import { ChatMessage } from '@/app/_chats/types';
 
 import { RealtimeMessageItem } from '../schemas/realtimeItemSchema';
 
 const createIndividualMessage = (
   item: RealtimeMessageItem
-): UIMessage | null => {
+): ChatMessage | null => {
   const textContent = item.content
     .map((content) => {
       if (content.type === 'input_text' || content.type === 'output_text') {
@@ -30,15 +30,19 @@ const createIndividualMessage = (
 
   if (!textContent) return null;
 
+  type TextPart = Extract<ChatMessage['parts'][number], { type: 'text' }>;
+
+  const parts: TextPart[] = [
+    {
+      type: 'text',
+      text: textContent
+    }
+  ];
+
   return {
     id: item.itemId,
     role: item.role as 'user' | 'assistant' | 'system',
-    parts: [
-      {
-        type: 'text' as const,
-        text: textContent
-      }
-    ]
+    parts
   };
 };
 

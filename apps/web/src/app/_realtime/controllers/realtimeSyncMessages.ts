@@ -1,8 +1,8 @@
-import { UIMessage } from 'ai';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 import chatMiddleware from '@/app/_chats/middleware/chatMiddleware';
+import { ChatMessage } from '@/app/_chats/types';
 import db from '@/database/client';
 import { chats } from '@/database/schema';
 
@@ -29,7 +29,7 @@ const realtimeSyncMessages = chatMiddleware
     const { realtimeItems } = input;
 
     // Get current messages from chat
-    const currentMessages = (chat.messages as UIMessage[]) || [];
+    const currentMessages = (chat.messages as ChatMessage[]) || [];
 
     // Filter out messages that already exist
     const newRealtimeItems = filterNewMessages(realtimeItems, currentMessages);

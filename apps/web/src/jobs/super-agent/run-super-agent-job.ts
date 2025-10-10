@@ -1,8 +1,5 @@
 import { AbortTaskRunError, logger, schemaTask } from '@trigger.dev/sdk';
 import {
-  UIDataTypes,
-  UIMessage,
-  UITools,
   convertToModelMessages,
   generateId,
   generateText,
@@ -17,6 +14,7 @@ import toolCreateMemory from '@/app/_chats/tools/core/toolCreateMemory';
 import toolDeleteMemory from '@/app/_chats/tools/core/toolDeleteMemory';
 import toolExecuteSQL from '@/app/_chats/tools/execute-sql/toolExecuteSQL';
 import toolSearchKnowledgeBase from '@/app/_chats/tools/knowledge-base/toolSearchKnowledgeBase';
+import { ChatMessage } from '@/app/_chats/types';
 import db from '@/database/client';
 import {
   chats,
@@ -175,15 +173,17 @@ Silently monitor and analyze conversations, storing insights in your scratchpad.
       `Scratchpad messages: ${JSON.stringify(scratchpadMessages, null, 2)}`
     );
 
-    const validatedMessages = await validateUIMessages({
-      messages: chat.messages
+    const chatMessages = chat.messages as ChatMessage[];
+
+    const validatedMessages = await validateUIMessages<ChatMessage>({
+      messages: chatMessages
     });
 
     logger.info(
       `Validated messages: ${JSON.stringify(validatedMessages, null, 2)}`
     );
 
-    const previousMessages = convertToModelMessages(chat.messages, {
+    const previousMessages = convertToModelMessages(chatMessages, {
       ignoreIncompleteToolCalls: true
     }).flatMap((message) => ({
       role: message.role,
@@ -315,28 +315,39 @@ Silently monitor and analyze conversations, storing insights in your scratchpad.
       }
     );
 
-    const newMessage: UIMessage<unknown, UIDataTypes, UITools> =
-      chat.messages.at(-1)?.role === 'assistant'
-        ? chat.messages.at(-1)!
+    type TextPart = Extract<ChatMessage['parts'][number], { type: 'text' }>;
+
+    const lastMessage = chatMessages.at(-1);
+    const baseMessage: ChatMessage =
+      lastMessage && lastMessage.role === 'assistant'
+        ? {
+            ...lastMessage,
+            parts: [...lastMessage.parts]
+          }
         : {
             id: generateId(),
             role: 'assistant',
             parts: []
           };
 
-    newMessage.parts.push(
-      ...writeChatMessageParts.map((message) => ({
-        type: 'text' as const,
-        text: message
-      }))
-    );
+    const newParts: TextPart[] = writeChatMessageParts.map((message) => ({
+      type: 'text',
+      text: message
+    }));
 
-    logger.info(`New message`, JSON.parse(JSON.stringify(newMessage)));
+    baseMessage.parts.push(...newParts);
+
+    logger.info(`New message`, JSON.parse(JSON.stringify(baseMessage)));
+
+    const updatedMessages =
+      lastMessage && lastMessage.role === 'assistant'
+        ? [...chatMessages.slice(0, -1), baseMessage]
+        : [...chatMessages, baseMessage];
 
     await db
       .update(chats)
       .set({
-        messages: [...chat.messages.slice(0, -1), newMessage]
+        messages: updatedMessages
       })
       .where(eq(chats.id, chatId));
   }
