@@ -2,13 +2,19 @@ import { OpenAPIHandler } from '@orpc/openapi/fetch'; // or '@orpc/server/node'
 import { onError } from '@orpc/server';
 import { CORSPlugin } from '@orpc/server/plugins';
 import { ZodSmartCoercionPlugin } from '@orpc/zod';
+import * as Sentry from '@sentry/nextjs';
 
 import createTRPCContext from '@/lib/trpc/context';
 import orpcRouter from '@/orpc-router';
 
 const handler = new OpenAPIHandler(orpcRouter, {
   plugins: [new CORSPlugin(), new ZodSmartCoercionPlugin()],
-  interceptors: [onError((error) => console.error(error))]
+  interceptors: [
+    onError((error) => {
+      Sentry.captureException(error);
+      console.error(error);
+    })
+  ]
 });
 
 async function handleRequest(request: Request) {
