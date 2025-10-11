@@ -3,7 +3,7 @@ import json
 import re
 import uuid
 from collections.abc import Callable, Iterable
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from typing import Any, Literal
 
 import httpx
@@ -26,6 +26,8 @@ from src.agents.base_agent import BaseAgent, SuperAgentConfig
 from src.agents.tools.base_tools import BaseTools
 from src.agents.tools.easylog_backend_tools import EasylogBackendTools
 from src.agents.tools.easylog_sql_tools import EasylogSqlTools
+from src.agents.utils.patient_report_data import PatientReportDataAggregator
+from src.agents.utils.patient_report_generator import PatientReportGenerator
 from src.lib.prisma import prisma
 from src.models.chart_widget import (
     ChartWidget,
@@ -121,7 +123,9 @@ class RoleConfig(BaseModel):
     )
 
 
-class MUMCAgentTestConfig(BaseModel):
+class MUMCAgentACETestConfig(BaseModel):
+    """Configuration for MUMC Agent ACE Test - DO NOT USE IN PRODUCTION."""
+
     roles: list[RoleConfig] = Field(
         default_factory=lambda: [
             RoleConfig(
@@ -135,18 +139,596 @@ class MUMCAgentTestConfig(BaseModel):
         ]
     )
     prompt: str = Field(
-        default="You can use the following roles: {available_roles}.\nYou are currently acting as the role: {current_role}.\nYour specific instructions for this role are: {current_role_prompt}.\nThis prompt may include details from a questionnaire. Use the provided tools to interact with the questionnaire if needed.\nThe current time is: {current_time}.\nRecurring tasks: {recurring_tasks}\nReminders: {reminders}\nMemories: {memories}"
+        default="{playbook}\n\nYou can use the following roles: {available_roles}.\nYou are currently acting as the role: {current_role}.\nYour specific instructions for this role are: {current_role_prompt}.\nThis prompt may include details from a questionnaire. Use the provided tools to interact with the questionnaire if needed.\nThe current time is: {current_time}.\nRecurring tasks: {recurring_tasks}\nReminders: {reminders}\nMemories: {memories}"
     )
 
 
-class MUMCAgentTest(BaseAgent[MUMCAgentTestConfig]):
+# ============================================================================
+# ACE (Agentic Context Engineering) - Data Models
+# ============================================================================
+
+
+class ACEConfig(BaseModel):
+    """ACE configuration for cost control via OpenRouter."""
+
+    max_bullets: int = Field(
+        default=30,
+        description="Maximum number of bullets in playbook (cost control)",
+    )
+    max_bullet_length: int = Field(
+        default=150,
+        description="Maximum characters per bullet (keep concise)",
+    )
+    prune_threshold: int = Field(
+        default=50,
+        description="Prune playbook when exceeding this many bullets",
+    )
+    min_helpful_score: int = Field(
+        default=2,
+        description="Minimum helpful count to keep bullet after pruning",
+    )
+    enable_cost_logging: bool = Field(
+        default=True,
+        description="Log token usage for cost tracking",
+    )
+
+
+class PlaybookBullet(BaseModel):
+    """A single strategy/rule in the evolving playbook."""
+
+    id: str = Field(
+        description="Unique bullet ID (e.g., 'mumc-001')",
+    )
+    content: str = Field(
+        description="The strategy/rule content (max 150 chars for cost)",
+    )
+    section: str = Field(
+        description="Section name (e.g., 'strategies_and_hard_rules')",
+    )
+    helpful_count: int = Field(
+        default=0,
+        description="Number of times this bullet was marked helpful",
+    )
+    harmful_count: int = Field(
+        default=0,
+        description="Number of times this bullet was marked harmful",
+    )
+    created_at: str = Field(
+        description="ISO timestamp of creation",
+    )
+    last_used_at: str | None = Field(
+        default=None,
+        description="ISO timestamp of last usage",
+    )
+
+    @property
+    def score(self) -> int:
+        """Net helpfulness score."""
+        return self.helpful_count - self.harmful_count
+
+    def to_compact_format(self) -> str:
+        """Compact format for cost savings: [id:↑h↓h] content."""
+        return f"[{self.id}:↑{self.helpful_count}↓{self.harmful_count}] {self.content}"
+
+
+class Playbook(BaseModel):
+    """Evolving playbook with accumulated strategies."""
+
+    bullets: list[PlaybookBullet] = Field(
+        default_factory=list,
+        description="All bullets in the playbook",
+    )
+    version: int = Field(
+        default=0,
+        description="Playbook version (increments on save)",
+    )
+    last_updated: str = Field(
+        default="",
+        description="ISO timestamp of last update",
+    )
+    total_tokens_estimate: int = Field(
+        default=0,
+        description="Estimated tokens for cost tracking",
+    )
+
+    def get_bullets_by_section(self, section: str) -> list[PlaybookBullet]:
+        """Get all bullets for a specific section."""
+        return [b for b in self.bullets if b.section == section]
+
+    def add_bullet(self, bullet: PlaybookBullet) -> None:
+        """Add a bullet to the playbook."""
+        self.bullets.append(bullet)
+        self._update_token_estimate()
+
+    def remove_bullet(self, bullet_id: str) -> bool:
+        """Remove a bullet by ID. Returns True if found and removed."""
+        initial_len = len(self.bullets)
+        self.bullets = [b for b in self.bullets if b.id != bullet_id]
+        if len(self.bullets) < initial_len:
+            self._update_token_estimate()
+            return True
+        return False
+
+    def prune_low_value_bullets(self, min_score: int = 2) -> int:
+        """Remove bullets with score below threshold. Returns count removed."""
+        initial_len = len(self.bullets)
+        self.bullets = [b for b in self.bullets if b.score >= min_score]
+        removed = initial_len - len(self.bullets)
+        if removed > 0:
+            self._update_token_estimate()
+        return removed
+
+    def _update_token_estimate(self) -> None:
+        """Update estimated token count (rough: 1 token ≈ 4 chars)."""
+        total_chars = sum(len(b.to_compact_format()) for b in self.bullets)
+        self.total_tokens_estimate = total_chars // 4 + 100  # +100 for formatting
+
+
+# MUMC Playbook Sections
+MUMC_PLAYBOOK_SECTIONS = {
+    "strategies_and_hard_rules": "General strategies and hard rules for COPD coaching",
+    "data_interpretation": "How to interpret ZLM scores, steps data, health metrics",
+    "user_interaction": "Communication patterns, language preferences, consent",
+    "tool_usage": "When and how to use specific tools (charts, notifications)",
+    "common_mistakes": "Known errors to avoid",
+}
+
+
+class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
+    """
+    MUMC Agent with ACE (Agentic Context Engineering) - TEST VERSION ONLY
+    
+    ⚠️  DO NOT USE IN PRODUCTION ⚠️
+    
+    This is a test agent for proof-of-concept ACE implementation.
+    For production, use src.agents.implementations.mumc_agent.MUMCAgent
+    """
+    
+    IS_TEST_AGENT = True
+
     def on_init(self) -> None:
         self.configure_onesignal(
             settings.ONESIGNAL_HEALTH_API_KEY,
             settings.ONESIGNAL_HEALTH_APP_ID,
         )
 
-        self.logger.info(f"[TEST AGENT] Request headers: {self.request_headers}")
+        self.logger.info(f"🧪 ACE TEST AGENT - Request headers: {self.request_headers}")
+
+        # Initialize ACE config
+        self.ace_config = ACEConfig()
+
+    # ========================================================================
+    # ACE - Playbook Storage & Retrieval
+    # ========================================================================
+
+    async def _get_playbook(self) -> Playbook:
+        """Load playbook from thread metadata.
+
+        Returns:
+            Playbook object (empty if not exists)
+        """
+        playbook_data = await self.get_metadata("ace_playbook", None)
+
+        if playbook_data is None:
+            self.logger.info("🎯 ACE: Creating new empty playbook")
+            return Playbook(
+                last_updated=datetime.now(pytz.timezone("Europe/Amsterdam")).isoformat()
+            )
+
+        try:
+            playbook = Playbook(**json.loads(playbook_data))
+            self.logger.info(
+                f"📚 ACE: Loaded playbook v{playbook.version} "
+                f"with {len(playbook.bullets)} bullets "
+                f"(~{playbook.total_tokens_estimate} tokens)"
+            )
+            return playbook
+        except Exception as e:
+            self.logger.error(f"❌ ACE: Error loading playbook: {e}")
+            return Playbook(
+                last_updated=datetime.now(pytz.timezone("Europe/Amsterdam")).isoformat()
+            )
+
+    async def _save_playbook(self, playbook: Playbook) -> None:
+        """Save playbook to thread metadata.
+
+        Args:
+            playbook: Playbook to save
+        """
+        playbook.version += 1
+        playbook.last_updated = datetime.now(pytz.timezone("Europe/Amsterdam")).isoformat()
+
+        # Auto-prune if exceeding threshold
+        if len(playbook.bullets) > self.ace_config.prune_threshold:
+            removed = playbook.prune_low_value_bullets(self.ace_config.min_helpful_score)
+            self.logger.info(f"🧹 ACE: Auto-pruned {removed} low-value bullets")
+
+        await self.set_metadata("ace_playbook", playbook.model_dump_json())
+
+        self.logger.info(
+            f"💾 ACE: Saved playbook v{playbook.version} "
+            f"with {len(playbook.bullets)} bullets "
+            f"(~{playbook.total_tokens_estimate} tokens)"
+        )
+
+    def _format_playbook_for_prompt(self, playbook: Playbook) -> str:
+        """Format playbook as compact text for system prompt.
+
+        Uses cost-efficient compact format to minimize tokens.
+
+        Args:
+            playbook: Playbook to format
+
+        Returns:
+            Formatted playbook text (empty string if no bullets)
+        """
+        if not playbook.bullets:
+            return ""
+
+        lines = ["## 📚 ACE Playbook - Learned Strategies\n"]
+
+        # Group by section and sort by score (best first)
+        for section_name in MUMC_PLAYBOOK_SECTIONS:
+            bullets = playbook.get_bullets_by_section(section_name)
+            if not bullets:
+                continue
+
+            # Sort by score (highest first), then by last_used
+            sorted_bullets = sorted(
+                bullets,
+                key=lambda b: (b.score, b.last_used_at or ""),
+                reverse=True,
+            )
+
+            # Section header (compact)
+            lines.append(f"\n### {section_name}")
+
+            # Add bullets in compact format
+            for bullet in sorted_bullets:
+                lines.append(bullet.to_compact_format())
+
+        result = "\n".join(lines)
+
+        # Log token estimate
+        if self.ace_config.enable_cost_logging:
+            tokens = len(result) // 4
+            self.logger.debug(f"📊 ACE: Playbook formatted to ~{tokens} tokens")
+
+        return result
+
+    # ========================================================================
+    # ACE - Reflector (Error Analysis)
+    # ========================================================================
+
+    async def _reflect_on_tool_execution(
+        self,
+        tool_name: str,
+        tool_args: dict[str, Any],
+        tool_result: Any,
+        error: Exception | None,
+        used_bullet_ids: list[str],
+    ) -> dict[str, Any]:
+        """Analyze tool execution and generate reflection.
+
+        For POC: Simple rule-based reflection without LLM calls (cost saving).
+        Future: Can be enhanced with LLM-based analysis.
+
+        Args:
+            tool_name: Name of the tool that was called
+            tool_args: Arguments passed to the tool
+            tool_result: Result from the tool (if successful)
+            error: Exception if tool failed
+            used_bullet_ids: IDs of bullets that were "in context" for this execution
+
+        Returns:
+            Reflection dict with:
+                - error_identification: What went wrong
+                - root_cause: Why it happened
+                - key_insight: What to remember
+                - bullet_tags: List of {id, tag} for scoring bullets
+        """
+        reflection = {
+            "error_identification": "",
+            "root_cause": "",
+            "key_insight": "",
+            "bullet_tags": [],
+        }
+
+        # Success case - mark bullets as helpful
+        if error is None:
+            self.logger.debug(f"✅ ACE: Tool {tool_name} succeeded")
+            reflection["bullet_tags"] = [{"id": bid, "tag": "helpful"} for bid in used_bullet_ids]
+            return reflection
+
+        # Error case - analyze and generate insight
+        self.logger.info(f"❌ ACE: Tool {tool_name} failed: {error}")
+
+        error_str = str(error)
+        reflection["error_identification"] = error_str
+        reflection["root_cause"] = f"Tool {tool_name} called with args: {tool_args}"
+
+        # Generate insight based on error pattern
+        if "Missing questionnaire" in error_str:
+            reflection["key_insight"] = "Always verify questionnaire completion before calculating ZLM scores"
+        elif "User not found" in error_str:
+            reflection["key_insight"] = "Check user existence before querying health data"
+        elif "Date from is in the past" in error_str:
+            reflection["key_insight"] = "Validate date ranges - steps data only for current year"
+        elif "Invalid timezone" in error_str:
+            reflection["key_insight"] = "Always use valid IANA timezone names (e.g., Europe/Amsterdam)"
+        elif "No onesignal id" in error_str:
+            reflection["key_insight"] = "Verify OneSignal ID before sending notifications"
+        else:
+            # Generic insight
+            reflection[
+                "key_insight"
+            ] = f"Tool {tool_name} requires careful validation of: {', '.join(tool_args.keys())}"
+
+        # Mark used bullets as potentially harmful (simple heuristic)
+        reflection["bullet_tags"] = [{"id": bid, "tag": "harmful"} for bid in used_bullet_ids]
+
+        return reflection
+
+    # ========================================================================
+    # ACE - Curator (Playbook Updates)
+    # ========================================================================
+
+    async def _curate_playbook_update(
+        self,
+        playbook: Playbook,
+        reflection: dict[str, Any],
+        tool_name: str,
+    ) -> list[dict[str, Any]]:
+        """Decide what to add to playbook based on reflection.
+
+        For POC: Simple rule-based curation without LLM (cost saving).
+        Future: Can use LLM for smarter curation decisions.
+
+        Args:
+            playbook: Current playbook
+            reflection: Reflection from error analysis
+            tool_name: Name of the tool that was executed
+
+        Returns:
+            List of operations: [{"type": "ADD", "section": "...", "content": "..."}]
+        """
+        operations = []
+
+        # Only add insights on errors with useful insights
+        key_insight = reflection.get("key_insight", "")
+        if not key_insight or len(key_insight) < 10:
+            return operations
+
+        # Check for duplicates - don't add if similar content exists
+        for existing_bullet in playbook.bullets:
+            if key_insight.lower() in existing_bullet.content.lower():
+                self.logger.debug(f"🔄 ACE: Insight already in playbook, skipping")
+                return operations
+            if existing_bullet.content.lower() in key_insight.lower():
+                self.logger.debug(f"🔄 ACE: Similar insight exists, skipping")
+                return operations
+
+        # Truncate if too long (cost control)
+        if len(key_insight) > self.ace_config.max_bullet_length:
+            key_insight = key_insight[: self.ace_config.max_bullet_length - 3] + "..."
+
+        # Determine section based on tool name and content
+        section = self._categorize_insight(tool_name, key_insight)
+
+        operations.append({"type": "ADD", "section": section, "content": key_insight})
+
+        self.logger.info(f"✨ ACE: Will add insight to section '{section}': {key_insight[:50]}...")
+
+        return operations
+
+    def _categorize_insight(self, tool_name: str, content: str) -> str:
+        """Categorize insight into appropriate section.
+
+        Args:
+            tool_name: Name of the tool
+            content: Insight content
+
+        Returns:
+            Section name
+        """
+        content_lower = content.lower()
+
+        # Tool-specific categorization
+        if "zlm" in tool_name.lower() or "zlm" in content_lower or "score" in content_lower:
+            return "data_interpretation"
+        if "notification" in tool_name.lower() or "send" in tool_name.lower():
+            return "tool_usage"
+        if "steps" in tool_name.lower() or "stappen" in content_lower:
+            return "data_interpretation"
+        if "user" in content_lower or "patient" in content_lower:
+            return "user_interaction"
+
+        # Content-based categorization
+        if any(word in content_lower for word in ["always", "never", "must", "verify", "check"]):
+            return "strategies_and_hard_rules"
+        if any(word in content_lower for word in ["avoid", "error", "mistake"]):
+            return "common_mistakes"
+        if any(word in content_lower for word in ["interpret", "calculate", "analyze"]):
+            return "data_interpretation"
+
+        # Default fallback
+        return "strategies_and_hard_rules"
+
+    async def _apply_curator_operations(
+        self, playbook: Playbook, operations: list[dict[str, Any]]
+    ) -> Playbook:
+        """Apply curator operations to playbook.
+
+        Args:
+            playbook: Current playbook
+            operations: List of operations to apply
+
+        Returns:
+            Updated playbook
+        """
+        amsterdam_tz = pytz.timezone("Europe/Amsterdam")
+        current_time = datetime.now(amsterdam_tz).isoformat()
+
+        for op in operations:
+            if op["type"] == "ADD":
+                # Check if we're at max capacity
+                if len(playbook.bullets) >= self.ace_config.max_bullets:
+                    self.logger.warning(
+                        f"⚠️  ACE: At max bullets ({self.ace_config.max_bullets}), "
+                        "auto-pruning before adding"
+                    )
+                    playbook.prune_low_value_bullets(self.ace_config.min_helpful_score)
+
+                # Generate unique ID
+                bullet_id = f"mumc-{len(playbook.bullets) + 1:03d}"
+
+                # Create new bullet
+                bullet = PlaybookBullet(
+                    id=bullet_id,
+                    content=op["content"],
+                    section=op["section"],
+                    created_at=current_time,
+                )
+
+                # Add to playbook
+                playbook.add_bullet(bullet)
+
+                self.logger.info(f"✨ ACE: Added bullet [{bullet_id}] to '{op['section']}'")
+
+        return playbook
+
+    # ========================================================================
+    # ACE - Feedback Loop (Manual Trigger for POC)
+    # ========================================================================
+
+    async def ace_process_tool_execution(
+        self, tool_name: str, tool_args: dict[str, Any], error: Exception | None = None
+    ) -> None:
+        """Process tool execution for ACE learning.
+
+        This is a manual trigger for POC. In production, this would be
+        automatically called after each tool execution.
+
+        Args:
+            tool_name: Name of the tool that was executed
+            tool_args: Arguments passed to the tool
+            error: Exception if tool failed (None if successful)
+        """
+        self.logger.info(f"🔄 ACE: Processing feedback for tool '{tool_name}'")
+
+        # Load current playbook
+        playbook = await self._get_playbook()
+
+        # For POC: We don't track which bullets were "used" yet
+        # In production, the LLM would reference bullet IDs in its reasoning
+        used_bullet_ids: list[str] = []
+
+        # Reflect on execution
+        reflection = await self._reflect_on_tool_execution(
+            tool_name=tool_name,
+            tool_args=tool_args,
+            tool_result=None,  # Not tracking results for POC
+            error=error,
+            used_bullet_ids=used_bullet_ids,
+        )
+
+        # Update bullet scores based on feedback
+        for tag_info in reflection["bullet_tags"]:
+            bullet_id = tag_info["id"]
+            tag = tag_info["tag"]
+
+            for bullet in playbook.bullets:
+                if bullet.id == bullet_id:
+                    if tag == "helpful":
+                        bullet.helpful_count += 1
+                    elif tag == "harmful":
+                        bullet.harmful_count += 1
+                    bullet.last_used_at = datetime.now(pytz.timezone("Europe/Amsterdam")).isoformat()
+
+        # Curate new insights (only on errors for POC)
+        if error is not None:
+            operations = await self._curate_playbook_update(
+                playbook=playbook, reflection=reflection, tool_name=tool_name
+            )
+
+            # Apply updates
+            if operations:
+                playbook = await self._apply_curator_operations(playbook, operations)
+
+        # Save updated playbook
+        await self._save_playbook(playbook)
+
+        self.logger.info(f"✅ ACE: Feedback processing complete for '{tool_name}'")
+
+    async def ace_add_manual_insight(self, insight: str, section: str | None = None) -> None:
+        """Manually add an insight to the playbook.
+
+        Useful for testing and manual knowledge injection.
+
+        Args:
+            insight: The insight to add
+            section: Section to add to (auto-categorized if None)
+        """
+        playbook = await self._get_playbook()
+
+        # Truncate if needed
+        if len(insight) > self.ace_config.max_bullet_length:
+            insight = insight[: self.ace_config.max_bullet_length - 3] + "..."
+
+        # Auto-categorize if no section provided
+        if section is None:
+            section = self._categorize_insight("manual", insight)
+
+        # Check duplicates
+        for bullet in playbook.bullets:
+            if insight.lower() in bullet.content.lower():
+                self.logger.info("🔄 ACE: Insight already exists, skipping")
+                return
+
+        # Add bullet
+        bullet_id = f"mumc-{len(playbook.bullets) + 1:03d}"
+        bullet = PlaybookBullet(
+            id=bullet_id,
+            content=insight,
+            section=section,
+            created_at=datetime.now(pytz.timezone("Europe/Amsterdam")).isoformat(),
+        )
+
+        playbook.add_bullet(bullet)
+        await self._save_playbook(playbook)
+
+        self.logger.info(f"✅ ACE: Manually added insight [{bullet_id}] to '{section}'")
+
+    async def ace_show_playbook_stats(self) -> dict[str, Any]:
+        """Get playbook statistics for monitoring.
+
+        Returns:
+            Dict with playbook stats
+        """
+        playbook = await self._get_playbook()
+
+        stats = {
+            "version": playbook.version,
+            "total_bullets": len(playbook.bullets),
+            "total_tokens_estimate": playbook.total_tokens_estimate,
+            "last_updated": playbook.last_updated,
+            "bullets_by_section": {},
+            "top_bullets": [],
+        }
+
+        # Count by section
+        for section in MUMC_PLAYBOOK_SECTIONS:
+            bullets = playbook.get_bullets_by_section(section)
+            stats["bullets_by_section"][section] = len(bullets)
+
+        # Top 5 bullets by score
+        sorted_bullets = sorted(playbook.bullets, key=lambda b: b.score, reverse=True)[:5]
+        stats["top_bullets"] = [
+            {"id": b.id, "score": b.score, "content": b.content[:50] + "..." if len(b.content) > 50 else b.content}
+            for b in sorted_bullets
+        ]
+
+        return stats
 
     async def get_current_role(self) -> RoleConfig:
         role = await self.get_metadata("current_role", self.config.roles[0].name)
@@ -164,12 +746,12 @@ class MUMCAgentTest(BaseAgent[MUMCAgentTestConfig]):
             title (str): The notification title
             contents (str): The notification message content
         """
-        self.logger.info(f"[TEST AGENT] Adding notification to chat: {title}")
+        self.logger.info(f"Adding notification to chat: {title}")
         
         try:
             await prisma.messages.create(
                 data={
-                    "agent_class": "MUMCAgentTest",
+                    "agent_class": "MUMCAgentACETest",  # Updated for test agent
                     "thread_id": self.thread_id,
                     "role": message_role.assistant,
                     "contents": {
@@ -182,9 +764,9 @@ class MUMCAgentTest(BaseAgent[MUMCAgentTestConfig]):
                     },
                 },
             )
-            self.logger.info("[TEST AGENT] Successfully added notification to chat")
+            self.logger.info("Successfully added notification to chat")
         except Exception as e:
-            self.logger.error(f"[TEST AGENT] Error adding notification to chat: {e}")
+            self.logger.error(f"Error adding notification to chat: {e}")
             # Don't raise - notification was already sent via OneSignal
 
     def get_tools(self) -> dict[str, Callable]:
@@ -231,25 +813,23 @@ class MUMCAgentTest(BaseAgent[MUMCAgentTestConfig]):
         async def tool_search_documents(search_query: str) -> str:
             """Search for documents in the knowledge database using a semantic search query.
 
-            This tool allows you to search through the knowledge database for relevant documents
-            based on a natural language query. The search is performed using semantic matching,
-            which means it will find documents that are conceptually related to your query,
-            even if they don't contain the exact words.
+            This tool uses AI-powered filtering to return only the most relevant information,
+            significantly reducing token usage while maintaining search quality.
 
             Args:
                 search_query (str): A natural language query describing what you're looking for.
                                   For example: "information about metro systems" or "how to handle customer complaints"
 
             Returns:
-                str: A formatted string containing the search results, where each result includes:
-                     - The document's path and summary
+                str: A concise summary of relevant information from the knowledge base,
+                     or a message indicating no relevant information was found.
             """
 
-            result = await self.search_documents(
+            result = await self.search_documents_with_summary(
                 search_query, subjects=(await self.get_current_role()).allowed_subjects
             )
 
-            return "\n-".join([f"Path: {document.path} - Summary: {document.summary}" for document in result])
+            return result
 
         async def tool_get_document_contents(path: str) -> str:
             """Retrieve the complete contents of a specific document from the knowledge database.
@@ -973,17 +1553,25 @@ class MUMCAgentTest(BaseAgent[MUMCAgentTestConfig]):
 
         # Memory tools
         async def tool_store_memory(memory: str) -> str:
-            """Store a memory.
+            """Store a memory with automatic timestamp.
 
             Args:
                 memory (str): The memory to store.
             """
+            amsterdam_tz = pytz.timezone("Europe/Amsterdam")
+            timestamp = datetime.now(amsterdam_tz).strftime("%Y-%m-%d %H:%M")
+            
+            # Add timestamp to memory if not already present
+            if "(datum:" not in memory.lower():
+                memory_with_date = f"{memory} (datum: {timestamp})"
+            else:
+                memory_with_date = memory
 
             memories = await self.get_metadata("memories", [])
-            memories.append({"id": str(uuid.uuid4())[0:8], "memory": memory})
+            memories.append({"id": str(uuid.uuid4())[0:8], "memory": memory_with_date})
             await self.set_metadata("memories", memories)
 
-            return f"Memory stored: {memory}"
+            return f"Memory stored: {memory_with_date}"
 
         async def tool_get_memory(id: str) -> str:
             """Get a memory.
@@ -998,12 +1586,19 @@ class MUMCAgentTest(BaseAgent[MUMCAgentTestConfig]):
 
             return memory["memory"]
 
-        async def tool_send_notification(title: str, contents: str) -> str:
+        async def tool_send_notification(
+            title: str, 
+            contents: str,
+            reminder_id: str | None = None,
+            task_id: str | None = None,
+        ) -> str:
             """Send a notification.
 
             Args:
                 title (str): The title of the notification.
                 contents (str): The text to send in the notification.
+                reminder_id (str | None): Optional ID of the reminder being sent (for cleanup).
+                task_id (str | None): Optional ID of the recurring task being sent (for tracking).
             """
             onesignal_id = self.request_headers.get("x-onesignal-external-user-id") or await self.get_metadata(
                 "onesignal_id", None
@@ -1013,7 +1608,7 @@ class MUMCAgentTest(BaseAgent[MUMCAgentTestConfig]):
                 "assistant_field_name", None
             )
 
-            self.logger.info(f"[TEST AGENT] Sending notification to {onesignal_id}")
+            self.logger.info(f"Sending notification to {onesignal_id}")
 
             if onesignal_id is None:
                 return "No onesignal id found"
@@ -1021,7 +1616,7 @@ class MUMCAgentTest(BaseAgent[MUMCAgentTestConfig]):
             if assistant_field_name is None:
                 return "No assistant field name found"
 
-            self.logger.info(f"[TEST AGENT] Sending notification to {onesignal_id} with app id {settings.ONESIGNAL_HEALTH_APP_ID}")
+            self.logger.info(f"Sending notification to {onesignal_id} with app id {settings.ONESIGNAL_HEALTH_APP_ID}")
             notification = Notification(
                 target_channel="push",
                 channel_for_external_user_ids="push",
@@ -1032,30 +1627,38 @@ class MUMCAgentTest(BaseAgent[MUMCAgentTestConfig]):
                 data={"type": "chat", "assistantFieldName": assistant_field_name},
             )
 
-            self.logger.info(f"[TEST AGENT] Notification: {notification}")
+            self.logger.info(f"Notification: {notification}")
             try:
                 response = await self.one_signal.send_notification(notification)
             except Exception as e:
-                self.logger.error(f"[TEST AGENT] Error sending notification: {e}")
+                self.logger.error(f"Error sending notification: {e}")
                 return "Error sending notification"
 
-            self.logger.info(f"[TEST AGENT] Notification response: {response}")
+            self.logger.info(f"Notification response: {response}")
 
+            # Automatic cleanup: remove reminder after sending
+            if reminder_id:
+                await self._remove_reminder(reminder_id)
+            
+            # Add notification to history with tracking IDs
+            await self._add_notification_record(title, contents, task_id=task_id, reminder_id=reminder_id)
+
+            # Legacy notification tracking (kept for backwards compatibility)
             notifications = await self.get_metadata("notifications", [])
 
             # Keep only today's notifications
             today = datetime.now(pytz.timezone("Europe/Amsterdam")).date()
             filtered_notifications = []
-            for notification in notifications:
+            for notif in notifications:
                 try:
-                    sent_date = datetime.fromisoformat(notification["sent_at"]).date()
+                    sent_date = datetime.fromisoformat(notif["sent_at"]).date()
                     if sent_date == today:
-                        filtered_notifications.append(notification)
+                        filtered_notifications.append(notif)
                 except (ValueError, KeyError):
                     # Keep notification if we can't parse the date
-                    filtered_notifications.append(notification)
+                    filtered_notifications.append(notif)
 
-            # Add new notification
+            # Add new notification (legacy format - will be phased out)
             filtered_notifications.append(
                 {
                     "id": response["id"],
@@ -1276,6 +1879,84 @@ class MUMCAgentTest(BaseAgent[MUMCAgentTestConfig]):
                 for dp in steps_data
             ]
 
+        async def tool_generate_patient_report(
+            reason: str,
+            period_days: int = 30
+        ) -> tuple[str, bool]:
+            """Genereer een professioneel patiënt verslag als PDF.
+
+            Dit verslag bevat een overzicht van de patient zijn/haar:
+            - Profiel informatie (leeftijd, diagnose, comorbiditeit)
+            - ZLM (Ziektelast) scores
+            - Doelen en voortgang
+            - Activiteit (stappen) data
+            - Medicatie informatie
+
+            De gegenereerde PDF kan door de patient gedownload en gedeeld worden
+            met bijvoorbeeld hun arts.
+
+            Args:
+                reason (str): De aanleiding voor het verslag (VERPLICHT). Bijvoorbeeld:
+                             "Bezoek arts", "Bezoek POH", "Anders".
+                period_days (int): OPTIONEEL - Gebruik altijd de default waarde van 30 dagen.
+                                  Vraag NOOIT naar deze parameter.
+
+            Returns:
+                tuple[str, bool]: (JSON widget data, True) for widget rendering
+
+            Raises:
+                ValueError: Als er geen patient data beschikbaar is
+            """
+            try:
+                # Get OneSignal ID from headers
+                onesignal_id = self.request_headers.get("x-onesignal-external-user-id")
+                if not onesignal_id:
+                    raise ValueError("Kan patient ID niet vinden")
+
+                # Aggregate patient data
+                aggregator = PatientReportDataAggregator(
+                    thread_id=self.thread_id, onesignal_id=onesignal_id
+                )
+                report_data = await aggregator.aggregate_report_data(
+                    period_days=period_days,
+                    reason=reason
+                )
+
+                # Generate PDF
+                generator = PatientReportGenerator()
+                pdf_bytes = generator.generate_report(report_data)
+
+                # Convert PDF to base64
+                import base64
+                pdf_base64 = base64.b64encode(pdf_bytes).decode('utf-8')
+
+                # Generate filename
+                report_id = str(uuid.uuid4())
+                patient_name_safe = report_data["patient_name"].replace(" ", "_")
+                timestamp = datetime.now(pytz.timezone("Europe/Amsterdam")).strftime("%Y-%m")
+                filename = f"COPD_Verslag_{patient_name_safe}_{timestamp}_{report_id[:8]}.pdf"
+
+                file_size_kb = len(pdf_bytes) // 1024
+
+                self.logger.info(
+                    f"Generated patient report: {filename} ({file_size_kb}KB) for {report_data['patient_name']}"
+                )
+
+                # Return as widget (like charts) - data comes via metadata, not streaming
+                widget_data = json.dumps({
+                    "type": "pdf",
+                    "filename": filename,
+                    "base64": pdf_base64,
+                    "size_kb": file_size_kb,
+                    "period": report_data["period"],
+                })
+
+                return (widget_data, True)
+
+            except Exception as e:
+                self.logger.error(f"Error generating patient report: {e}", exc_info=True)
+                return (f"❌ Er ging iets mis bij het genereren van je verslag: {str(e)}", False)
+
         # Assemble and return the complete tool list
         tools_list = [
             # EasyLog-specific tools
@@ -1285,7 +1966,7 @@ class MUMCAgentTest(BaseAgent[MUMCAgentTestConfig]):
             tool_set_current_role,
             # Document tools
             tool_search_documents,
-            tool_get_document_contents,
+            # tool_get_document_contents,
             # Questionnaire tools
             tool_answer_questionaire_question,
             tool_get_questionaire_answer,
@@ -1310,6 +1991,8 @@ class MUMCAgentTest(BaseAgent[MUMCAgentTestConfig]):
             tool_send_notification,
             # Step counter tools
             tool_get_steps_data,
+            # Report generation
+            tool_generate_patient_report,
             # System tools
             BaseTools.tool_noop,
             BaseTools.tool_call_super_agent,
@@ -1335,22 +2018,263 @@ class MUMCAgentTest(BaseAgent[MUMCAgentTestConfig]):
         output_string = re.sub(r"\{\{([^}]+)\}\}", replace_missing_with_indicator, output_string)
         return output_string
 
+    def _parse_cron_expression(self, cron_expr: str) -> dict[str, Any]:
+        """Parse a cron expression into its components.
+        
+        Format: "minute hour day_of_month month day_of_week"
+        Returns dict with parsed values or None for wildcards.
+        """
+        parts = cron_expr.split()
+        if len(parts) != 5:
+            self.logger.warning(f"Invalid cron expression: {cron_expr}")
+            return {}
+        
+        def parse_field(value: str) -> list[int] | None:
+            """Parse a cron field into a list of integers or None for wildcard."""
+            if value == "*":
+                return None
+            if "," in value:
+                return [int(v) for v in value.split(",")]
+            if "-" in value:
+                start, end = value.split("-")
+                return list(range(int(start), int(end) + 1))
+            return [int(value)]
+        
+        return {
+            "minute": parse_field(parts[0]),
+            "hour": parse_field(parts[1]),
+            "day_of_month": parse_field(parts[2]),
+            "month": parse_field(parts[3]),
+            "day_of_week": parse_field(parts[4]),
+        }
+
+    def _matches_cron_time(
+        self, cron_expr: str, current_time: datetime, grace_minutes: int = 4
+    ) -> bool:
+        """Check if current time matches a cron expression with grace window.
+        
+        Args:
+            cron_expr: Cron expression string (e.g., "15 20 * * *")
+            current_time: Current datetime to check against
+            grace_minutes: Minutes after scheduled time to still consider eligible
+            
+        Returns:
+            True if current time matches (within grace window)
+        """
+        parsed = self._parse_cron_expression(cron_expr)
+        if not parsed:
+            return False
+        
+        # Check hour (must match exactly)
+        if parsed["hour"] and current_time.hour not in parsed["hour"]:
+            return False
+        
+        # Check minute (with grace window)
+        if parsed["minute"]:
+            scheduled_minutes = parsed["minute"]
+            current_minute = current_time.minute
+            
+            # Check if we're within grace window of any scheduled minute
+            is_within_grace = False
+            for scheduled_min in scheduled_minutes:
+                # Calculate minutes difference
+                diff = current_minute - scheduled_min
+                # Within grace window means: exact time OR 0-4 minutes after
+                if 0 <= diff <= grace_minutes:
+                    is_within_grace = True
+                    break
+            
+            if not is_within_grace:
+                return False
+        
+        # Check day of month
+        if parsed["day_of_month"] and current_time.day not in parsed["day_of_month"]:
+            return False
+        
+        # Check month
+        if parsed["month"] and current_time.month not in parsed["month"]:
+            return False
+        
+        # Check day of week (convert Python weekday to cron format)
+        if parsed["day_of_week"]:
+            # Python: 0=Monday, 6=Sunday
+            # Cron: 0=Sunday, 1=Monday, ..., 6=Saturday OR 1=Monday, ..., 7=Sunday
+            python_weekday = current_time.weekday()
+            cron_weekday = (python_weekday + 1) % 7  # Convert to cron format (0=Sunday)
+            
+            # Support both formats (0-6 and 1-7)
+            cron_days = parsed["day_of_week"]
+            if cron_weekday not in cron_days and (cron_weekday + 1) not in cron_days:
+                return False
+        
+        return True
+
+    def _is_eligible_reminder(
+        self, reminder: dict[str, Any], notifications: list[dict[str, Any]], current_time: datetime
+    ) -> bool:
+        """Check if a reminder is eligible to be sent.
+        
+        Args:
+            reminder: Reminder dict with 'id', 'date'/'scheduled_at', 'message'
+            notifications: List of previously sent notifications
+            current_time: Current datetime
+            
+        Returns:
+            True if reminder should be sent
+        """
+        # Get scheduled time
+        scheduled_str = reminder.get("date") or reminder.get("scheduled_at")
+        if not scheduled_str:
+            self.logger.warning(f"Reminder {reminder.get('id')} missing date/scheduled_at")
+            return False
+        
+        try:
+            # Parse scheduled time
+            if isinstance(scheduled_str, str):
+                scheduled_time = datetime.fromisoformat(scheduled_str.replace("Z", "+00:00"))
+            else:
+                scheduled_time = scheduled_str
+            
+            # Make timezone-aware if needed
+            if scheduled_time.tzinfo is None:
+                amsterdam_tz = pytz.timezone("Europe/Amsterdam")
+                scheduled_time = amsterdam_tz.localize(scheduled_time)
+            
+            # Check if due (with 4-minute grace window)
+            grace_window = 4 * 60  # 4 minutes in seconds
+            time_diff = (current_time - scheduled_time).total_seconds()
+            
+            if time_diff < -60:  # More than 1 minute in future
+                return False
+            
+            if time_diff > grace_window:  # More than 4 minutes in past
+                return False
+            
+            # Check for duplicates (same contents in last 24 hours)
+            reminder_contents = reminder.get("message", "")
+            cutoff_time = current_time - timedelta(hours=24)
+            
+            for notif in notifications:
+                notif_contents = notif.get("contents", "")
+                notif_sent_str = notif.get("sent_at", "")
+                
+                if notif_contents == reminder_contents:
+                    try:
+                        notif_sent = datetime.fromisoformat(notif_sent_str.replace("Z", "+00:00"))
+                        if notif_sent > cutoff_time:
+                            self.logger.info(
+                                f"Reminder {reminder.get('id')} skipped - same contents sent at {notif_sent}"
+                            )
+                            return False
+                    except Exception as e:
+                        self.logger.warning(f"Error parsing notification sent_at: {e}")
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Error checking reminder eligibility: {e}")
+            return False
+
+    def _is_eligible_recurring_task(
+        self, task: dict[str, Any], notifications: list[dict[str, Any]], current_time: datetime
+    ) -> bool:
+        """Check if a recurring task is eligible to be sent.
+        
+        Args:
+            task: Recurring task dict with 'id', 'cron_expression', 'task'
+            notifications: List of previously sent notifications
+            current_time: Current datetime
+            
+        Returns:
+            True if task should be sent
+        """
+        cron_expr = task.get("cron_expression", "")
+        if not cron_expr:
+            self.logger.warning(f"Task {task.get('id')} missing cron_expression")
+            return False
+        
+        # Check if cron matches current time
+        if not self._matches_cron_time(cron_expr, current_time):
+            return False
+        
+        # Check for duplicates in current hour
+        # We use task ID + hour as deduplication key
+        task_id = task.get("id", "")
+        current_hour = current_time.hour
+        
+        for notif in notifications:
+            notif_sent_str = notif.get("sent_at", "")
+            notif_task_id = notif.get("task_id", "")
+            
+            try:
+                notif_sent = datetime.fromisoformat(notif_sent_str.replace("Z", "+00:00"))
+                notif_hour = notif_sent.hour
+                notif_date = notif_sent.date()
+                current_date = current_time.date()
+                
+                # Skip if same task sent in same hour today
+                if (
+                    notif_task_id == task_id
+                    and notif_hour == current_hour
+                    and notif_date == current_date
+                ):
+                    self.logger.info(
+                        f"Task {task_id} skipped - already sent at {notif_sent} (hour {notif_hour})"
+                    )
+                    return False
+                    
+            except Exception as e:
+                self.logger.warning(f"Error parsing notification sent_at: {e}")
+        
+        return True
+
+    async def _remove_reminder(self, reminder_id: str) -> None:
+        """Remove a reminder from metadata after it's been sent."""
+        try:
+            reminders = await self.get_metadata("reminders", [])
+            updated_reminders = [r for r in reminders if r.get("id") != reminder_id]
+            await self.set_metadata("reminders", updated_reminders)
+            self.logger.info(f"Removed reminder {reminder_id} from metadata")
+        except Exception as e:
+            self.logger.error(f"Error removing reminder {reminder_id}: {e}")
+
+    async def _add_notification_record(
+        self, title: str, contents: str, task_id: str | None = None, reminder_id: str | None = None
+    ) -> None:
+        """Add a notification to the sent notifications history."""
+        try:
+            amsterdam_tz = pytz.timezone("Europe/Amsterdam")
+            current_time = datetime.now(amsterdam_tz)
+            
+            notifications = await self.get_metadata("notifications", [])
+            
+            notification_record = {
+                "id": str(uuid.uuid4()),
+                "title": title,
+                "contents": contents,
+                "sent_at": current_time.isoformat(),
+            }
+            
+            if task_id:
+                notification_record["task_id"] = task_id
+            if reminder_id:
+                notification_record["reminder_id"] = reminder_id
+            
+            notifications.append(notification_record)
+            
+            # Keep only last 100 notifications to prevent metadata bloat
+            if len(notifications) > 100:
+                notifications = notifications[-100:]
+            
+            await self.set_metadata("notifications", notifications)
+            self.logger.info(f"Added notification record: {title}")
+            
+        except Exception as e:
+            self.logger.error(f"Error adding notification record: {e}")
+
     async def on_message(
         self, messages: Iterable[ChatCompletionMessageParam], _: int = 0
     ) -> tuple[AsyncStream[ChatCompletionChunk] | ChatCompletion, list[Callable]]:
-        # ============================================================
-        # UPDATE LAST INTERACTION TIME
-        # ============================================================
-        # Note: Welcome message is now handled in threads.py endpoint
-        # We only update the last interaction time here
-        await self.set_metadata(
-            "last_interaction_time",
-            datetime.now(pytz.timezone("Europe/Amsterdam")).isoformat(),
-        )
-
-        # ============================================================
-        # CONTINUE WITH NORMAL FLOW
-        # ============================================================
         # Get the current role
         role_config = await self.get_current_role()
 
@@ -1445,8 +2369,15 @@ class MUMCAgentTest(BaseAgent[MUMCAgentTestConfig]):
             f"(Week {current_datetime.isocalendar()[1]}, Dag {current_datetime.timetuple().tm_yday} van het jaar)"
         )
 
+        # ====================================================================
+        # ACE: Load and format playbook
+        # ====================================================================
+        playbook = await self._get_playbook()
+        playbook_text = self._format_playbook_for_prompt(playbook)
+
         # Prepare the main content for the LLM
         main_prompt_format_args = {
+            "playbook": playbook_text,  # ACE: Inject playbook
             "current_role": role_config.name,
             "current_role_prompt": formatted_current_role_prompt,
             "available_roles": "\n".join([f"- {role.name}" for role in self.config.roles]),
@@ -1457,7 +2388,7 @@ class MUMCAgentTest(BaseAgent[MUMCAgentTestConfig]):
             if recurring_tasks
             else "<no recurring tasks>",
             "reminders": "\n".join(
-                [f"- {reminder['id']}: {reminder['date']} - {reminder['message']}" for reminder in reminders]
+                [f"- {reminder['id']}: {reminder.get('date') or reminder.get('scheduled_at', 'No date')} - {reminder['message']}" for reminder in reminders]
             )
             if reminders
             else "<no reminders>",
@@ -1518,299 +2449,14 @@ class MUMCAgentTest(BaseAgent[MUMCAgentTestConfig]):
         return response, list(tools_values)
 
     @staticmethod
-    def super_agent_config() -> SuperAgentConfig[MUMCAgentTestConfig] | None:
-        return SuperAgentConfig(
-            cron_expression="*/5 * * * *",  # every 5 minutes for production
-            agent_config=MUMCAgentTestConfig(),
-        )
+    def super_agent_config() -> SuperAgentConfig[MUMCAgentACETestConfig] | None:
+        """Super agent disabled for ACE testing."""
+        return None
 
     async def on_super_agent_call(
         self, messages: Iterable[ChatCompletionMessageParam]
     ) -> tuple[AsyncStream[ChatCompletionChunk] | ChatCompletion, list[Callable]] | None:
-        onesignal_id = await self.get_metadata("onesignal_id")
-
-        if onesignal_id is None:
-            self.logger.info("[TEST AGENT] No onesignal id found, skipping super agent call")
-            return
-
-        last_thread = await prisma.threads.query_first(
-            """
-        SELECT * FROM threads
-        WHERE metadata->>'onesignal_id' = $1
-        ORDER BY created_at DESC
-        LIMIT 1
-        """,
-            onesignal_id,
-        )
-
-        if last_thread is None:
-            self.logger.info("[TEST AGENT] No last thread found, skipping super agent call")
-            return
-
-        tools = [
-            BaseTools.tool_noop,
-            self.get_tools()["tool_send_notification"],
-        ]
-
-        notifications = await self.get_metadata("notifications", [])
-        reminders = await self.get_metadata("reminders", [])
-        recurring_tasks = await self.get_metadata("recurring_tasks", [])
-        memories = await self.get_metadata("memories", [])
-
-        current_time = datetime.now(pytz.timezone("Europe/Amsterdam"))
-        current_hour = current_time.hour
-        current_minute = current_time.minute
-        current_weekday = current_time.weekday()  # 0=Monday, 6=Sunday
-        current_day = current_time.day
-        current_month = current_time.month
-
-        # ========================================================================
-        # OPTION 1: FETCH STEPS DATA + GOAL FOR DYNAMIC NOTIFICATIONS 
-        # ========================================================================
-        self.logger.info("[TEST AGENT] 🎯 Fetching steps data for dynamic notifications...")
-        
-        steps_today = 0
-        steps_goal = 0
-        steps_remaining = 0
-        steps_progress_pct = 0
-        
-        try:
-            # Get user for steps data
-            user = await prisma.users.find_first(
-                where=usersWhereInput(external_id=onesignal_id)
-            )
-            
-            if user:
-                # Fetch today's steps
-                today_start = current_time.replace(hour=0, minute=0, second=0, microsecond=0)
-                today_end = current_time.replace(hour=23, minute=59, second=59, microsecond=999999)
-                
-                steps_data = await prisma.health_data_points.find_many(
-                    where=health_data_pointsWhereInput(
-                        user_id=user.id,
-                        type=health_data_point_type.steps,
-                        date_from={"gte": today_start},
-                        date_to={"lte": today_end},
-                    )
-                )
-                
-                steps_today = sum(dp.value for dp in steps_data)
-                self.logger.info(f"[TEST AGENT] Steps today: {steps_today}")
-                
-                # Extract steps goal from memories with priority
-                import re
-                for mem in memories:
-                    mem_text = mem.get("memory", "").lower()
-                    
-                    # Skip ZLM score memories
-                    if "score" in mem_text or "zlm-" in mem_text:
-                        continue
-                        
-                    if "stappen" in mem_text or "steps" in mem_text:
-                        # Check for progressive goal pattern: "van X naar Y" or "start met X"
-                        progressive_match = re.search(r'(?:van|start met)\s*(\d{1,3}(?:\.\d{3})*)\s*stappen', mem_text)
-                        if progressive_match:
-                            steps_goal = int(progressive_match.group(1).replace('.', ''))
-                            self.logger.info(f"[TEST AGENT] Found progressive steps goal: {steps_goal} (from: {mem_text[:50]}...)")
-                            break
-                        
-                        # Check for explicit goal with "per dag"
-                        daily_match = re.search(r'(\d{1,3}(?:\.\d{3})*)\s*stappen\s*per\s*dag', mem_text)
-                        if daily_match:
-                            steps_goal = int(daily_match.group(1).replace('.', ''))
-                            self.logger.info(f"[TEST AGENT] Found daily steps goal: {steps_goal} (from: {mem_text[:50]}...)")
-                            break
-                        
-                        # Fallback: any number followed by stappen
-                        match = re.search(r'(\d{1,3}(?:\.\d{3})*)\s*stappen', mem_text)
-                        if match:
-                            steps_goal = int(match.group(1).replace('.', ''))
-                            self.logger.info(f"[TEST AGENT] Found steps goal: {steps_goal} (from: {mem_text[:50]}...)")
-                            break
-                
-                # If no goal found, use default
-                if steps_goal == 0:
-                    steps_goal = 8000
-                    self.logger.info(f"[TEST AGENT] Using default steps goal: {steps_goal}")
-                
-                # Calculate progress
-                steps_remaining = max(0, steps_goal - steps_today)
-                steps_progress_pct = int((steps_today / steps_goal) * 100) if steps_goal > 0 else 0
-                
-                self.logger.info(f"[TEST AGENT] 📊 Steps data ready: {steps_today}/{steps_goal} ({steps_progress_pct}%) - {steps_remaining} remaining")
-            else:
-                self.logger.warning(f"[TEST AGENT] User not found for onesignal_id: {onesignal_id}")
-                
-        except Exception as e:
-            self.logger.error(f"[TEST AGENT] Error fetching steps data: {e}")
-            # Continue without steps data
-
-        prompt = f"""
-# Notification Management System
-
-## Core Responsibility
-You are the notification management system responsible for delivering timely alerts without duplication. Your task is to analyze pending notifications and determine which ones need to be sent.
-
-## Current Time
-Current system time: {current_time.strftime("%A %Y-%m-%d %H:%M:%S")} (Hour: {current_hour}, Minute: {current_minute}, Weekday: {current_weekday} where 0=Monday, Day: {current_day}, Month: {current_month})
-
-## 📊 Live Context Data (For Dynamic Notifications)
-You have access to real-time user data to create personalized, dynamic notifications:
-
-### Today's Activity Data:
-- Steps today: {steps_today}
-- Steps goal: {steps_goal}
-- Steps remaining: {steps_remaining}
-- Progress: {steps_progress_pct}%
-
-### User Memories:
-{json.dumps(memories, indent=2)}
-
-## Dynamic Notification Guidelines
-**IMPORTANT**: When sending notifications for recurring tasks that mention "stappen", "wandelen", "bewegen", or similar activity-related keywords:
-1. **Include actual numbers**: Use the steps data above to personalize the message
-2. **Show progress**: Include both current steps and remaining steps
-3. **Be motivating**: Use encouraging language based on progress
-4. **Be specific**: Avoid generic messages - use real data
-
-**Examples of Dynamic Messages**:
-- If task mentions "stappen update": "Super! Je hebt vandaag al {steps_today} van {steps_goal} stappen! Nog {steps_remaining} te gaan 💪"
-- If progress > 80%: "Geweldig bezig! Je bent bijna bij je doel: {steps_today}/{steps_goal} stappen ({steps_progress_pct}%) 🎯"
-- If progress < 50%: "Je hebt al {steps_today} stappen vandaag. Zullen we samen naar {steps_goal} gaan? Nog {steps_remaining} te gaan! 🚶"
-
-## Previously Sent Notifications
-The following notifications have already been sent and MUST NOT be resent:
-{json.dumps(notifications, indent=2)}
-
-## Items to Evaluate
-Please evaluate these items for notification eligibility:
-
-1. Reminders:
-{json.dumps(reminders, indent=2)}
-
-2. Recurring Tasks:
-{json.dumps(recurring_tasks, indent=2)}
-
-## Critical Cron Expression Rules
-A cron expression format is: "minute hour day_of_month month day_of_week"
-- minute: 0-59
-- hour: 0-23 
-- day_of_month: 1-31
-- month: 1-12
-- day_of_week: 0-6 (0=Sunday, 1=Monday, ..., 6=Saturday) OR 1-7 (1=Monday, ..., 7=Sunday)
-- Workdays ("werkdagen"): 1-5 (Monday=1, Tuesday=2, Wednesday=3, Thursday=4, Friday=5)
-
-**IMPORTANT TIMING RULE**: A recurring task should ONLY be triggered when ALL time components match EXACTLY:
-- "0 9 * * *" means ONLY at 9:00 (hour=9 AND minute=0)
-- "0 9,10,11 * * *" means ONLY at 9:00, 10:00, or 11:00 (hour in [9,10,11] AND minute=0)
-- "0 9,10,11 * * 1-5" means ONLY at 9:00, 10:00, or 11:00 AND ONLY on workdays Monday(1) through Friday(5)
-
-**Current time matching logic**:
-- Current hour is {current_hour}, current minute is {current_minute}
-- Current weekday is {current_weekday} (Python format: 0=Monday, 6=Sunday)
-- For cron day_of_week matching, convert Python weekday to cron format: Sunday=0, Monday=1, ..., Saturday=6
-
-## Decision Rules
-- Reminders are due when their scheduled date/time is <= current time.
-- Apply a 4-minute grace window for reminders: if scheduled within the last 4 minutes, treat as due.
-- For recurring tasks: send if the cron expression matches the EXACT current time
-  OR falls within a 4-minute grace window after the scheduled minute.
-- A task with "0 9 * * *" should ONLY trigger when current hour=9 AND minute=0.
-- A task with "0 9,10,11 * * 1-5" should ONLY trigger when (hour in [9,10,11] AND minute=0 AND weekday is Monday–Friday).
-- Do not skip a due recurring task because a reminder is also due; handle both if applicable.
-- De-duplicate using the previously sent notifications list: skip items already sent today (or within the current hour for the same title/task).
-
-## Required Action
-After analysis:
-- For EACH due reminder and EACH due recurring task that is not a duplicate, invoke the send_notification tool with appropriate title and contents.
-- For reminders: Use "Reminder" as title and the reminder message as contents.
-- For recurring tasks:
-  
-  **⛔ ABSOLUTE RULE: THE TASK TEXT IS AN INSTRUCTION TO YOU, NOT THE MESSAGE TO SEND! ⛔**
-  
-  Think of the task text as instructions from a manager telling you WHAT to do, not WHAT to say.
-  You must TRANSLATE the instruction into an actual user-facing message.
-  
-  **Step-by-step process for activity tasks:**
-  1. Read the task text to understand WHAT you need to do (e.g., "send steps overview")
-  2. Look at the steps data provided above (steps_today, steps_goal, steps_remaining, steps_progress_pct)
-  3. CREATE a new, personalized message using those numbers
-  4. NEVER copy the task text itself into the contents field
-  
-  **If task mentions activity keywords (stappen, wandelen, bewegen, activiteit, lopen, stappendoel):**
-  
-  ✅ CORRECT PROCESS:
-  - Title: "Stappen Update" or "Je Activiteit"
-  - Contents: Write a BRAND NEW motivating message with the ACTUAL steps numbers
-  
-  **Examples - Study these carefully:**
-  
-  Task: "Stuur Ewout dagelijks om 15:15 een overzicht van zijn stappen"
-  This is telling YOU to send an overview. The USER should NOT see this instruction!
-  ❌ ABSOLUTELY WRONG: {{"title": "Dagelijkse herinnering", "contents": "Stuur Ewout dagelijks om 15:15 een overzicht van zijn stappen"}}
-  ✅ CORRECT: {{"title": "Stappen Update", "contents": "Je hebt vandaag al {{steps_today}} van {{steps_goal}} stappen! Nog {{steps_remaining}} te gaan 💪"}}
-  
-  Task: "Stuur een motiverend bericht over stappen"
-  This is telling YOU what kind of message to create. Create it!
-  ❌ ABSOLUTELY WRONG: {{"title": "Dagelijkse herinnering", "contents": "Stuur een motiverend bericht over stappen"}}
-  ✅ CORRECT: {{"title": "Stappen Update", "contents": "Super bezig! Je bent al bij {{steps_today}} stappen vandaag. Je doel is {{steps_goal}} stappen 🎯"}}
-  
-  Task: "Stuur een motiverend bericht over de stappen van vandaag en het dagelijkse stappendoel"
-  This is YOUR instruction. Transform it into a user message!
-  ❌ ABSOLUTELY WRONG: {{"title": "Dagelijkse herinnering", "contents": "Stuur een motiverend bericht over de stappen van vandaag en het dagelijkse stappendoel"}}
-  ✅ CORRECT: {{"title": "Stappen Update", "contents": "Vandaag heb je al {{steps_today}} stappen gelopen! Je doel is {{steps_goal}} stappen. Nog {{steps_remaining}} te gaan! 🚶‍♂️"}}
-  
-  **For non-activity tasks (medicatie, ademhaling, algemene herinneringen):**
-  
-  Two types of tasks:
-  
-  1. **Task IS the message** (most common):
-     - If the task reads like a user message, use it as-is
-     - Examples:
-       * Task: "Tijd voor je medicatie! Vergeet niet je prednison in te nemen."
-         → title: "Medicatie Herinnering", contents: "Tijd voor je medicatie! Vergeet niet je prednison in te nemen."
-       * Task: "Herinnering: Trimbow inhalator - 1 puff (ochtend)"
-         → title: "Medicatie Herinnering", contents: "Herinnering: Trimbow inhalator - 1 puff (ochtend)"
-       * Task: "Reminder: Tijd om de E-supporter app te testen!"
-         → title: "Reminder", contents: "Tijd om de E-supporter app te testen!"
-  
-  2. **Task contains instructions** (less common):
-     - If the task says "Stuur bericht...", "Herinner X aan...", extract the core message
-     - Examples:
-       * Task: "Herinner Adonis aan ademhalingsoefeningen voor minder kortademigheid"
-         → title: "Herinnering", contents: "Tijd voor je ademhalingsoefeningen! Dit helpt tegen kortademigheid."
-       * Task: "Stuur bericht 'Vergeet je medicatie niet'"
-         → title: "Medicatie Herinnering", contents: "Vergeet je medicatie niet"
-  
-- If no eligible notifications exist: invoke the noop tool.
-"""
-
-        self.logger.info(f"[TEST AGENT] Calling super agent with prompt: {prompt}")
-
-        response = await self.client.chat.completions.create(
-            model="anthropic/claude-sonnet-4.5",  # Using Claude 4.5 for better instruction following
-            messages=[
-                {
-                    "role": "system",
-                    "content": prompt,
-                },
-                {
-                    "role": "user",
-                    "content": "Send my notifications",
-                },
-            ],
-            tools=[function_to_openai_tool(tool) for tool in tools],
-            tool_choice="auto",
-            stream=False,
-        )
-
-        if response and response.choices:
-            self.logger.info(f"[TEST AGENT] Super agent response: {response.choices[0].message}")
-
-            async for _ in self._handle_completion(response, tools, messages):
-                pass
-        else:
-            self.logger.error(f"[TEST AGENT] No response from API call: {response}")
-        
+        """Super agent disabled for ACE POC."""
+        self.logger.info("🧪 ACE TEST: Super agent disabled")
         return None
 
