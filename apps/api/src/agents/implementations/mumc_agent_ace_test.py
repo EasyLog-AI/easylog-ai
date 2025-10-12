@@ -172,6 +172,14 @@ class ACEConfig(BaseModel):
         default=True,
         description="Log token usage for cost tracking",
     )
+    use_llm_reflection: bool = Field(
+        default=False,
+        description="Use LLM for reflection and curation (more accurate but costly)",
+    )
+    reflection_model: str = Field(
+        default="gpt-4o-mini",
+        description="Model to use for LLM-based reflection",
+    )
 
 
 class PlaybookBullet(BaseModel):
@@ -250,13 +258,42 @@ class Playbook(BaseModel):
             return True
         return False
 
-    def prune_low_value_bullets(self, min_score: int = 2) -> int:
-        """Remove bullets with score below threshold. Returns count removed."""
+    def prune_low_value_bullets(self, min_helpful_score: int = 2) -> int:
+        """Remove low-value bullets using smart score-based logic.
+        
+        Pruning rules:
+        1. KEEP: Bullets with helpful_count >= min_helpful_score (proven useful)
+        2. KEEP: Bullets with ↑0↓0 (untested, give them a chance)
+        3. REMOVE: Bullets with helpful_count < min_helpful_score AND harmful_count > 0
+        
+        Args:
+            min_helpful_score: Minimum helpful_count to keep a bullet
+            
+        Returns:
+            Number of bullets removed
+        """
         initial_len = len(self.bullets)
-        self.bullets = [b for b in self.bullets if b.score >= min_score]
+        
+        # Smart filtering
+        def should_keep(bullet: PlaybookBullet) -> bool:
+            # Rule 1: Proven useful → keep
+            if bullet.helpful_count >= min_helpful_score:
+                return True
+            
+            # Rule 2: Untested → give it a chance
+            if bullet.helpful_count == 0 and bullet.harmful_count == 0:
+                return True
+            
+            # Rule 3: Tested but not helpful enough → remove
+            # (helpful_count < min_helpful_score AND has been marked harmful)
+            return False
+        
+        self.bullets = [b for b in self.bullets if should_keep(b)]
         removed = initial_len - len(self.bullets)
+        
         if removed > 0:
             self._update_token_estimate()
+        
         return removed
 
     def _update_token_estimate(self) -> None:
@@ -297,6 +334,10 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
 
         # Initialize ACE config
         self.ace_config = ACEConfig()
+        
+        # Track recent tool calls for process validation
+        self._recent_tool_calls: list[str] = []
+        self._max_tool_history = 10
 
     # ========================================================================
     # ACE - Automatic Tool Execution Wrapper
@@ -305,10 +346,30 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
     async def _handle_tool_call(
         self, name: str, tool_call_id: str, arguments: dict[str, Any], tools: list[Callable]
     ) -> tuple[ToolResultContent, bool]:
-        """Override base method to automatically trigger ACE on tool errors."""
+        """Override base method to automatically trigger ACE on tool errors and process violations."""
+
+        # ACE: Check for process violations BEFORE execution
+        violation_error = self._check_process_violations(name, arguments)
+        
+        if violation_error:
+            # Log process violation
+            self.logger.info(f"🚨 ACE: Process violation detected for {name}: {violation_error}")
+            
+            # Trigger ACE feedback for process violation
+            try:
+                await self.ace_process_tool_execution(
+                    tool_name=name, tool_args=arguments, error=Exception(violation_error)
+                )
+            except Exception as ace_error:
+                self.logger.error(f"❌ ACE: Failed to process violation feedback: {ace_error}")
 
         # Call parent implementation
         result, should_stop = await super()._handle_tool_call(name, tool_call_id, arguments, tools)
+
+        # Track tool call in history (for process validation)
+        self._recent_tool_calls.append(name)
+        if len(self._recent_tool_calls) > self._max_tool_history:
+            self._recent_tool_calls.pop(0)
 
         # ACE: Process tool execution for learning
         if result.is_error:
@@ -325,8 +386,131 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
                 )
             except Exception as ace_error:
                 self.logger.error(f"❌ ACE: Failed to process feedback: {ace_error}")
+        else:
+            # ✅ NEW: On success, mark relevant bullets as helpful
+            try:
+                await self._mark_relevant_bullets_helpful(tool_name=name)
+            except Exception as mark_error:
+                self.logger.error(f"❌ ACE: Failed to mark bullets helpful: {mark_error}")
 
         return result, should_stop
+    
+    def _check_process_violations(self, tool_name: str, tool_args: dict[str, Any]) -> str | None:
+        """Check if tool call violates required process sequences.
+        
+        Returns error message if violation detected, None otherwise.
+        """
+        # ZLM Chart Creation: Must calculate scores first
+        if tool_name == "tool_create_zlm_chart":
+            if "tool_calculate_zlm_scores" not in self._recent_tool_calls:
+                return (
+                    "Process violation: tool_create_zlm_chart called without "
+                    "prior tool_calculate_zlm_scores. Never fabricate ZLM data - "
+                    "always calculate scores first using the questionnaire answers."
+                )
+        
+        # Add more process validations here as needed
+        # Example: Steps chart should use real data
+        # if tool_name == "tool_create_bar_chart" or tool_name == "tool_create_line_chart":
+        #     if "tool_get_steps_data" not in self._recent_tool_calls:
+        #         return "Process violation: Chart creation without fetching real data first"
+        
+        return None
+    
+    async def _mark_relevant_bullets_helpful(self, tool_name: str) -> None:
+        """Mark bullets relevant to a successful tool execution as helpful.
+        
+        Args:
+            tool_name: Name of the tool that succeeded
+        """
+        playbook = await self._get_playbook()
+        
+        if not playbook.bullets:
+            return  # No bullets to mark
+        
+        # Get relevant bullet IDs for this tool
+        relevant_bullet_ids = self._get_relevant_bullet_ids(tool_name, playbook)
+        
+        if not relevant_bullet_ids:
+            return  # No relevant bullets found
+        
+        # Mark bullets as helpful
+        updated = False
+        for bullet in playbook.bullets:
+            if bullet.id in relevant_bullet_ids:
+                bullet.helpful_count += 1
+                bullet.last_used_at = datetime.now(pytz.timezone("Europe/Amsterdam")).isoformat()
+                updated = True
+                self.logger.debug(f"✅ ACE: Marked bullet {bullet.id} as helpful (now ↑{bullet.helpful_count})")
+        
+        # Save if any updates were made
+        if updated:
+            await self._save_playbook(playbook)
+            self.logger.info(f"💚 ACE: Marked {len(relevant_bullet_ids)} bullets as helpful for '{tool_name}'")
+    
+    def _get_relevant_bullet_ids(self, tool_name: str, playbook: Playbook) -> list[str]:
+        """Get bullet IDs relevant to a specific tool.
+        
+        This uses keyword matching on tool names and bullet content.
+        
+        Args:
+            tool_name: Name of the tool
+            playbook: Current playbook
+            
+        Returns:
+            List of relevant bullet IDs
+        """
+        relevant_ids: list[str] = []
+        
+        # Extract keywords from tool name
+        tool_keywords = self._extract_tool_keywords(tool_name)
+        
+        # Match bullets containing these keywords
+        for bullet in playbook.bullets:
+            content_lower = bullet.content.lower()
+            
+            # Check if any keyword appears in bullet content
+            for keyword in tool_keywords:
+                if keyword in content_lower:
+                    relevant_ids.append(bullet.id)
+                    break  # Only add once per bullet
+        
+        return relevant_ids
+    
+    def _extract_tool_keywords(self, tool_name: str) -> list[str]:
+        """Extract keywords from a tool name for matching.
+        
+        Args:
+            tool_name: Name of the tool (e.g., 'tool_calculate_zlm_scores')
+            
+        Returns:
+            List of keywords
+        """
+        # Remove 'tool_' prefix
+        name_without_prefix = tool_name.replace("tool_", "")
+        
+        # Split on underscores and convert to lowercase
+        parts = name_without_prefix.lower().split("_")
+        
+        # Common keywords mapping
+        keyword_map = {
+            "calculate": ["calculate", "computation", "compute"],
+            "zlm": ["zlm", "ziektelastmeter", "questionnaire"],
+            "scores": ["score", "scores"],
+            "chart": ["chart", "graph", "visualization"],
+            "steps": ["steps", "stappen", "activity"],
+            "data": ["data"],
+        }
+        
+        # Build keyword list
+        keywords = []
+        for part in parts:
+            if part in keyword_map:
+                keywords.extend(keyword_map[part])
+            else:
+                keywords.append(part)
+        
+        return keywords
 
     # ========================================================================
     # ACE - Playbook Storage & Retrieval
@@ -371,8 +555,12 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
 
         # Auto-prune if exceeding threshold
         if len(playbook.bullets) > self.ace_config.prune_threshold:
-            removed = playbook.prune_low_value_bullets(self.ace_config.min_helpful_score)
-            self.logger.info(f"🧹 ACE: Auto-pruned {removed} low-value bullets")
+            removed = playbook.prune_low_value_bullets(min_helpful_score=self.ace_config.min_helpful_score)
+            if removed > 0:
+                self.logger.info(
+                    f"🧹 ACE: Auto-pruned {removed} low-value bullets "
+                    f"(kept bullets with ↑{self.ace_config.min_helpful_score}+ or untested ↑0↓0)"
+                )
 
         await self.set_metadata("ace_playbook", playbook.model_dump_json())
 
@@ -441,8 +629,7 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
     ) -> dict[str, Any]:
         """Analyze tool execution and generate reflection.
 
-        For POC: Simple rule-based reflection without LLM calls (cost saving).
-        Future: Can be enhanced with LLM-based analysis.
+        Dispatches to either rule-based or LLM-based reflection based on config.
 
         Args:
             tool_name: Name of the tool that was called
@@ -458,6 +645,24 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
                 - key_insight: What to remember
                 - bullet_tags: List of {id, tag} for scoring bullets
         """
+        if self.ace_config.use_llm_reflection:
+            return await self._reflect_with_llm(
+                tool_name, tool_args, tool_result, error, used_bullet_ids
+            )
+        else:
+            return await self._reflect_rule_based(
+                tool_name, tool_args, tool_result, error, used_bullet_ids
+            )
+    
+    async def _reflect_rule_based(
+        self,
+        tool_name: str,
+        tool_args: dict[str, Any],
+        tool_result: Any,
+        error: Exception | None,
+        used_bullet_ids: list[str],
+    ) -> dict[str, Any]:
+        """Rule-based reflection (POC version - fast and cheap)."""
         reflection = {
             "error_identification": "",
             "root_cause": "",
@@ -489,6 +694,9 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
             reflection["key_insight"] = "Always use valid IANA timezone names (e.g., Europe/Amsterdam)"
         elif "No onesignal id" in error_str:
             reflection["key_insight"] = "Verify OneSignal ID before sending notifications"
+        elif "Process violation" in error_str:
+            # Extract the key part of the violation message
+            reflection["key_insight"] = error_str[:150]  # Keep under max length
         else:
             # Generic insight
             reflection[
@@ -499,6 +707,106 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
         reflection["bullet_tags"] = [{"id": bid, "tag": "harmful"} for bid in used_bullet_ids]
 
         return reflection
+    
+    async def _reflect_with_llm(
+        self,
+        tool_name: str,
+        tool_args: dict[str, Any],
+        tool_result: Any,
+        error: Exception | None,
+        used_bullet_ids: list[str],
+    ) -> dict[str, Any]:
+        """LLM-based reflection (Full ACE - more intelligent but costly)."""
+        playbook = await self._get_playbook()
+        
+        # Build playbook context for LLM
+        playbook_bullets = "\n".join([
+            f"[{b.id}] {b.content} (↑{b.helpful_count} ↓{b.harmful_count})"
+            for b in playbook.bullets
+        ])
+        
+        error_context = f"ERROR: {error}" if error else "SUCCESS"
+        
+        # Prompt LLM to analyze execution and tag bullets
+        reflection_prompt = f"""Analyze this agent tool execution and evaluate the playbook bullets.
+
+## EXECUTION DETAILS:
+Tool: {tool_name}
+Arguments: {json.dumps(tool_args, indent=2)}
+Result: {error_context}
+
+## AVAILABLE PLAYBOOK BULLETS:
+{playbook_bullets if playbook_bullets else "(No bullets yet - this is the first execution)"}
+
+## YOUR ANALYSIS TASK:
+1. **Bullet Tagging**: Which bullets (by ID) were helpful or harmful?
+   - HELPFUL: Bullet advice was followed and helped prevent errors
+   - HARMFUL: Bullet advice led to or didn't prevent this error
+   - Only tag bullets that are directly relevant to this execution
+
+2. **Error Analysis** (if error occurred):
+   - What went wrong?
+   - Why did it happen?
+   
+3. **Key Insight**: Generate ONE actionable strategy (max 150 chars) to add to playbook
+   - Must be specific and prevent future errors
+   - Must be concise and clear
+   - If this error type is new, explain how to prevent it
+
+## RESPONSE FORMAT (JSON):
+{{
+  "helpful_bullets": ["mumc-001", "mumc-003"],  // Only IDs that actually helped
+  "harmful_bullets": ["mumc-002"],              // Only IDs that were harmful
+  "error_identification": "Specific error description",
+  "root_cause": "Why this happened",
+  "key_insight": "Actionable strategy under 150 chars"
+}}
+
+IMPORTANT:
+- Only reference bullet IDs that exist in the playbook above
+- Be conservative with tagging - only tag clearly relevant bullets
+- Key insight must be under 150 characters
+- Focus on actionable, specific strategies"""
+
+        try:
+            # Call LLM for analysis
+            response = await self.openai_client.chat.completions.create(
+                model=self.ace_config.reflection_model,
+                messages=[
+                    {"role": "system", "content": "You are an expert at analyzing agent execution and creating actionable strategies. Be concise and specific."},
+                    {"role": "user", "content": reflection_prompt}
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.3,  # Lower temperature for consistency
+            )
+            
+            reflection_json = response.choices[0].message.content or "{}"
+            reflection = json.loads(reflection_json)
+            
+            # Convert to expected format with bullet_tags
+            bullet_tags = []
+            for bid in reflection.get("helpful_bullets", []):
+                bullet_tags.append({"id": bid, "tag": "helpful"})
+            for bid in reflection.get("harmful_bullets", []):
+                bullet_tags.append({"id": bid, "tag": "harmful"})
+            
+            reflection["bullet_tags"] = bullet_tags
+            
+            self.logger.info(
+                f"🤖 ACE LLM Reflector: "
+                f"helpful={len(reflection.get('helpful_bullets', []))}, "
+                f"harmful={len(reflection.get('harmful_bullets', []))}, "
+                f"insight='{reflection.get('key_insight', '')[:50]}...'"
+            )
+            
+            return reflection
+            
+        except Exception as e:
+            self.logger.error(f"❌ ACE LLM Reflector failed: {e}, falling back to rule-based")
+            # Fallback to rule-based
+            return await self._reflect_rule_based(
+                tool_name, tool_args, tool_result, error, used_bullet_ids
+            )
 
     # ========================================================================
     # ACE - Curator (Playbook Updates)
@@ -512,8 +820,7 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
     ) -> list[dict[str, Any]]:
         """Decide what to add to playbook based on reflection.
 
-        For POC: Simple rule-based curation without LLM (cost saving).
-        Future: Can use LLM for smarter curation decisions.
+        Dispatches to either rule-based or LLM-based curation based on config.
 
         Args:
             playbook: Current playbook
@@ -523,6 +830,18 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
         Returns:
             List of operations: [{"type": "ADD", "section": "...", "content": "..."}]
         """
+        if self.ace_config.use_llm_reflection:
+            return await self._curate_with_llm(playbook, reflection, tool_name)
+        else:
+            return await self._curate_rule_based(playbook, reflection, tool_name)
+    
+    async def _curate_rule_based(
+        self,
+        playbook: Playbook,
+        reflection: dict[str, Any],
+        tool_name: str,
+    ) -> list[dict[str, Any]]:
+        """Rule-based curation (POC version - fast and cheap)."""
         operations = []
 
         # Only add insights on errors with useful insights
@@ -551,6 +870,122 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
         self.logger.info(f"✨ ACE: Will add insight to section '{section}': {key_insight[:50]}...")
 
         return operations
+    
+    async def _curate_with_llm(
+        self,
+        playbook: Playbook,
+        reflection: dict[str, Any],
+        tool_name: str,
+    ) -> list[dict[str, Any]]:
+        """LLM-based curation (Full ACE - more intelligent decisions)."""
+        key_insight = reflection.get("key_insight", "")
+        if not key_insight or len(key_insight) < 10:
+            return []
+        
+        # Build playbook context
+        playbook_bullets = "\n".join([
+            f"[{b.id}] ({b.section}) {b.content} (↑{b.helpful_count} ↓{b.harmful_count})"
+            for b in playbook.bullets
+        ])
+        
+        # Build section descriptions
+        sections_desc = "\n".join([
+            f"- {section}: {desc}"
+            for section, desc in MUMC_PLAYBOOK_SECTIONS.items()
+        ])
+        
+        curation_prompt = f"""Decide how to update the playbook based on this new insight.
+
+## NEW INSIGHT FROM REFLECTION:
+"{key_insight}"
+
+Context: Tool '{tool_name}' execution analysis
+
+## CURRENT PLAYBOOK ({len(playbook.bullets)} bullets):
+{playbook_bullets if playbook_bullets else "(Empty playbook)"}
+
+## AVAILABLE SECTIONS:
+{sections_desc}
+
+## CURATION DECISION:
+Analyze if this insight should be added to the playbook. Consider:
+
+1. **Duplicate Check**: Is this insight already captured (similar meaning)?
+2. **Value Assessment**: Does this add unique, actionable value?
+3. **Section Assignment**: Which section fits best?
+4. **Merge Opportunity**: Should it replace or merge with existing bullet?
+
+## RESPONSE FORMAT (JSON):
+{{
+  "action": "ADD" | "SKIP" | "MERGE",
+  "reasoning": "Brief explanation of decision",
+  "section": "section_name",  // if ADD or MERGE
+  "content": "Final bullet content (max 150 chars)",  // if ADD
+  "merge_with_id": "mumc-001"  // if MERGE - which bullet to replace
+}}
+
+IMPORTANT:
+- SKIP if duplicate or low value
+- ADD if genuinely new and useful
+- MERGE if it improves an existing bullet
+- Keep content under 150 characters
+- Be conservative - quality over quantity"""
+
+        try:
+            # Call LLM for curation decision
+            response = await self.openai_client.chat.completions.create(
+                model=self.ace_config.reflection_model,
+                messages=[
+                    {"role": "system", "content": "You are an expert at curating knowledge bases. Be conservative and maintain high quality standards."},
+                    {"role": "user", "content": curation_prompt}
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.2,  # Very low temperature for consistent decisions
+            )
+            
+            decision_json = response.choices[0].message.content or "{}"
+            decision = json.loads(decision_json)
+            
+            action = decision.get("action", "SKIP")
+            reasoning = decision.get("reasoning", "")
+            
+            self.logger.info(f"🤖 ACE LLM Curator: {action} - {reasoning[:80]}")
+            
+            operations = []
+            
+            if action == "ADD":
+                content = decision.get("content", key_insight)
+                section = decision.get("section", "strategies_and_hard_rules")
+                
+                # Truncate if needed
+                if len(content) > self.ace_config.max_bullet_length:
+                    content = content[: self.ace_config.max_bullet_length - 3] + "..."
+                
+                operations.append({
+                    "type": "ADD",
+                    "section": section,
+                    "content": content
+                })
+                
+            elif action == "MERGE":
+                merge_id = decision.get("merge_with_id")
+                content = decision.get("content", key_insight)
+                
+                if merge_id:
+                    operations.append({
+                        "type": "UPDATE",
+                        "bullet_id": merge_id,
+                        "content": content[:self.ace_config.max_bullet_length]
+                    })
+            
+            # SKIP means no operations
+            
+            return operations
+            
+        except Exception as e:
+            self.logger.error(f"❌ ACE LLM Curator failed: {e}, falling back to rule-based")
+            # Fallback to rule-based
+            return await self._curate_rule_based(playbook, reflection, tool_name)
 
     def _categorize_insight(self, tool_name: str, content: str) -> str:
         """Categorize insight into appropriate section.
