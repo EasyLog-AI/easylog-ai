@@ -34,6 +34,7 @@ from src.models.chart_widget import (
     Line,
     ZLMDataRow,
 )
+from src.models.messages import ToolResultContent
 from src.models.multiple_choice_widget import Choice, MultipleChoiceWidget
 from src.settings import settings
 from src.utils.function_to_openai_tool import function_to_openai_tool
@@ -296,6 +297,36 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
 
         # Initialize ACE config
         self.ace_config = ACEConfig()
+
+    # ========================================================================
+    # ACE - Automatic Tool Execution Wrapper
+    # ========================================================================
+
+    async def _handle_tool_call(
+        self, name: str, tool_call_id: str, arguments: dict[str, Any], tools: list[Callable]
+    ) -> tuple[ToolResultContent, bool]:
+        """Override base method to automatically trigger ACE on tool errors."""
+
+        # Call parent implementation
+        result, should_stop = await super()._handle_tool_call(name, tool_call_id, arguments, tools)
+
+        # ACE: Process tool execution for learning
+        if result.is_error:
+            # Extract error message
+            error_message = result.output.replace("Error: ", "")
+            error = Exception(error_message)
+
+            self.logger.info(f"🔴 ACE: Tool {name} failed with error: {error_message}")
+
+            # Trigger ACE feedback loop
+            try:
+                await self.ace_process_tool_execution(
+                    tool_name=name, tool_args=arguments, error=error
+                )
+            except Exception as ace_error:
+                self.logger.error(f"❌ ACE: Failed to process feedback: {ace_error}")
+
+        return result, should_stop
 
     # ========================================================================
     # ACE - Playbook Storage & Retrieval
