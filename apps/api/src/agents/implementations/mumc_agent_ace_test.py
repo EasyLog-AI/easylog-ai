@@ -1,9 +1,11 @@
+import asyncio
 import io
 import json
 import re
 import uuid
 from collections.abc import Callable, Iterable
 from datetime import datetime, time, timedelta
+from pathlib import Path
 from typing import Any, Literal
 
 import httpx
@@ -323,6 +325,12 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
     """
     
     IS_TEST_AGENT = True
+    
+    # Class-level lock for thread-safe playbook access (shared across all instances)
+    _playbook_lock = asyncio.Lock()
+    
+    # Agent-level playbook storage path
+    _playbook_file = Path(__file__).parent / "data" / "mumc_ace_playbook.json"
 
     def on_init(self) -> None:
         self.configure_onesignal(
@@ -338,6 +346,9 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
         # Track recent tool calls for process validation
         self._recent_tool_calls: list[str] = []
         self._max_tool_history = 10
+        
+        # Ensure data directory exists
+        self._playbook_file.parent.mkdir(parents=True, exist_ok=True)
 
     # ========================================================================
     # ACE - Automatic Tool Execution Wrapper
@@ -517,58 +528,62 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
     # ========================================================================
 
     async def _get_playbook(self) -> Playbook:
-        """Load playbook from thread metadata.
+        """Load agent-level playbook from file (shared across all users).
 
         Returns:
             Playbook object (empty if not exists)
         """
-        playbook_data = await self.get_metadata("ace_playbook", None)
+        async with self._playbook_lock:
+            if not self._playbook_file.exists():
+                self.logger.info("🎯 ACE: Creating new empty agent-level playbook")
+                return Playbook(
+                    last_updated=datetime.now(pytz.timezone("Europe/Amsterdam")).isoformat()
+                )
 
-        if playbook_data is None:
-            self.logger.info("🎯 ACE: Creating new empty playbook")
-            return Playbook(
-                last_updated=datetime.now(pytz.timezone("Europe/Amsterdam")).isoformat()
-            )
-
-        try:
-            playbook = Playbook(**json.loads(playbook_data))
-            self.logger.info(
-                f"📚 ACE: Loaded playbook v{playbook.version} "
-                f"with {len(playbook.bullets)} bullets "
-                f"(~{playbook.total_tokens_estimate} tokens)"
-            )
-            return playbook
-        except Exception as e:
-            self.logger.error(f"❌ ACE: Error loading playbook: {e}")
-            return Playbook(
-                last_updated=datetime.now(pytz.timezone("Europe/Amsterdam")).isoformat()
-            )
+            try:
+                playbook_data = self._playbook_file.read_text()
+                playbook = Playbook(**json.loads(playbook_data))
+                self.logger.info(
+                    f"📚 ACE: Loaded agent-level playbook v{playbook.version} "
+                    f"with {len(playbook.bullets)} bullets "
+                    f"(~{playbook.total_tokens_estimate} tokens)"
+                )
+                return playbook
+            except Exception as e:
+                self.logger.error(f"❌ ACE: Error loading playbook: {e}")
+                return Playbook(
+                    last_updated=datetime.now(pytz.timezone("Europe/Amsterdam")).isoformat()
+                )
 
     async def _save_playbook(self, playbook: Playbook) -> None:
-        """Save playbook to thread metadata.
+        """Save agent-level playbook to file (shared across all users).
 
         Args:
             playbook: Playbook to save
         """
-        playbook.version += 1
-        playbook.last_updated = datetime.now(pytz.timezone("Europe/Amsterdam")).isoformat()
+        async with self._playbook_lock:
+            playbook.version += 1
+            playbook.last_updated = datetime.now(pytz.timezone("Europe/Amsterdam")).isoformat()
 
-        # Auto-prune if exceeding threshold
-        if len(playbook.bullets) > self.ace_config.prune_threshold:
-            removed = playbook.prune_low_value_bullets(min_helpful_score=self.ace_config.min_helpful_score)
-            if removed > 0:
-                self.logger.info(
-                    f"🧹 ACE: Auto-pruned {removed} low-value bullets "
-                    f"(kept bullets with ↑{self.ace_config.min_helpful_score}+ or untested ↑0↓0)"
-                )
+            # Auto-prune if exceeding threshold
+            if len(playbook.bullets) > self.ace_config.prune_threshold:
+                removed = playbook.prune_low_value_bullets(min_helpful_score=self.ace_config.min_helpful_score)
+                if removed > 0:
+                    self.logger.info(
+                        f"🧹 ACE: Auto-pruned {removed} low-value bullets "
+                        f"(kept bullets with ↑{self.ace_config.min_helpful_score}+ or untested ↑0↓0)"
+                    )
 
-        await self.set_metadata("ace_playbook", playbook.model_dump_json())
+            # Write to file atomically (write to temp, then rename)
+            temp_file = self._playbook_file.with_suffix(".tmp")
+            temp_file.write_text(playbook.model_dump_json(indent=2))
+            temp_file.rename(self._playbook_file)
 
-        self.logger.info(
-            f"💾 ACE: Saved playbook v{playbook.version} "
-            f"with {len(playbook.bullets)} bullets "
-            f"(~{playbook.total_tokens_estimate} tokens)"
-        )
+            self.logger.info(
+                f"💾 ACE: Saved agent-level playbook v{playbook.version} "
+                f"with {len(playbook.bullets)} bullets "
+                f"(~{playbook.total_tokens_estimate} tokens)"
+            )
 
     def _format_playbook_for_prompt(self, playbook: Playbook) -> str:
         """Format playbook as compact text for system prompt.
