@@ -340,8 +340,11 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
 
         self.logger.info(f"🧪 ACE TEST AGENT - Request headers: {self.request_headers}")
 
-        # Initialize ACE config
-        self.ace_config = ACEConfig()
+        # Initialize ACE config with LLM-based reflection
+        self.ace_config = ACEConfig(
+            use_llm_reflection=True,        # Enable LLM-based reflection for production quality
+            reflection_model="gpt-4o-mini"  # Cost-effective model for analysis
+        )
         
         # Track recent tool calls for process validation
         self._recent_tool_calls: list[str] = []
