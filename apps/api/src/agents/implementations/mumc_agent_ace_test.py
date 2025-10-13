@@ -342,8 +342,8 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
 
         # Initialize ACE config with LLM-based reflection
         self.ace_config = ACEConfig(
-            use_llm_reflection=True,        # Enable LLM-based reflection for production quality
-            reflection_model="gpt-4o-mini"  # Cost-effective model for analysis
+            use_llm_reflection=True,           # Enable LLM-based reflection for production quality
+            reflection_model="openai/gpt-4.1"  # OpenRouter model for analysis
         )
         
         # Track recent tool calls for process validation
@@ -787,8 +787,8 @@ IMPORTANT:
 - Focus on actionable, specific strategies"""
 
         try:
-            # Call LLM for analysis
-            response = await self.openai_client.chat.completions.create(
+            # Call LLM for analysis (via OpenRouter self.client)
+            response = await self.client.chat.completions.create(
                 model=self.ace_config.reflection_model,
                 messages=[
                     {"role": "system", "content": "You are an expert at analyzing agent execution and creating actionable strategies. Be concise and specific."},
@@ -950,8 +950,8 @@ IMPORTANT:
 - Be conservative - quality over quantity"""
 
         try:
-            # Call LLM for curation decision
-            response = await self.openai_client.chat.completions.create(
+            # Call LLM for curation decision (via OpenRouter self.client)
+            response = await self.client.chat.completions.create(
                 model=self.ace_config.reflection_model,
                 messages=[
                     {"role": "system", "content": "You are an expert at curating knowledge bases. Be conservative and maintain high quality standards."},
