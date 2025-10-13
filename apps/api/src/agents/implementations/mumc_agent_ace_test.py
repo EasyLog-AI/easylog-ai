@@ -1,9 +1,10 @@
 import asyncio
 import io
 import json
+import random
 import re
 import uuid
-from collections.abc import Callable, Iterable
+from collections.abc import AsyncGenerator, Callable, Iterable
 from datetime import datetime, time, timedelta
 from pathlib import Path
 from typing import Any, Literal
@@ -11,7 +12,7 @@ from typing import Any, Literal
 import httpx
 import pytz
 from onesignal.model.notification import Notification
-from openai import AsyncStream
+from openai import AsyncOpenAI, AsyncStream
 from openai.types.chat.chat_completion import ChatCompletion
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
@@ -36,7 +37,7 @@ from src.models.chart_widget import (
     Line,
     ZLMDataRow,
 )
-from src.models.messages import ToolResultContent
+from src.models.messages import MessageContent, TextContent, ToolResultContent
 from src.models.multiple_choice_widget import Choice, MultipleChoiceWidget
 from src.settings import settings
 from src.utils.function_to_openai_tool import function_to_openai_tool
@@ -182,6 +183,24 @@ class ACEConfig(BaseModel):
         default="gpt-4o-mini",
         description="Model to use for LLM-based reflection",
     )
+    
+    # ACE v2.0 - Conversational Quality Monitoring
+    enable_quality_monitoring: bool = Field(
+        default=False,
+        description="Enable post-response quality evaluation (ACE v2.0)",
+    )
+    quality_model: str = Field(
+        default="openai/gpt-4.1-mini",
+        description="Model for quality evaluation (cheaper than main model)",
+    )
+    quality_check_frequency: Literal["always", "sample_10%", "sample_25%", "critical_only"] = Field(
+        default="sample_25%",
+        description="How often to run quality checks (cost control)",
+    )
+    focus_categories: list[str] = Field(
+        default_factory=lambda: ["missed_critical_signal", "factual_error"],
+        description="Which quality categories to prioritize (Phase 1: health + factual)",
+    )
 
 
 class PlaybookBullet(BaseModel):
@@ -311,7 +330,347 @@ MUMC_PLAYBOOK_SECTIONS = {
     "user_interaction": "Communication patterns, language preferences, consent",
     "tool_usage": "When and how to use specific tools (charts, notifications)",
     "common_mistakes": "Known errors to avoid",
+    "health_signals": "Critical health signals that must ALWAYS be addressed",
+    "factual_verification": "Data verification rules to prevent false claims",
 }
+
+
+# ============================================================================
+# ACE v2.0 - Conversational Quality Monitoring
+# ============================================================================
+
+# Critical health signals that must ALWAYS be detected
+CRITICAL_HEALTH_SIGNALS = [
+    "Medication changes (puffers, dosage, frequency)",
+    "Symptom changes (shortness of breath, coughing, sputum color/amount)",
+    "Activity limitations (can't walk, stairs difficult, daily tasks impaired)",
+    "Exacerbation indicators (infection, fever, increased symptoms)",
+    "Compliance issues (forgetting medication, not following treatment plan)",
+]
+
+# Factual verification rules
+FACTUAL_VERIFICATION_RULES = [
+    "Never claim data exists when it doesn't",
+    "Never make up numbers, dates, or measurements",
+    "If uncertain about facts, ask user instead of guessing",
+    "Always verify data availability before making statements",
+    "Acknowledge data gaps rather than inventing information",
+]
+
+# Quality check sampling rates
+SAMPLING_RATES = {
+    "always": 1.0,
+    "sample_10%": 0.1,
+    "sample_25%": 0.25,
+    "critical_only": 0.0,  # Special case handled separately
+}
+
+
+class QualityIssue(BaseModel):
+    """Single conversational quality issue detected."""
+
+    category: Literal[
+        "missed_critical_signal",
+        "factual_error",
+        "context_violation",
+        "communication_breakdown",
+        "inappropriate_response",
+    ] = Field(description="Issue category")
+    severity: Literal["LOW", "MEDIUM", "HIGH", "CRITICAL"] = Field(description="Issue severity")
+    description: str = Field(description="What went wrong")
+    suggestion: str = Field(description="How to fix it (max 150 chars for playbook)")
+    relevant_context: dict[str, Any] = Field(
+        default_factory=dict, description="Context that led to this issue"
+    )
+
+
+class QualityReport(BaseModel):
+    """Overall quality evaluation of assistant response."""
+
+    overall_quality: Literal["excellent", "good", "acceptable", "poor"] = Field(
+        description="Overall quality assessment"
+    )
+    issues: list[QualityIssue] = Field(default_factory=list, description="Detected quality issues")
+    positive_aspects: list[str] = Field(
+        default_factory=list, description="What was done well (for reinforcement)"
+    )
+    analysis_reasoning: str = Field(description="LLM's reasoning for this evaluation")
+
+
+class ConversationalQualityEvaluator:
+    """LLM-based quality evaluator for assistant responses.
+    
+    Evaluates conversation quality focusing on:
+    - Critical health signal detection
+    - Factual accuracy verification
+    - Context-appropriate responses
+    
+    Uses sampling to control costs while maintaining quality oversight.
+    """
+
+    def __init__(self, client: AsyncOpenAI, config: ACEConfig, logger: Any) -> None:
+        """Initialize quality evaluator.
+        
+        Args:
+            client: OpenAI client for LLM calls
+            config: ACE configuration with quality monitoring settings
+            logger: Logger instance for tracking evaluations
+        """
+        self.client = client
+        self.config = config
+        self.logger = logger
+
+    async def evaluate_response(
+        self,
+        user_message: str,
+        assistant_response: str,
+        conversation_history: list[dict[str, Any]],
+        available_context: dict[str, Any],
+    ) -> QualityReport | None:
+        """Evaluate assistant response quality.
+        
+        Args:
+            user_message: Latest user message
+            assistant_response: Latest assistant response to evaluate
+            conversation_history: Recent conversation messages
+            available_context: Available contextual data
+            
+        Returns:
+            QualityReport with detected issues or None if skipped/failed
+        """
+        # Apply sampling logic
+        if not self._should_evaluate():
+            return None
+
+        try:
+            # Build and execute evaluation
+            eval_prompt = self._build_evaluation_prompt(
+                user_message, assistant_response, conversation_history, available_context
+            )
+            
+            llm_result = await self._call_evaluator_llm(eval_prompt)
+            report = self._parse_evaluation_result(llm_result)
+            
+            # Log results
+            self._log_evaluation_result(report)
+            
+            return report
+
+        except json.JSONDecodeError as e:
+            self.logger.error(f"❌ ACE Quality: Invalid JSON from evaluator - {e}")
+            return None
+        except KeyError as e:
+            self.logger.error(f"❌ ACE Quality: Missing expected field - {e}")
+            return None
+        except Exception as e:
+            self.logger.error(f"❌ ACE Quality: Evaluation failed - {e}")
+            return None
+
+    async def _call_evaluator_llm(self, eval_prompt: str) -> dict[str, Any]:
+        """Call LLM for quality evaluation.
+        
+        Args:
+            eval_prompt: Formatted evaluation prompt
+            
+        Returns:
+            Parsed JSON result from LLM
+            
+        Raises:
+            Exception: If LLM call fails
+        """
+        response = await self.client.chat.completions.create(
+            model=self.config.quality_model,
+            messages=[
+                {"role": "system", "content": self._get_system_prompt()},
+                {"role": "user", "content": eval_prompt},
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.2,  # Low temperature for consistency
+        )
+        
+        return json.loads(response.choices[0].message.content)
+
+    def _parse_evaluation_result(self, result: dict[str, Any]) -> QualityReport:
+        """Parse LLM evaluation result into QualityReport.
+        
+        Args:
+            result: Raw LLM response dict
+            
+        Returns:
+            Structured QualityReport
+        """
+        return QualityReport(
+            overall_quality=result.get("overall_quality", "acceptable"),
+            issues=[
+                QualityIssue(
+                    category=issue["category"],
+                    severity=issue["severity"],
+                    description=issue["description"],
+                    suggestion=issue["suggestion"][:150],  # Enforce max length
+                    relevant_context=issue.get("relevant_context", {}),
+                )
+                for issue in result.get("issues", [])
+            ],
+            positive_aspects=result.get("positive_aspects", []),
+            analysis_reasoning=result.get("analysis_reasoning", ""),
+        )
+
+    def _log_evaluation_result(self, report: QualityReport) -> None:
+        """Log quality evaluation results.
+        
+        Args:
+            report: Quality report to log
+        """
+        if report.issues:
+            severities = [issue.severity for issue in report.issues]
+            self.logger.info(
+                f"🔍 ACE v2.0: {len(report.issues)} issue(s) detected - "
+                f"Quality: {report.overall_quality}, "
+                f"Severities: {', '.join(severities)}"
+            )
+        else:
+            self.logger.info(f"✅ ACE v2.0: No issues - Quality: {report.overall_quality}")
+
+    def _should_evaluate(self) -> bool:
+        """Determine if quality check should run based on sampling configuration.
+        
+        Returns:
+            True if evaluation should proceed, False to skip
+        """
+        frequency = self.config.quality_check_frequency
+        
+        # Get sampling rate from config
+        sample_rate = SAMPLING_RATES.get(frequency, 0.0)
+        
+        # Special case: critical_only requires message analysis
+        if frequency == "critical_only":
+            # TODO: Implement critical message detection
+            # For now, skip these checks
+            return False
+        
+        # Apply sampling
+        return random.random() < sample_rate
+
+    def _get_system_prompt(self) -> str:
+        """Build system prompt for quality evaluator.
+        
+        Returns:
+            Formatted system prompt with evaluation criteria
+        """
+        focus_categories = ", ".join(self.config.focus_categories)
+        health_signals = "\n".join(f"- {signal}" for signal in CRITICAL_HEALTH_SIGNALS)
+        verification_rules = "\n".join(f"- {rule}" for rule in FACTUAL_VERIFICATION_RULES)
+        
+        return f"""You are a healthcare conversation quality evaluator for a COPD coach AI.
+
+**Your Task:** Analyze the assistant's response and detect quality issues.
+
+**Focus Categories (Priority):** {focus_categories}
+
+**Critical Health Signals to NEVER Miss:**
+{health_signals}
+
+**Factual Verification Rules:**
+{verification_rules}
+
+**Response Format (JSON):**
+{{
+    "overall_quality": "excellent|good|acceptable|poor",
+    "issues": [
+        {{
+            "category": "missed_critical_signal|factual_error|context_violation|communication_breakdown|inappropriate_response",
+            "severity": "LOW|MEDIUM|HIGH|CRITICAL",
+            "description": "What went wrong (be specific)",
+            "suggestion": "How to fix it (max 150 chars, actionable)",
+            "relevant_context": {{"key": "value"}}
+        }}
+    ],
+    "positive_aspects": ["What was done well"],
+    "analysis_reasoning": "Your reasoning for this evaluation"
+}}
+
+**Evaluation Guidelines:**
+- Be STRICT on health signals (any missed critical signal is CRITICAL severity)
+- Be STRICT on factual errors (fabricated data is HIGH/CRITICAL)
+- Be LENIENT on minor communication style issues
+- Focus on patient safety and data accuracy above all else"""
+
+    def _build_evaluation_prompt(
+        self,
+        user_message: str,
+        assistant_response: str,
+        conversation_history: list[dict[str, Any]],
+        available_context: dict[str, Any],
+    ) -> str:
+        """Build evaluation prompt with conversation context.
+        
+        Args:
+            user_message: Latest user message
+            assistant_response: Assistant's response to evaluate
+            conversation_history: Recent conversation messages
+            available_context: Contextual data (time, health data, etc.)
+            
+        Returns:
+            Formatted evaluation prompt
+        """
+        history_str = self._format_conversation_history(conversation_history)
+        context_str = self._format_available_context(available_context)
+        focus_str = ", ".join(self.config.focus_categories)
+
+        return f"""**Conversation History (Last 5 messages):**
+{history_str}
+
+**Latest Exchange:**
+User: {user_message}
+Assistant: {assistant_response}
+
+**Available Context:**
+{context_str}
+
+**Your Task:**
+Evaluate the assistant's response for quality issues.
+Focus especially on: {focus_str}
+
+Respond in JSON format as specified in the system prompt."""
+
+    def _format_conversation_history(
+        self, 
+        history: list[dict[str, Any]], 
+        max_messages: int = 5
+    ) -> str:
+        """Format conversation history for evaluation context.
+        
+        Args:
+            history: List of conversation messages
+            max_messages: Maximum number of messages to include
+            
+        Returns:
+            Formatted history string
+        """
+        if not history:
+            return "<no previous conversation>"
+        
+        formatted = []
+        for msg in history[-max_messages:]:
+            role = "User" if msg.get("role") == "user" else "Assistant"
+            content = str(msg.get("content", ""))[:200]  # Truncate long messages
+            formatted.append(f"{role}: {content}")
+        
+        return "\n".join(formatted) if formatted else "<no previous conversation>"
+
+    def _format_available_context(self, context: dict[str, Any]) -> str:
+        """Format available context for evaluation.
+        
+        Args:
+            context: Context dictionary
+            
+        Returns:
+            Formatted context string
+        """
+        if not context:
+            return "<no additional context>"
+        
+        return "\n".join(f"- {key}: {value}" for key, value in context.items())
 
 
 class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
@@ -343,18 +702,182 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
         # Initialize ACE config with LLM-based reflection
         self.ace_config = ACEConfig(
             use_llm_reflection=True,           # Enable LLM-based reflection for production quality
-            reflection_model="openai/gpt-4.1"  # OpenRouter model for analysis
+            reflection_model="openai/gpt-4.1",  # OpenRouter model for analysis
+            # ACE v2.0 - Conversational Quality Monitoring (Phase 1: Health + Factual)
+            enable_quality_monitoring=True,    # Enable quality checks
+            quality_model="openai/gpt-4.1-mini",  # Cheaper model for evaluation
+            quality_check_frequency="sample_25%",  # Check 25% of responses
+            focus_categories=["missed_critical_signal", "factual_error"],  # Phase 1 priorities
         )
         
         # Track recent tool calls for process validation
         self._recent_tool_calls: list[str] = []
         self._max_tool_history = 10
         
+        # Initialize quality evaluator (ACE v2.0)
+        self.quality_evaluator = ConversationalQualityEvaluator(
+            client=self.client,
+            config=self.ace_config,
+            logger=self.logger,
+        )
+        
         # Ensure data directory exists
         self._playbook_file.parent.mkdir(parents=True, exist_ok=True)
 
     # ========================================================================
-    # ACE - Automatic Tool Execution Wrapper
+    # ACE v2.0 - Stream Interception for Quality Monitoring
+    # ========================================================================
+
+    async def _handle_stream(
+        self,
+        stream: AsyncStream[ChatCompletionChunk],
+        tools: list[Callable],
+        messages: Iterable[ChatCompletionMessageParam],
+        retry_count: int = 0,
+    ) -> AsyncGenerator[tuple[MessageContent, bool], None]:
+        """Override to capture assistant response for quality evaluation.
+        
+        Intercepts the stream to buffer text content while passing all chunks
+        through to the client without delay. After stream completes, triggers
+        ACE v2.0 quality monitoring if enabled.
+        
+        Args:
+            stream: Response stream from LLM
+            tools: Available tools for the agent
+            messages: Conversation messages
+            retry_count: Current retry attempt
+            
+        Yields:
+            Message content chunks and stop signals
+        """
+        buffered_text: str | None = None
+        
+        # Pass through all chunks from parent handler, capturing text
+        async for content, should_stop in super()._handle_stream(stream, tools, messages, retry_count):
+            if isinstance(content, TextContent):
+                buffered_text = content.text
+            
+            yield content, should_stop
+        
+        # Post-response quality evaluation (non-blocking)
+        if buffered_text and self.ace_config.enable_quality_monitoring:
+            try:
+                await self._run_post_response_quality_check(messages, buffered_text)
+            except Exception as e:
+                self.logger.error(f"❌ ACE v2.0: Post-response evaluation failed - {e}")
+
+    async def _run_post_response_quality_check(
+        self, 
+        messages: Iterable[ChatCompletionMessageParam], 
+        assistant_response: str
+    ) -> None:
+        """Run quality check after assistant response completes.
+        
+        Args:
+            messages: Conversation messages
+            assistant_response: Complete assistant response text
+        """
+        # Extract conversation context
+        user_message, conversation_history = self._extract_conversation_context(messages)
+        
+        # Build evaluation context
+        context = await self._build_quality_evaluation_context()
+        
+        # Run quality evaluation
+        await self.ace_evaluate_response_quality(
+            user_message=user_message,
+            assistant_response=assistant_response,
+            conversation_history=conversation_history,
+            context=context,
+        )
+
+    def _extract_conversation_context(
+        self, 
+        messages: Iterable[ChatCompletionMessageParam]
+    ) -> tuple[str, list[dict[str, Any]]]:
+        """Extract user message and conversation history from messages.
+        
+        Args:
+            messages: Conversation messages
+            
+        Returns:
+            Tuple of (latest_user_message, conversation_history)
+        """
+        user_message = ""
+        conversation_history: list[dict[str, Any]] = []
+        
+        for msg in messages:
+            if isinstance(msg, dict):
+                conversation_history.append(msg)
+                if msg.get("role") == "user":
+                    content = msg.get("content", "")
+                    if isinstance(content, str):
+                        user_message = content
+        
+        return user_message, conversation_history
+
+    async def _build_quality_evaluation_context(self) -> dict[str, Any]:
+        """Build contextual information for quality evaluation.
+        
+        Includes current time, context flags (late evening, etc.), and
+        potentially health data availability indicators.
+        
+        Returns:
+            Dictionary of contextual information
+        """
+        amsterdam_tz = pytz.timezone("Europe/Amsterdam")
+        current_datetime = datetime.now(amsterdam_tz)
+        
+        return {
+            "current_time": self._format_dutch_datetime(current_datetime),
+            "current_hour": current_datetime.hour,
+            "is_late_evening": self._is_late_evening(current_datetime.hour),
+            "is_weekend": current_datetime.weekday() >= 5,
+            # TODO: Add health data context
+            # - Recent ZLM scores available: bool
+            # - Recent steps data available: bool
+            # - Last questionnaire completion: datetime
+        }
+
+    @staticmethod
+    def _format_dutch_datetime(dt: datetime) -> str:
+        """Format datetime in Dutch with day name.
+        
+        Args:
+            dt: Datetime to format
+            
+        Returns:
+            Formatted string like "maandag 13-10-2025 14:30"
+        """
+        dutch_days = {
+            "Monday": "maandag",
+            "Tuesday": "dinsdag",
+            "Wednesday": "woensdag",
+            "Thursday": "donderdag",
+            "Friday": "vrijdag",
+            "Saturday": "zaterdag",
+            "Sunday": "zondag",
+        }
+        
+        day_name_en = dt.strftime("%A")
+        day_name_nl = dutch_days.get(day_name_en, day_name_en)
+        
+        return f"{day_name_nl} {dt.strftime('%d-%m-%Y %H:%M')}"
+
+    @staticmethod
+    def _is_late_evening(hour: int) -> bool:
+        """Check if time is late evening/night when activity suggestions are inappropriate.
+        
+        Args:
+            hour: Hour of the day (0-23)
+            
+        Returns:
+            True if late evening (22:00-06:00)
+        """
+        return 22 <= hour or hour <= 6
+
+    # ========================================================================
+    # ACE v1.0 - Automatic Tool Execution Wrapper
     # ========================================================================
 
     async def _handle_tool_call(
@@ -870,10 +1393,10 @@ IMPORTANT:
         # Check for duplicates - don't add if similar content exists
         for existing_bullet in playbook.bullets:
             if key_insight.lower() in existing_bullet.content.lower():
-                self.logger.debug(f"🔄 ACE: Insight already in playbook, skipping")
+                self.logger.debug("🔄 ACE: Insight already in playbook, skipping")
                 return operations
             if existing_bullet.content.lower() in key_insight.lower():
-                self.logger.debug(f"🔄 ACE: Similar insight exists, skipping")
+                self.logger.debug("🔄 ACE: Similar insight exists, skipping")
                 return operations
 
         # Truncate if too long (cost control)
@@ -1213,6 +1736,89 @@ IMPORTANT:
         ]
 
         return stats
+
+    # ========================================================================
+    # ACE v2.0 - Conversational Quality Processing
+    # ========================================================================
+
+    async def ace_evaluate_response_quality(
+        self,
+        user_message: str,
+        assistant_response: str,
+        conversation_history: list[dict],
+        context: dict[str, Any],
+    ) -> None:
+        """Evaluate assistant response quality and learn from issues.
+        
+        This is the main entry point for ACE v2.0 quality monitoring.
+        Called after each assistant response is generated.
+        
+        Args:
+            user_message: Latest user message
+            assistant_response: Latest assistant response
+            conversation_history: Recent conversation
+            context: Available context (time, data, etc.)
+        """
+        # Skip if quality monitoring is disabled
+        if not self.ace_config.enable_quality_monitoring:
+            return
+
+        try:
+            # Run quality evaluation
+            report = await self.quality_evaluator.evaluate_response(
+                user_message=user_message,
+                assistant_response=assistant_response,
+                conversation_history=conversation_history,
+                available_context=context,
+            )
+
+            # Skip if evaluation didn't run (sampling) or failed
+            if report is None:
+                return
+
+            # Process issues if any were detected
+            if report.issues:
+                await self._process_quality_issues(report.issues)
+
+            # Optionally: Reinforce positive aspects
+            # TODO: Implement positive reinforcement learning
+            
+        except Exception as e:
+            self.logger.error(f"❌ ACE v2.0: Quality evaluation failed: {e}")
+
+    async def _process_quality_issues(self, issues: list[QualityIssue]) -> None:
+        """Process quality issues by adding them to the playbook.
+        
+        Args:
+            issues: List of detected quality issues
+        """
+        playbook = await self._get_playbook()
+
+        for issue in issues:
+            # Prepare reflection-like structure for ACE processing
+            # (section is auto-categorized by curator based on insight content)
+            reflection = {
+                "key_insight": issue.suggestion,
+                "bullet_tags": [],  # No bullet tagging for quality issues (yet)
+            }
+
+            # Use curator to decide if we should add this insight
+            operations = await self._curate_playbook_update(
+                playbook=playbook,
+                reflection=reflection,
+                tool_name=f"quality_{issue.category}",
+            )
+
+            # Apply operations
+            if operations:
+                playbook = await self._apply_curator_operations(playbook, operations)
+                
+                self.logger.info(
+                    f"🔍 ACE v2.0: Added {issue.severity} {issue.category} insight to playbook"
+                )
+
+        # Save updated playbook
+        await self._save_playbook(playbook)
 
     async def get_current_role(self) -> RoleConfig:
         role = await self.get_metadata("current_role", self.config.roles[0].name)
