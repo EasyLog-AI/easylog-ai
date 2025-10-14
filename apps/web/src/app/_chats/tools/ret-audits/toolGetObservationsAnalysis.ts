@@ -107,7 +107,8 @@ const toolGetObservationsAnalysis = () => {
         }
 
         // Drizzle execute returns [data, metadata] tuple - we only want the data
-        const data = Array.isArray(result) && result.length > 0 ? result[0] : result;
+        const data =
+          Array.isArray(result) && result.length > 0 ? result[0] : result;
         return JSON.stringify(data, null, 2);
       } catch (error) {
         console.error('Unexpected error in getObservationsAnalysis:', error);
