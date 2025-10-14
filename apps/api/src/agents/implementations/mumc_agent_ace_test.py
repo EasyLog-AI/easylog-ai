@@ -1,6 +1,7 @@
 import asyncio
 import io
 import json
+import math
 import random
 import re
 import uuid
@@ -37,7 +38,7 @@ from src.models.chart_widget import (
     Line,
     ZLMDataRow,
 )
-from src.models.messages import MessageContent, TextContent, ToolResultContent
+from src.models.messages import MessageContent, TextContent, ToolResultContent, ToolUseContent
 from src.models.multiple_choice_widget import Choice, MultipleChoiceWidget
 from src.settings import settings
 from src.utils.function_to_openai_tool import function_to_openai_tool
@@ -183,6 +184,14 @@ class ACEConfig(BaseModel):
         default="gpt-4o-mini",
         description="Model to use for LLM-based reflection",
     )
+    embedding_model: str = Field(
+        default="text-embedding-3-small",
+        description="Embedding model for duplicate detection and similarity",
+    )
+    embedding_similarity_threshold: float = Field(
+        default=0.88,
+        description="Cosine similarity threshold to consider bullets duplicates",
+    )
     
     # ACE v2.0 - Conversational Quality Monitoring
     enable_quality_monitoring: bool = Field(
@@ -229,6 +238,10 @@ class PlaybookBullet(BaseModel):
     last_used_at: str | None = Field(
         default=None,
         description="ISO timestamp of last usage",
+    )
+    embedding: list[float] | None = Field(
+        default=None,
+        description="Cached embedding vector for duplicate detection (optional)",
     )
 
     @property
@@ -333,6 +346,9 @@ MUMC_PLAYBOOK_SECTIONS = {
     "health_signals": "Critical health signals that must ALWAYS be addressed",
     "factual_verification": "Data verification rules to prevent false claims",
 }
+
+ACE_CITATION_REGEX = re.compile(r"\[ACE:(?P<bullet>[a-zA-Z0-9_-]+)\]")
+ACE_USED_LINE_REGEX = re.compile(r"ACE_USED:\s*(?P<ids>[a-zA-Z0-9_,\-\s]+)", re.IGNORECASE)
 
 
 # ============================================================================
@@ -713,6 +729,11 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
         # Track recent tool calls for process validation
         self._recent_tool_calls: list[str] = []
         self._max_tool_history = 10
+        self._current_message_bullet_ids: list[str] = []
+        self._pending_tool_bullet_ids: list[str] = []
+        self._last_assistant_response: str | None = None
+        self._reflection_buffer: list[dict[str, Any]] = []
+        self._embedding_cache: dict[str, list[float]] = {}
         
         # Initialize quality evaluator (ACE v2.0)
         self.quality_evaluator = ConversationalQualityEvaluator(
@@ -756,10 +777,47 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
         async for content, should_stop in super()._handle_stream(stream, tools, messages, retry_count):
             if isinstance(content, TextContent):
                 buffered_text = content.text
+                self._record_message_bullet_ids(content.text)
+            elif isinstance(content, ToolUseContent):
+                try:
+                    # Copy to avoid mutating original reference
+                    input_copy = dict(content.input or {})
+                    self._capture_tool_bullet_ids(input_copy)
+                except Exception as capture_error:
+                    self.logger.debug(f"ACE: Could not capture tool bullet IDs: {capture_error}")
             
             yield content, should_stop
         
         # Post-response quality evaluation (non-blocking)
+        if buffered_text and self.ace_config.enable_quality_monitoring:
+            try:
+                await self._run_post_response_quality_check(messages, buffered_text)
+            except Exception as e:
+                self.logger.error(f"❌ ACE v2.0: Post-response evaluation failed - {e}")
+
+    async def _handle_completion(
+        self,
+        completion: ChatCompletion,
+        tools: list[Callable],
+        messages: Iterable[ChatCompletionMessageParam],
+        retry_count: int = 0,
+    ) -> AsyncGenerator[tuple[MessageContent, bool], None]:
+        """Intercept non-streaming completions to track ACE metadata."""
+        buffered_text: str | None = None
+
+        async for content, should_stop in super()._handle_completion(completion, tools, messages, retry_count):
+            if isinstance(content, TextContent):
+                buffered_text = content.text
+                self._record_message_bullet_ids(content.text)
+            elif isinstance(content, ToolUseContent):
+                try:
+                    arguments_copy = dict(content.input or {})
+                    self._capture_tool_bullet_ids(arguments_copy)
+                except Exception as capture_error:
+                    self.logger.debug(f"ACE: Could not capture tool bullet IDs (completion): {capture_error}")
+
+            yield content, should_stop
+
         if buffered_text and self.ace_config.enable_quality_monitoring:
             try:
                 await self._run_post_response_quality_check(messages, buffered_text)
@@ -875,6 +933,180 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
             True if late evening (22:00-06:00)
         """
         return 22 <= hour or hour <= 6
+    
+    # ========================================================================
+    # ACE - Bullet usage tracking utilities
+    # ========================================================================
+
+    @staticmethod
+    def _normalize_bullet_ids(raw_ids: Iterable[str]) -> list[str]:
+        """Normalize bullet identifiers and remove duplicates while preserving order."""
+        seen: set[str] = set()
+        normalized: list[str] = []
+        for raw in raw_ids:
+            candidate = raw.strip()
+            if not candidate:
+                continue
+            candidate = candidate.lower()
+            if candidate not in seen:
+                seen.add(candidate)
+                normalized.append(candidate)
+        return normalized
+
+    def _extract_bullet_ids_from_text(self, text: str) -> list[str]:
+        """Extract bullet identifiers from assistant text via citations or ACE_USED lines."""
+        inline_matches = [match.group("bullet") for match in ACE_CITATION_REGEX.finditer(text)]
+        used_line_match = ACE_USED_LINE_REGEX.search(text)
+        used_line_ids: list[str] = []
+        if used_line_match:
+            used_line_ids = [part.strip() for part in used_line_match.group("ids").split(",")]
+        return self._normalize_bullet_ids([*inline_matches, *used_line_ids])
+
+    def _record_message_bullet_ids(self, text: str) -> None:
+        """Persist bullet usage extracted from the most recent assistant message."""
+        bullet_ids = self._extract_bullet_ids_from_text(text)
+        if bullet_ids:
+            self._current_message_bullet_ids = bullet_ids
+        self._last_assistant_response = text
+
+    def _capture_tool_bullet_ids(self, tool_arguments: dict[str, Any]) -> list[str]:
+        """Extract bullet IDs from tool arguments and fall back to latest message usage."""
+        ace_used = tool_arguments.pop("ace_used_bullets", None)
+        extracted: list[str] = []
+        if isinstance(ace_used, str):
+            extracted = [item.strip() for item in ace_used.split(",")]
+        elif isinstance(ace_used, Iterable):
+            extracted = [str(item).strip() for item in ace_used if item is not None]
+
+        bullet_ids = self._normalize_bullet_ids(extracted)
+        if bullet_ids:
+            self._pending_tool_bullet_ids = bullet_ids
+        elif self._current_message_bullet_ids:
+            # Fall back to the most recent message citations
+            self._pending_tool_bullet_ids = list(self._current_message_bullet_ids)
+        else:
+            self._pending_tool_bullet_ids = []
+
+        return list(self._pending_tool_bullet_ids)
+
+    def _consume_pending_tool_bullet_ids(self) -> list[str]:
+        """Return and clear pending bullet IDs associated with the next tool execution."""
+        bullet_ids = list(self._pending_tool_bullet_ids)
+        self._pending_tool_bullet_ids = []
+        return bullet_ids
+
+    def _resolve_bullet_ids(self, playbook: Playbook, bullet_ids: Iterable[str]) -> list[str]:
+        """Resolve case-insensitive bullet identifiers to canonical IDs present in the playbook."""
+        if not bullet_ids:
+            return []
+        id_map = {bullet.id.lower(): bullet.id for bullet in playbook.bullets}
+        resolved: list[str] = []
+        for candidate in bullet_ids:
+            key = candidate.lower()
+            if key in id_map:
+                resolved.append(id_map[key])
+        return resolved
+
+    @staticmethod
+    def _cosine_similarity(vec_a: Iterable[float], vec_b: Iterable[float]) -> float:
+        """Compute cosine similarity between two vectors."""
+        list_a = list(vec_a)
+        list_b = list(vec_b)
+        if not list_a or not list_b or len(list_a) != len(list_b):
+            return 0.0
+
+        dot = sum(a * b for a, b in zip(list_a, list_b))
+        norm_a = math.sqrt(sum(a * a for a in list_a))
+        norm_b = math.sqrt(sum(b * b for b in list_b))
+
+        if norm_a == 0 or norm_b == 0:
+            return 0.0
+
+        return dot / (norm_a * norm_b)
+
+    async def _get_embedding_vector(self, text: str) -> list[float] | None:
+        """Fetch embedding vector for a given text with simple caching."""
+        cleaned = text.strip()
+        if not cleaned:
+            return None
+        if cleaned in self._embedding_cache:
+            return self._embedding_cache[cleaned]
+
+        try:
+            response = await self.client.embeddings.create(
+                model=self.ace_config.embedding_model,
+                input=cleaned,
+            )
+            embedding = response.data[0].embedding  # type: ignore[attr-defined]
+            self._embedding_cache[cleaned] = embedding
+            return embedding
+        except Exception as e:
+            self.logger.error(f"ACE: Failed to compute embedding - {e}")
+            return None
+
+    async def _get_or_compute_bullet_embedding(self, bullet: PlaybookBullet) -> list[float] | None:
+        """Ensure a bullet carries an embedding for similarity checks."""
+        if bullet.embedding is not None:
+            return bullet.embedding
+        embedding = await self._get_embedding_vector(bullet.content)
+        bullet.embedding = embedding
+        return embedding
+
+    async def _find_duplicate_bullet(
+        self,
+        playbook: Playbook,
+        content: str,
+        new_embedding: list[float] | None,
+    ) -> tuple[PlaybookBullet | None, float]:
+        """Return an existing bullet if the new content is highly similar."""
+        best_candidate: PlaybookBullet | None = None
+        best_similarity = 0.0
+
+        threshold = self.ace_config.embedding_similarity_threshold
+
+        for bullet in playbook.bullets:
+            existing_embedding = await self._get_or_compute_bullet_embedding(bullet)
+            if existing_embedding and new_embedding:
+                similarity = self._cosine_similarity(existing_embedding, new_embedding)
+            else:
+                similarity = (
+                    1.0 if bullet.content.strip().lower() == content.strip().lower() else 0.0
+                )
+
+            if similarity > best_similarity:
+                best_similarity = similarity
+                best_candidate = bullet
+
+        if best_similarity >= threshold:
+            return best_candidate, best_similarity
+
+        return None, best_similarity
+
+    async def _get_similar_bullet_ids_by_text(
+        self,
+        text: str,
+        playbook: Playbook,
+        threshold: float | None = None,
+        top_k: int = 3,
+    ) -> list[str]:
+        """Find bullet IDs with embeddings similar to the supplied text."""
+        embedding = await self._get_embedding_vector(text)
+        if embedding is None:
+            return []
+
+        threshold = threshold or (self.ace_config.embedding_similarity_threshold - 0.05)
+
+        scored: list[tuple[str, float]] = []
+        for bullet in playbook.bullets:
+            existing_embedding = await self._get_or_compute_bullet_embedding(bullet)
+            if existing_embedding is None:
+                continue
+            similarity = self._cosine_similarity(existing_embedding, embedding)
+            if similarity >= threshold:
+                scored.append((bullet.id, similarity))
+
+        scored.sort(key=lambda item: item[1], reverse=True)
+        return [item[0] for item in scored[:top_k]]
 
     # ========================================================================
     # ACE v1.0 - Automatic Tool Execution Wrapper
@@ -884,6 +1116,9 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
         self, name: str, tool_call_id: str, arguments: dict[str, Any], tools: list[Callable]
     ) -> tuple[ToolResultContent, bool]:
         """Override base method to automatically trigger ACE on tool errors and process violations."""
+
+        # Capture bullet usage hints (and strip helper fields)
+        pending_bullet_ids = self._capture_tool_bullet_ids(arguments)
 
         # ACE: Check for process violations BEFORE execution
         violation_error = self._check_process_violations(name, arguments)
@@ -895,18 +1130,45 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
             # Trigger ACE feedback for process violation
             try:
                 await self.ace_process_tool_execution(
-                    tool_name=name, tool_args=arguments, error=Exception(violation_error)
+                    tool_name=name,
+                    tool_args=arguments,
+                    error=Exception(violation_error),
+                    used_bullet_ids=list(self._pending_tool_bullet_ids),
                 )
             except Exception as ace_error:
                 self.logger.error(f"❌ ACE: Failed to process violation feedback: {ace_error}")
 
-        # Call parent implementation
-        result, should_stop = await super()._handle_tool_call(name, tool_call_id, arguments, tools)
+        # Call parent implementation with exception handling for ACE
+        try:
+            result, should_stop = await super()._handle_tool_call(name, tool_call_id, arguments, tools)
+        except Exception as tool_error:
+            # Tool execution failed before returning a result (e.g., tool not found)
+            # Trigger ACE to learn from this error
+            self.logger.error(f"❌ Tool {name} raised exception: {tool_error}")
+            
+            try:
+                await self.ace_process_tool_execution(
+                    tool_name=name,
+                    tool_args=arguments,
+                    error=tool_error,
+                    used_bullet_ids=self._consume_pending_tool_bullet_ids(),
+                )
+            except Exception as ace_error:
+                self.logger.error(f"❌ ACE: Failed to process exception feedback: {ace_error}")
+            
+            # Re-raise the original error
+            raise tool_error
 
         # Track tool call in history (for process validation)
         self._recent_tool_calls.append(name)
         if len(self._recent_tool_calls) > self._max_tool_history:
             self._recent_tool_calls.pop(0)
+
+        used_bullet_ids = self._consume_pending_tool_bullet_ids()
+
+        if not used_bullet_ids and pending_bullet_ids:
+            # Fallback if we consumed nothing (e.g., synchronous path)
+            used_bullet_ids = pending_bullet_ids
 
         # ACE: Process tool execution for learning
         if result.is_error:
@@ -919,14 +1181,17 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
             # Trigger ACE feedback loop
             try:
                 await self.ace_process_tool_execution(
-                    tool_name=name, tool_args=arguments, error=error
+                    tool_name=name,
+                    tool_args=arguments,
+                    error=error,
+                    used_bullet_ids=used_bullet_ids,
                 )
             except Exception as ace_error:
                 self.logger.error(f"❌ ACE: Failed to process feedback: {ace_error}")
         else:
             # ✅ NEW: On success, mark relevant bullets as helpful
             try:
-                await self._mark_relevant_bullets_helpful(tool_name=name)
+                await self._mark_relevant_bullets_helpful(tool_name=name, used_bullet_ids=used_bullet_ids)
             except Exception as mark_error:
                 self.logger.error(f"❌ ACE: Failed to mark bullets helpful: {mark_error}")
 
@@ -954,23 +1219,33 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
         
         return None
     
-    async def _mark_relevant_bullets_helpful(self, tool_name: str) -> None:
+    async def _mark_relevant_bullets_helpful(
+        self,
+        tool_name: str,
+        used_bullet_ids: list[str] | None = None,
+    ) -> None:
         """Mark bullets relevant to a successful tool execution as helpful.
         
         Args:
             tool_name: Name of the tool that succeeded
+            used_bullet_ids: Bullet IDs explicitly referenced during execution
         """
         playbook = await self._get_playbook()
         
         if not playbook.bullets:
             return  # No bullets to mark
-        
-        # Get relevant bullet IDs for this tool
-        relevant_bullet_ids = self._get_relevant_bullet_ids(tool_name, playbook)
+
+        resolved_used_ids = self._resolve_bullet_ids(playbook, used_bullet_ids or [])
+
+        if resolved_used_ids:
+            relevant_bullet_ids = resolved_used_ids
+        else:
+            # Fallback: infer based on tool name keywords
+            relevant_bullet_ids = self._get_relevant_bullet_ids(tool_name, playbook)
         
         if not relevant_bullet_ids:
             return  # No relevant bullets found
-        
+
         # Mark bullets as helpful
         updated = False
         for bullet in playbook.bullets:
@@ -1331,7 +1606,12 @@ IMPORTANT:
             for bid in reflection.get("harmful_bullets", []):
                 bullet_tags.append({"id": bid, "tag": "harmful"})
             
-            reflection["bullet_tags"] = bullet_tags
+            resolved_tags: list[dict[str, str]] = []
+            for tag in bullet_tags:
+                resolved = self._resolve_bullet_ids(playbook, [tag["id"]])
+                if resolved:
+                    resolved_tags.append({"id": resolved[0], "tag": tag["tag"]})
+            reflection["bullet_tags"] = resolved_tags
             
             self.logger.info(
                 f"🤖 ACE LLM Reflector: "
@@ -1578,6 +1858,10 @@ IMPORTANT:
 
         for op in operations:
             if op["type"] == "ADD":
+                content = op["content"].strip()
+                if not content:
+                    continue
+
                 # Check if we're at max capacity
                 if len(playbook.bullets) >= self.ace_config.max_bullets:
                     self.logger.warning(
@@ -1586,22 +1870,57 @@ IMPORTANT:
                     )
                     playbook.prune_low_value_bullets(self.ace_config.min_helpful_score)
 
+                # Duplicate detection via embeddings
+                embedding = await self._get_embedding_vector(content)
+                duplicate_bullet, similarity = await self._find_duplicate_bullet(
+                    playbook, content, embedding
+                )
+                if duplicate_bullet is not None:
+                    self.logger.info(
+                        f"🔁 ACE: Skipping new bullet (similarity {similarity:.2f}) with existing "
+                        f"{duplicate_bullet.id}: {duplicate_bullet.content}"
+                    )
+                    continue
+
                 # Generate unique ID
                 bullet_id = f"mumc-{len(playbook.bullets) + 1:03d}"
 
                 # Create new bullet
                 bullet = PlaybookBullet(
                     id=bullet_id,
-                    content=op["content"],
+                    content=content,
                     section=op["section"],
                     created_at=current_time,
+                    embedding=embedding,
                 )
 
                 # Add to playbook
                 playbook.add_bullet(bullet)
 
                 self.logger.info(f"✨ ACE: Added bullet [{bullet_id}] to '{op['section']}'")
+            elif op["type"] == "UPDATE":
+                bullet_id = op.get("bullet_id")
+                if not bullet_id:
+                    continue
 
+                target = next((b for b in playbook.bullets if b.id == bullet_id), None)
+                if target is None:
+                    self.logger.warning(f"ACE: Cannot update non-existent bullet {bullet_id}")
+                    continue
+
+                new_content = op.get("content", target.content).strip()
+                if new_content:
+                    target.content = new_content
+                    target.embedding = await self._get_embedding_vector(new_content)
+
+                if op.get("section"):
+                    target.section = op["section"]
+
+                target.last_used_at = current_time
+                self.logger.info(f"🛠️  ACE: Updated bullet [{bullet_id}]")
+
+        # Refresh token estimate after batch operations
+        playbook._update_token_estimate()
         return playbook
 
     # ========================================================================
@@ -1609,7 +1928,11 @@ IMPORTANT:
     # ========================================================================
 
     async def ace_process_tool_execution(
-        self, tool_name: str, tool_args: dict[str, Any], error: Exception | None = None
+        self,
+        tool_name: str,
+        tool_args: dict[str, Any],
+        error: Exception | None = None,
+        used_bullet_ids: list[str] | None = None,
     ) -> None:
         """Process tool execution for ACE learning.
 
@@ -1620,15 +1943,16 @@ IMPORTANT:
             tool_name: Name of the tool that was executed
             tool_args: Arguments passed to the tool
             error: Exception if tool failed (None if successful)
+            used_bullet_ids: Bullet IDs that were surfaced during reasoning/tool call
         """
         self.logger.info(f"🔄 ACE: Processing feedback for tool '{tool_name}'")
 
         # Load current playbook
         playbook = await self._get_playbook()
 
-        # For POC: We don't track which bullets were "used" yet
-        # In production, the LLM would reference bullet IDs in its reasoning
-        used_bullet_ids: list[str] = []
+        resolved_used_ids = self._resolve_bullet_ids(playbook, used_bullet_ids or [])
+        if not resolved_used_ids:
+            resolved_used_ids = self._get_relevant_bullet_ids(tool_name, playbook)
 
         # Reflect on execution
         reflection = await self._reflect_on_tool_execution(
@@ -1636,7 +1960,7 @@ IMPORTANT:
             tool_args=tool_args,
             tool_result=None,  # Not tracking results for POC
             error=error,
-            used_bullet_ids=used_bullet_ids,
+            used_bullet_ids=resolved_used_ids,
         )
 
         # Update bullet scores based on feedback
@@ -1661,6 +1985,18 @@ IMPORTANT:
             # Apply updates
             if operations:
                 playbook = await self._apply_curator_operations(playbook, operations)
+
+            # Store reflection for potential multi-epoch replay
+            self._reflection_buffer.append(
+                {
+                    "tool_name": tool_name,
+                    "reflection": reflection,
+                    "replay_count": 0,
+                    "timestamp": datetime.now(pytz.timezone("Europe/Amsterdam")).isoformat(),
+                }
+            )
+
+            playbook = await self._run_multi_epoch_refinement(playbook)
 
         # Save updated playbook
         await self._save_playbook(playbook)
@@ -1741,6 +2077,34 @@ IMPORTANT:
     # ACE v2.0 - Conversational Quality Processing
     # ========================================================================
 
+    async def _run_multi_epoch_refinement(self, playbook: Playbook) -> Playbook:
+        """Re-run curator on past reflections to mimic multi-epoch adaptation."""
+        if not self._reflection_buffer:
+            return playbook
+
+        max_replays = 2
+        amsterdam_tz = pytz.timezone("Europe/Amsterdam")
+
+        for record in self._reflection_buffer:
+            if record.get("replay_count", 0) >= max_replays:
+                continue
+
+            reflection = record.get("reflection")
+            tool_name = record.get("tool_name", "")
+
+            if not reflection:
+                continue
+
+            operations = await self._curate_playbook_update(playbook, reflection, tool_name)
+            if not operations:
+                continue
+
+            playbook = await self._apply_curator_operations(playbook, operations)
+            record["replay_count"] = record.get("replay_count", 0) + 1
+            record["last_replayed_at"] = datetime.now(amsterdam_tz).isoformat()
+
+        return playbook
+
     async def ace_evaluate_response_quality(
         self,
         user_message: str,
@@ -1797,9 +2161,16 @@ IMPORTANT:
         for issue in issues:
             # Prepare reflection-like structure for ACE processing
             # (section is auto-categorized by curator based on insight content)
+            similar_bullets = await self._get_similar_bullet_ids_by_text(
+                f"{issue.description}. {issue.suggestion}",
+                playbook,
+                threshold=self.ace_config.embedding_similarity_threshold - 0.1,
+                top_k=3,
+            )
+
             reflection = {
                 "key_insight": issue.suggestion,
-                "bullet_tags": [],  # No bullet tagging for quality issues (yet)
+                "bullet_tags": [{"id": bid, "tag": "harmful"} for bid in similar_bullets],
             }
 
             # Use curator to decide if we should add this insight
@@ -3513,6 +3884,14 @@ IMPORTANT:
             self.logger.warning(f"Error formatting system prompt: {e}")
             llm_content = f"Role: {role_config.name}\nPrompt: {formatted_current_role_prompt}"
 
+        # ACE instrumentation instructions for the generator
+        llm_content += (
+            "\n\n### ACE Instrumentation\n"
+            "- Cite playbook bullets inline using the format [ACE:<bullet_id>] whenever you apply them.\n"
+            "- When calling tools, include an `ace_used_bullets` field listing the bullet IDs (comma-separated) that informed the call.\n"
+            "- End each assistant response with a line 'ACE_USED: <bullet_id1>, <bullet_id2>' when any bullets guided your decisions."
+        )
+
         self.logger.debug(llm_content)
 
         # Create the completion request
@@ -3549,4 +3928,3 @@ IMPORTANT:
         """Super agent disabled for ACE POC."""
         self.logger.info("🧪 ACE TEST: Super agent disabled")
         return None
-
