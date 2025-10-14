@@ -2361,6 +2361,11 @@ IMPORTANT:
                 question_name (str): The name of the question to answer.
                 answer (str): The answer to the question.
             """
+            if answer is None or (isinstance(answer, str) and answer.strip() == ""):
+                raise ValueError(
+                    f"Empty answer received for {question_name}. "
+                    "Wait for the user to choose an option before saving."
+                )
 
             await self.set_metadata(question_name, answer)
 
