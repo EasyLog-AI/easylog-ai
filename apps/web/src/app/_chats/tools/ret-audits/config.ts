@@ -7,16 +7,16 @@ export const getVehicleRankingConfig = {
   inputSchema: z.object({
     auditType: z
       .enum(['IKZ', 'PQI', 'R&M'])
-      .optional()
+      .nullable()
       .describe('Filter by audit type'),
     modality: z
       .enum(['Metro', 'Bus', 'Tram'])
-      .optional()
+      .nullable()
       .describe('Filter by transport modality'),
-    year: z.number().optional().describe('Filter by specific year'),
+    year: z.number().nullable().describe('Filter by specific year'),
     limit: z
       .number()
-      .optional()
+      .nullable()
       .default(10)
       .describe('Maximum number of results')
   })
@@ -29,24 +29,24 @@ export const getObservationsAnalysisConfig = {
   inputSchema: z.object({
     auditType: z
       .enum(['IKZ', 'PQI', 'R&M'])
-      .optional()
+      .nullable()
       .describe('Filter by audit type'),
     modality: z
       .enum(['Metro', 'Bus', 'Tram'])
-      .optional()
+      .nullable()
       .describe('Filter by transport modality'),
     vehicleNumber: z
       .string()
-      .optional()
+      .nullable()
       .describe('Filter by specific vehicle/material number'),
-    year: z.number().optional().describe('Filter by specific year'),
+    year: z.number().nullable().describe('Filter by specific year'),
     minScore: z
       .number()
-      .optional()
+      .nullable()
       .describe('Minimum score to include (e.g., 5 for non-trivial issues)'),
     limit: z
       .number()
-      .optional()
+      .nullable()
       .default(20)
       .describe('Maximum number of results')
   })
@@ -59,20 +59,20 @@ export const getAuditTrendsConfig = {
   inputSchema: z.object({
     auditType: z
       .enum(['IKZ', 'PQI', 'R&M'])
-      .optional()
+      .nullable()
       .describe('Filter by audit type'),
     modality: z
       .enum(['Metro', 'Bus', 'Tram'])
-      .optional()
+      .nullable()
       .describe('Filter by transport modality'),
     vehicleNumber: z
       .string()
-      .optional()
+      .nullable()
       .describe('Filter by specific vehicle/material number'),
-    year: z.number().optional().describe('Filter by specific year'),
+    year: z.number().nullable().describe('Filter by specific year'),
     groupBy: z
       .enum(['month', 'week'])
-      .optional()
+      .nullable()
       .default('month')
       .describe('Group results by month or week')
   })
@@ -85,24 +85,24 @@ export const getAuditSubmissionsConfig = {
   inputSchema: z.object({
     auditType: z
       .enum(['IKZ', 'PQI', 'R&M'])
-      .optional()
+      .nullable()
       .describe('Filter by audit type'),
     modality: z
       .enum(['Metro', 'Bus', 'Tram'])
-      .optional()
+      .nullable()
       .describe('Filter by transport modality'),
     vehicleNumber: z
       .string()
-      .optional()
+      .nullable()
       .describe('Filter by specific vehicle/material number'),
-    year: z.number().optional().describe('Filter by specific year'),
+    year: z.number().nullable().describe('Filter by specific year'),
     hasSafetyRisks: z
       .boolean()
-      .optional()
+      .nullable()
       .describe('Only show audits with safety risks (20pt observations)'),
     limit: z
       .number()
-      .optional()
+      .nullable()
       .default(20)
       .describe('Maximum number of results')
   })
