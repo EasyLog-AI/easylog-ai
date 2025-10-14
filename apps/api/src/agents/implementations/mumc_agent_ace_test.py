@@ -1032,17 +1032,54 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
         if cleaned in self._embedding_cache:
             return self._embedding_cache[cleaned]
 
+        if not getattr(self.ace_config, "embedding_model", None):
+            return None
+
         try:
             response = await self.client.embeddings.create(
                 model=self.ace_config.embedding_model,
-                input=cleaned,
+                input=[cleaned],
             )
-            embedding = response.data[0].embedding  # type: ignore[attr-defined]
-            self._embedding_cache[cleaned] = embedding
-            return embedding
         except Exception as e:
             self.logger.error(f"ACE: Failed to compute embedding - {e}")
+            await self._disable_embeddings()
             return None
+
+        embedding: list[float] | None = None
+        try:
+            if hasattr(response, "data"):
+                data = response.data  # type: ignore[attr-defined]
+                if isinstance(data, list) and data:
+                    first = data[0]
+                    if hasattr(first, "embedding"):
+                        embedding = first.embedding  # type: ignore[attr-defined]
+                    elif isinstance(first, dict):
+                        embedding = first.get("embedding")
+            elif isinstance(response, dict):
+                data = response.get("data") or []
+                if data:
+                    first = data[0]
+                    if isinstance(first, dict):
+                        embedding = first.get("embedding")
+            elif isinstance(response, str):
+                maybe_json = response.strip()
+                if maybe_json.startswith("{"):
+                    payload = json.loads(maybe_json)
+                    data = payload.get("data") or []
+                    if data:
+                        first = data[0]
+                        embedding = first.get("embedding")
+        except Exception as parse_error:
+            self.logger.error(f"ACE: Failed to parse embedding response - {parse_error}")
+            embedding = None
+
+        if embedding is None:
+            self.logger.warning("ACE: Embedding response missing data, disabling duplicate detection")
+            await self._disable_embeddings()
+            return None
+
+        self._embedding_cache[cleaned] = embedding
+        return embedding
 
     async def _get_or_compute_bullet_embedding(self, bullet: PlaybookBullet) -> list[float] | None:
         """Ensure a bullet carries an embedding for similarity checks."""
@@ -1107,6 +1144,13 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
 
         scored.sort(key=lambda item: item[1], reverse=True)
         return [item[0] for item in scored[:top_k]]
+
+    async def _disable_embeddings(self) -> None:
+        """Disable embedding usage after repeated failures."""
+        if getattr(self.ace_config, "embedding_model", None):
+            self.logger.warning("ACE: Disabling embedding-based duplicate detection for this session")
+            self.ace_config.embedding_model = ""
+            self._embedding_cache.clear()
 
     # ========================================================================
     # ACE v1.0 - Automatic Tool Execution Wrapper
