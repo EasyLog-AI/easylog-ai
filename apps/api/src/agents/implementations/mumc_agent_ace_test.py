@@ -2362,10 +2362,11 @@ IMPORTANT:
                 answer (str): The answer to the question.
             """
             if answer is None or (isinstance(answer, str) and answer.strip() == ""):
-                raise ValueError(
-                    f"Empty answer received for {question_name}. "
-                    "Wait for the user to choose an option before saving."
+                self.logger.warning(
+                    f"Questionnaire: ignoring empty answer for {question_name}, "
+                    "awaiting user selection."
                 )
+                return f"Answer to {question_name} not stored (awaiting selection)"
 
             await self.set_metadata(question_name, answer)
 
