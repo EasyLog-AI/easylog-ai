@@ -153,6 +153,11 @@ class MUMCAgentACETestConfig(BaseModel):
 # ACE (Agentic Context Engineering) - Data Models
 # ============================================================================
 
+# ACE Constants
+CHARS_PER_TOKEN = 4  # Rough estimate: 1 token ≈ 4 characters
+FORMATTING_TOKEN_OVERHEAD = 100  # Extra tokens for playbook formatting
+SIMILARITY_THRESHOLD_RELAXATION = 0.1  # Lower threshold for quality issue matching
+
 
 class ACEConfig(BaseModel):
     """ACE configuration for cost control via OpenRouter."""
@@ -352,7 +357,7 @@ class Playbook(BaseModel):
     def _update_token_estimate(self) -> None:
         """Update estimated token count (rough: 1 token ≈ 4 chars)."""
         total_chars = sum(len(b.to_compact_format()) for b in self.bullets)
-        self.total_tokens_estimate = total_chars // 4 + 100  # +100 for formatting
+        self.total_tokens_estimate = total_chars // CHARS_PER_TOKEN + FORMATTING_TOKEN_OVERHEAD
 
 
 # MUMC Playbook Sections
@@ -370,11 +375,9 @@ ACE_CITATION_REGEX = re.compile(r"\[ACE:(?P<bullet>[a-zA-Z0-9_-]+)\]")
 ACE_USED_LINE_REGEX = re.compile(r"ACE_USED:\s*(?P<ids>[a-zA-Z0-9_,\-\s]+)", re.IGNORECASE)
 
 # Tools that pause ACE learning during questionnaire handling
-ACE_PAUSED_TOOL_NAMES = {
-    "tool_ask_multiple_choice",
-    "tool_answer_questionaire_question",
-    "tool_get_questionaire_answer",
-}
+# ACE Paused Tools - Tools where ACE learning is disabled
+# Currently empty - ACE now works well with all tools including questionnaires
+ACE_PAUSED_TOOL_NAMES: set[str] = set()
 
 
 # ============================================================================
@@ -588,7 +591,7 @@ class ConversationalQualityEvaluator:
                     category=issue["category"],
                     severity=issue["severity"],
                     description=issue["description"],
-                    suggestion=issue["suggestion"][:150],  # Enforce max length
+                    suggestion=issue["suggestion"][: self.config.max_bullet_length],
                     relevant_context=issue.get("relevant_context", {}),
                 )
                 for issue in result.get("issues", [])
@@ -1109,34 +1112,40 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
                 input=[cleaned],
             )
         except Exception as e:
-            self.logger.error(f"ACE: Failed to compute embedding - {e}")
+            self.logger.error(f"❌ ACE Embedding: API call failed - {e}")
             await self._disable_embeddings()
             return None
 
+        # Extract embedding from response (handle multiple formats)
         embedding: list[float] | None = None
         try:
-            if hasattr(response, "data"):
-                data = response.data  # type: ignore[attr-defined]
-                if isinstance(data, list) and data:
-                    first = data[0]
-                    if hasattr(first, "embedding"):
-                        embedding = first.embedding  # type: ignore[attr-defined]
-                    elif isinstance(first, dict):
-                        embedding = first.get("embedding")
-            elif isinstance(response, dict):
-                data = response.get("data") or []
-                if data:
-                    first = data[0]
-                    if isinstance(first, dict):
-                        embedding = first.get("embedding")
+            # OpenAI format: response.data[0].embedding
+            if hasattr(response, "data") and isinstance(response.data, list) and response.data:
+                first_item = response.data[0]
+                if hasattr(first_item, "embedding"):
+                    embedding = first_item.embedding
+                elif isinstance(first_item, dict):
+                    embedding = first_item.get("embedding")
+            # Dict format: response["data"][0]["embedding"]
+            elif isinstance(response, dict) and "data" in response:
+                data_list = response["data"]
+                if isinstance(data_list, list) and data_list:
+                    first_item = data_list[0]
+                    if isinstance(first_item, dict):
+                        embedding = first_item.get("embedding")
+            # String format (OpenRouter sometimes returns JSON string)
             elif isinstance(response, str):
-                maybe_json = response.strip()
-                if maybe_json.startswith("{"):
-                    payload = json.loads(maybe_json)
-                    data = payload.get("data") or []
-                    if data:
-                        first = data[0]
-                        embedding = first.get("embedding")
+                payload = json.loads(response.strip())
+                data_list = payload.get("data", [])
+                if data_list:
+                    embedding = data_list[0].get("embedding")
+            # Unsupported format
+            else:
+                self.logger.warning(
+                    f"⚠️ ACE Embedding: Unexpected response type: {type(response).__name__}"
+                )
+                await self._disable_embeddings()
+                return None
         except Exception as parse_error:
             self.logger.error(f"ACE: Failed to parse embedding response - {parse_error}")
             embedding = None
@@ -1378,7 +1387,7 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
         for bullet in playbook.bullets:
             if bullet.id in relevant_bullet_ids:
                 bullet.helpful_count += 1
-                bullet.last_used_at = datetime.now(pytz.timezone("Europe/Amsterdam")).isoformat()
+                bullet.last_used_at = self._get_amsterdam_timestamp()
                 updated = True
                 self.logger.debug(f"✅ ACE: Marked bullet {bullet.id} as helpful (now ↑{bullet.helpful_count})")
         
@@ -1452,6 +1461,53 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
         return keywords
 
     # ========================================================================
+    # ACE - Utility Methods
+    # ========================================================================
+
+    def _get_amsterdam_timestamp(self) -> str:
+        """Get current timestamp in Amsterdam timezone.
+        
+        Returns:
+            ISO formatted timestamp string
+        """
+        return datetime.now(pytz.timezone("Europe/Amsterdam")).isoformat()
+
+    def _truncate_content(self, content: str, max_length: int) -> str:
+        """Truncate content to max length with ellipsis.
+        
+        Args:
+            content: Content to truncate
+            max_length: Maximum allowed length
+            
+        Returns:
+            Truncated content (with '...' if truncated)
+        """
+        if len(content) <= max_length:
+            return content
+        return content[: max_length - 3] + "..."
+
+    def _format_playbook_bullets_for_llm(self, playbook: Playbook, include_section: bool = False) -> str:
+        """Format playbook bullets for LLM context.
+        
+        Args:
+            playbook: Playbook to format
+            include_section: Whether to include section name in output
+            
+        Returns:
+            Formatted bullets string (one per line)
+        """
+        if include_section:
+            return "\n".join([
+                f"[{b.id}] ({b.section}) {b.content} (↑{b.helpful_count} ↓{b.harmful_count})"
+                for b in playbook.bullets
+            ])
+        else:
+            return "\n".join([
+                f"[{b.id}] {b.content} (↑{b.helpful_count} ↓{b.harmful_count})"
+                for b in playbook.bullets
+            ])
+
+    # ========================================================================
     # ACE - Playbook Storage & Retrieval
     # ========================================================================
 
@@ -1464,9 +1520,7 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
         async with self._playbook_lock:
             if not self._playbook_file.exists():
                 self.logger.info("🎯 ACE: Creating new empty agent-level playbook")
-                return Playbook(
-                    last_updated=datetime.now(pytz.timezone("Europe/Amsterdam")).isoformat()
-                )
+                return Playbook(last_updated=self._get_amsterdam_timestamp())
 
             try:
                 playbook_data = self._playbook_file.read_text()
@@ -1479,9 +1533,7 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
                 return playbook
             except Exception as e:
                 self.logger.error(f"❌ ACE: Error loading playbook: {e}")
-                return Playbook(
-                    last_updated=datetime.now(pytz.timezone("Europe/Amsterdam")).isoformat()
-                )
+                return Playbook(last_updated=self._get_amsterdam_timestamp())
 
     async def _save_playbook(self, playbook: Playbook) -> None:
         """Save agent-level playbook to file (shared across all users).
@@ -1491,7 +1543,7 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
         """
         async with self._playbook_lock:
             playbook.version += 1
-            playbook.last_updated = datetime.now(pytz.timezone("Europe/Amsterdam")).isoformat()
+            playbook.last_updated = self._get_amsterdam_timestamp()
 
             # Auto-prune if exceeding threshold
             if len(playbook.bullets) > self.ace_config.prune_threshold:
@@ -1553,7 +1605,7 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
 
         # Log token estimate
         if self.ace_config.enable_cost_logging:
-            tokens = len(result) // 4
+            tokens = len(result) // CHARS_PER_TOKEN
             self.logger.debug(f"📊 ACE: Playbook formatted to ~{tokens} tokens")
 
         return result
@@ -1661,12 +1713,7 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
     ) -> dict[str, Any]:
         """LLM-based reflection (Full ACE - more intelligent but costly)."""
         playbook = await self._get_playbook()
-        
-        # Build playbook context for LLM
-        playbook_bullets = "\n".join([
-            f"[{b.id}] {b.content} (↑{b.helpful_count} ↓{b.harmful_count})"
-            for b in playbook.bullets
-        ])
+        playbook_bullets = self._format_playbook_bullets_for_llm(playbook)
         
         error_context = f"ERROR: {error}" if error else "SUCCESS"
         
@@ -1776,8 +1823,7 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
                 return operations
 
         # Truncate if too long (cost control)
-        if len(key_insight) > self.ace_config.max_bullet_length:
-            key_insight = key_insight[: self.ace_config.max_bullet_length - 3] + "..."
+        key_insight = self._truncate_content(key_insight, self.ace_config.max_bullet_length)
 
         # Determine section based on tool name and content
         section = self._categorize_insight(tool_name, key_insight)
@@ -1799,11 +1845,7 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
         if not key_insight or len(key_insight) < 10:
             return []
         
-        # Build playbook context
-        playbook_bullets = "\n".join([
-            f"[{b.id}] ({b.section}) {b.content} (↑{b.helpful_count} ↓{b.harmful_count})"
-            for b in playbook.bullets
-        ])
+        playbook_bullets = self._format_playbook_bullets_for_llm(playbook, include_section=True)
         
         # Build section descriptions
         sections_desc = "\n".join([
@@ -1847,10 +1889,7 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
             if action == "ADD":
                 content = decision.get("content", key_insight)
                 section = decision.get("section", "strategies_and_hard_rules")
-                
-                # Truncate if needed
-                if len(content) > self.ace_config.max_bullet_length:
-                    content = content[: self.ace_config.max_bullet_length - 3] + "..."
+                content = self._truncate_content(content, self.ace_config.max_bullet_length)
                 
                 operations.append({
                     "type": "ADD",
@@ -1866,7 +1905,7 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
                     operations.append({
                         "type": "UPDATE",
                         "bullet_id": merge_id,
-                        "content": content[:self.ace_config.max_bullet_length]
+                        "content": self._truncate_content(content, self.ace_config.max_bullet_length)
                     })
             
             # SKIP means no operations
@@ -2044,7 +2083,7 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
                         bullet.helpful_count += 1
                     elif tag == "harmful":
                         bullet.harmful_count += 1
-                    bullet.last_used_at = datetime.now(pytz.timezone("Europe/Amsterdam")).isoformat()
+                    bullet.last_used_at = self._get_amsterdam_timestamp()
 
         # Curate new insights (only on errors for POC)
         if error is not None:
@@ -2062,7 +2101,7 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
                     "tool_name": tool_name,
                     "reflection": reflection,
                     "replay_count": 0,
-                    "timestamp": datetime.now(pytz.timezone("Europe/Amsterdam")).isoformat(),
+                    "timestamp": self._get_amsterdam_timestamp(),
                 }
             )
 
@@ -2085,8 +2124,7 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
         playbook = await self._get_playbook()
 
         # Truncate if needed
-        if len(insight) > self.ace_config.max_bullet_length:
-            insight = insight[: self.ace_config.max_bullet_length - 3] + "..."
+        insight = self._truncate_content(insight, self.ace_config.max_bullet_length)
 
         # Auto-categorize if no section provided
         if section is None:
@@ -2104,7 +2142,7 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
             id=bullet_id,
             content=insight,
             section=section,
-            created_at=datetime.now(pytz.timezone("Europe/Amsterdam")).isoformat(),
+            created_at=self._get_amsterdam_timestamp(),
         )
 
         playbook.add_bullet(bullet)
@@ -2234,7 +2272,7 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
             similar_bullets = await self._get_similar_bullet_ids_by_text(
                 f"{issue.description}. {issue.suggestion}",
                 playbook,
-                threshold=self.ace_config.embedding_similarity_threshold - 0.1,
+                threshold=self.ace_config.embedding_similarity_threshold - SIMILARITY_THRESHOLD_RELAXATION,
                 top_k=3,
             )
 
@@ -3112,6 +3150,54 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
 
             return f"Memory stored: {memory_with_date}"
 
+        async def tool_submit_ace_feedback(
+            insight: str,
+            category: Literal[
+                "input_validation",
+                "user_interaction",
+                "data_interpretation",
+                "health_signals",
+                "communication",
+            ] = "user_interaction"
+        ) -> str:
+            """Submit feedback to ACE learning system during conversation.
+            
+            Use this tool when you observe:
+            - User provides unrealistic input (e.g., length=500cm, weight=5kg)
+            - User corrects you ("Dat klopt niet", "Verkeerd")
+            - User gives valuable tips for improvement
+            - You identify a pattern that should be remembered
+            
+            Args:
+                insight: The lesson to remember (be specific and actionable)
+                category: Type of feedback (helps with categorization)
+                
+            Returns:
+                Confirmation message
+                
+            Examples:
+                - insight="Always validate length input (realistic: 100-250cm). 
+                           Ask confirmation if outside range."
+                  category="input_validation"
+                - insight="When user says 'meer pufjes', always ask: hoeveel? 
+                           sinds wanneer? andere symptomen?"
+                  category="health_signals"
+            """
+            # Map category to ACE playbook section
+            section_map = {
+                "input_validation": "user_interaction",
+                "user_interaction": "user_interaction",
+                "data_interpretation": "data_interpretation",
+                "health_signals": "health_signals",
+                "communication": "user_interaction",
+            }
+            section = section_map.get(category, "user_interaction")
+            
+            # Add to playbook
+            await self.ace_add_manual_insight(insight, section)
+            
+            return f"✅ ACE Feedback opgeslagen in category '{category}'. Dit wordt gebruikt voor toekomstige gesprekken."
+
         async def tool_get_memory(id: str) -> str:
             """Get a memory.
 
@@ -3186,7 +3272,8 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
             notifications = await self.get_metadata("notifications", [])
 
             # Keep only today's notifications
-            today = datetime.now(pytz.timezone("Europe/Amsterdam")).date()
+            amsterdam_tz = pytz.timezone("Europe/Amsterdam")
+            today = datetime.now(amsterdam_tz).date()
             filtered_notifications = []
             for notif in notifications:
                 try:
@@ -3203,7 +3290,7 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
                     "id": response["id"],
                     "title": title,
                     "contents": contents,
-                    "sent_at": datetime.now(pytz.timezone("Europe/Amsterdam")).isoformat(),
+                    "sent_at": self._get_amsterdam_timestamp(),
                 }
             )
 
@@ -3526,6 +3613,8 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
             # Memory tools
             tool_store_memory,
             tool_get_memory,
+            # ACE feedback tool
+            tool_submit_ace_feedback,
             # Notification tool
             tool_send_notification,
             # Step counter tools
