@@ -58,6 +58,9 @@ const toolGetVehicleRanking = () => {
             ? sql.join(conditions, sql` AND `)
             : conditions[0];
 
+        // Use default limit if null
+        const limit = params.limit ?? 10;
+
         // Execute query
         const [result, error] = await tryCatch(
           easylogDb.execute<VehicleRanking>(sql`
@@ -101,7 +104,7 @@ const toolGetVehicleRanking = () => {
             WHERE ${whereClause}
             GROUP BY material_type, business_unit
             ORDER BY avg_score DESC
-            LIMIT ${params.limit}
+            LIMIT ${limit}
           `)
         );
 

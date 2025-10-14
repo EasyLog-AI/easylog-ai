@@ -71,6 +71,9 @@ const toolGetAuditSubmissions = () => {
             ? sql.join(conditions, sql` AND `)
             : conditions[0];
 
+        // Use default limit if null
+        const limit = params.limit ?? 20;
+
         // Execute query
         const [result, error] = await tryCatch(
           easylogDb.execute<AuditSubmission>(sql`
@@ -110,7 +113,7 @@ const toolGetAuditSubmissions = () => {
             LEFT JOIN users u ON s.issuer_id = u.id
             WHERE ${whereClause}
             ORDER BY s.created_at DESC
-            LIMIT ${params.limit}
+            LIMIT ${limit}
           `)
         );
 

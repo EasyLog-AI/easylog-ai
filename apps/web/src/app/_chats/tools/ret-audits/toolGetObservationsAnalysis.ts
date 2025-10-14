@@ -60,7 +60,7 @@ const toolGetObservationsAnalysis = () => {
         }
 
         // Add score filter condition
-        if (params.minScore !== undefined) {
+        if (params.minScore != null) {
           conditions.push(
             sql`CAST(JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[5]')) AS UNSIGNED) >= ${params.minScore}`
           );
@@ -75,6 +75,9 @@ const toolGetObservationsAnalysis = () => {
           conditions.length > 1
             ? sql.join(conditions, sql` AND `)
             : conditions[0];
+
+        // Use default limit if null
+        const limit = params.limit ?? 20;
 
         // Execute query
         const [result, error] = await tryCatch(
@@ -93,7 +96,7 @@ const toolGetObservationsAnalysis = () => {
             WHERE ${whereClause}
             GROUP BY category, aspect, score, material_type
             ORDER BY frequency DESC
-            LIMIT ${params.limit}
+            LIMIT ${limit}
           `)
         );
 
