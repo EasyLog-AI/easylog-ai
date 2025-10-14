@@ -382,21 +382,61 @@ ACE_PAUSED_TOOL_NAMES = {
 # ============================================================================
 
 # Critical health signals that must ALWAYS be detected
+# Based on MUMC test reports analysis (sept-oct 2025, 1000+ messages, 16 users)
 CRITICAL_HEALTH_SIGNALS = [
-    "Medication changes (puffers, dosage, frequency)",
-    "Symptom changes (shortness of breath, coughing, sputum color/amount)",
-    "Activity limitations (can't walk, stairs difficult, daily tasks impaired)",
-    "Exacerbation indicators (infection, fever, increased symptoms)",
-    "Compliance issues (forgetting medication, not following treatment plan)",
+    # 1. INCREASED MEDICATION USE (CRITICAL - Possible Exacerbation)
+    "User mentions taking MORE medication than usual: 'meer pufjes', 'extra', 'vaker gepuft', 'xxx meer dan normaal'. "
+    "ALWAYS ask: Hoeveel extra? Sinds wanneer? Andere symptomen? Contact arts? "
+    "Real case: 'Ik heb xxx meer pufjes genomen dan normaal' - Coach ging NIET dieper op in (MISSED).",
+    
+    # 2. CHRONIC SYMPTOMS (CRITICAL - Possible Infection)
+    "Symptoms lasting >2 weeks: '4 maanden snotteren', 'al weken benauwd', 'blijft aanhouden'. "
+    "ALWAYS suggest doctor contact for possible chronic infection. "
+    "Real case (mumc-34): '4 maanden aan het snotteren' - ZLM vraagt dit NIET, coach compenseert NIET.",
+    
+    # 3. BREATHING DIFFICULTY (CRITICAL - Acute Situation)
+    "Acute breathing problems: 'kortademig', 'geen lucht', 'heel benauwd', 'erg kortademig'. "
+    "ALWAYS give immediate protocol: Stop activity, sit down, breathe slowly. If no improvement: call doctor/112. "
+    "Real case (mumc-24): 'Ik ben kortademig' during walking at 167% of step goal.",
+    
+    # 4. MULTIPLE ZLM WORSENING (CRITICAL - Combined Deterioration)
+    "≥3 ZLM domains worsened simultaneously, especially drastic changes (green→red). "
+    "ALWAYS discuss ALL worsened domains and suggest doctor contact. "
+    "Real case (mumc-3): Lung complaints↓, Sleep↓, Emotions↓, Alcohol↓ (4 at once!) - Coach showed empathy but NO follow-up on FOUR deteriorations.",
+    
+    # 5. OVERTRAINING WARNING (HIGH - Preventive Medical)
+    "Steps >150% of daily goal. PREVENT symptoms by warning BEFORE they occur. "
+    "ALWAYS say: 'Je hebt al veel gelopen! Misschien vandaag rustig aan?' "
+    "Real case (mumc-24): 10,410 steps (goal 6,000) → shortness of breath - Coach reacted AFTER symptoms, not preventively.",
 ]
 
 # Factual verification rules
+# Based on user corrections found in MUMC test reports (12 explicit corrections in 1000+ messages)
 FACTUAL_VERIFICATION_RULES = [
-    "Never claim data exists when it doesn't",
-    "Never make up numbers, dates, or measurements",
-    "If uncertain about facts, ask user instead of guessing",
-    "Always verify data availability before making statements",
-    "Acknowledge data gaps rather than inventing information",
+    # 1. STEPS DATA HALLUCINATION (HIGH - User Corrections)
+    "NEVER claim '0 stappen' when data not yet available. User reacts defensively ('hoezo nul gekkie', 'klopt niet'). "
+    "SAY: 'Nog geen stappen data voor vandaag beschikbaar' or 'Data wordt gesynchroniseerd'. "
+    "Real case (mumc-3): 'Je hebt vandaag al 0 stappen gelopen' → User: 'Hoezo nul gekkie' (frustrated).",
+    
+    # 2. DATE/TIME/APPOINTMENT ERRORS (MEDIUM - Trust Impact)
+    "ALWAYS check memories for exact agreements (day, time, frequency). "
+    "CONFIRM: 'Volgens onze afspraak is het di/do/za om 10:00'. "
+    "Real case (mumc-32): Agent sent update on Monday, agreement was tue/thu/sat 10:00 - User: 'We hebben precies afgesproken' (disappointed).",
+    
+    # 3. ZLM SCORES - NEVER FAKE DATA (CRITICAL - Medical)
+    "MUST calculate using tool_calculate_zlm_scores. NEVER generate example/fake scores. "
+    "Process: tool_get_questionnaires_and_answers → tool_calculate_zlm_scores → tool_create_zlm_chart. "
+    "Real case: Agent created fake ZLM chart without calculation (hallucination detected by ACE).",
+    
+    # 4. TIME CONTEXT APPROPRIATENESS (MEDIUM - User Frustration)
+    "22:00-06:00 = Sleep hours (NO physical activity suggestions). User reacts: 'het is 23:30 uur, ik lig in bed' (irritated). "
+    "CORRECT for 22:00-06:00: 'Rust lekker uit', 'Hoe gaat het met je slaap?'. "
+    "Real case (hypothetical from feedback): 'Ga je nog wandelen?' at 23:30 - contextually inappropriate.",
+    
+    # 5. AMBIGUITY CLARIFICATION (MEDIUM - Communication)
+    "Ambiguous terms ('apparaat', 'ding', 'dit') have multiple meanings. ALWAYS ask clarifying question. "
+    "ASK: 'Bedoel je 1) Je puffer/inhalator of 2) Deze app op je telefoon?'. "
+    "Real case (mumc-10): User said 'moeilijk apparaat' → Agent thought app, user meant puffer - User: 'Dit snapte hij niet'.",
 ]
 
 # Quality check sampling rates
@@ -499,14 +539,14 @@ class ConversationalQualityEvaluator:
             return report
 
         except json.JSONDecodeError as e:
-            self.logger.warning(f"⚠️ ACE Quality: Invalid JSON from evaluator, using rule-based fallback - {e}")
-            return self._rule_based_evaluation(user_message, assistant_response, available_context)
+            self.logger.warning(f"⚠️ ACE Quality: Invalid JSON from evaluator, skipping - {e}")
+            return None
         except KeyError as e:
-            self.logger.warning(f"⚠️ ACE Quality: Missing expected field, using rule-based fallback - {e}")
-            return self._rule_based_evaluation(user_message, assistant_response, available_context)
+            self.logger.warning(f"⚠️ ACE Quality: Missing expected field, skipping - {e}")
+            return None
         except Exception as e:
-            self.logger.warning(f"⚠️ ACE Quality: Evaluation failed, using rule-based fallback - {e}")
-            return self._rule_based_evaluation(user_message, assistant_response, available_context)
+            self.logger.warning(f"⚠️ ACE Quality: Evaluation failed, skipping - {e}")
+            return None
 
     async def _call_evaluator_llm(self, eval_prompt: str) -> dict[str, Any]:
         """Call LLM for quality evaluation.
@@ -674,94 +714,6 @@ class ConversationalQualityEvaluator:
             return "<no additional context>"
         
         return "\n".join(f"- {key}: {value}" for key, value in context.items())
-
-    def _rule_based_evaluation(
-        self,
-        user_message: str,
-        assistant_response: str,
-        available_context: dict[str, Any],
-    ) -> QualityReport:
-        """Rule-based fallback evaluation when LLM fails.
-        
-        Uses simple pattern matching to detect critical issues.
-        
-        Args:
-            user_message: Latest user message
-            assistant_response: Assistant's response to evaluate
-            available_context: Contextual data
-            
-        Returns:
-            QualityReport with detected issues (may be empty)
-        """
-        issues: list[QualityIssue] = []
-        
-        # Check for missed critical health signals (simple keyword matching)
-        user_lower = user_message.lower()
-        health_keywords = {
-            "pufjes": "medication_change",
-            "medicijn": "medication_change",
-            "kortademig": "breathing_difficulty",
-            "hoest": "coughing",
-            "sputum": "sputum_change",
-            "vermoeid": "fatigue",
-            "pijn": "pain",
-            "niet kunnen": "activity_limitation",
-        }
-        
-        detected_signals = [
-            signal for keyword, signal in health_keywords.items() 
-            if keyword in user_lower
-        ]
-        
-        # If user mentions health signals but assistant doesn't acknowledge them
-        if detected_signals:
-            response_lower = assistant_response.lower()
-            # Check if ANY of the keywords are mentioned in response
-            acknowledged = any(keyword in response_lower for keyword in health_keywords.keys())
-            
-            if not acknowledged:
-                issues.append(QualityIssue(
-                    category="missed_critical_signal",
-                    severity="HIGH",
-                    description=f"User mentioned health signal ({', '.join(detected_signals)}) but assistant did not acknowledge",
-                    suggestion="Always acknowledge and follow up on health-related complaints",
-                    relevant_context={"detected_signals": detected_signals},
-                ))
-        
-        # Check for late evening activity suggestions
-        is_late_evening = available_context.get("is_late_evening", False)
-        if is_late_evening:
-            activity_keywords = ["wandelen", "lopen", "sporten", "bewegen", "activiteit"]
-            if any(keyword in assistant_response.lower() for keyword in activity_keywords):
-                issues.append(QualityIssue(
-                    category="inappropriate_response",
-                    severity="MEDIUM",
-                    description="Suggested physical activity during late evening hours",
-                    suggestion="Avoid suggesting activities late in the evening (22:00-06:00)",
-                    relevant_context={"hour": available_context.get("current_hour")},
-                ))
-        
-        # Determine overall quality
-        if any(issue.severity == "CRITICAL" for issue in issues):
-            overall_quality = "poor"
-        elif any(issue.severity == "HIGH" for issue in issues):
-            overall_quality = "acceptable"
-        elif any(issue.severity == "MEDIUM" for issue in issues):
-            overall_quality = "good"
-        else:
-            overall_quality = "excellent"
-        
-        self.logger.info(
-            f"🔧 ACE Quality (Rule-based fallback): {len(issues)} issue(s) detected, "
-            f"quality: {overall_quality}"
-        )
-        
-        return QualityReport(
-            overall_quality=overall_quality,
-            issues=issues,
-            positive_aspects=[],
-            analysis_reasoning="Rule-based evaluation (LLM fallback)",
-        )
 
 
 class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
