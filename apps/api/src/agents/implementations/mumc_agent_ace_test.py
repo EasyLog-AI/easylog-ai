@@ -728,10 +728,16 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
     
     IS_TEST_AGENT = True
     
+    # ========================================================================
+    # ACE Playbook Storage Configuration
+    # ========================================================================
     # Class-level lock for thread-safe playbook access (shared across all instances)
     _playbook_lock = asyncio.Lock()
     
     # Agent-level playbook storage path
+    # Location (container): /app/src/agents/implementations/data/mumc_ace_playbook.json
+    # This file is created when the first bullet is saved via _save_playbook()
+    # The file persists across container restarts (stored in container filesystem)
     _playbook_file = Path(__file__).parent / "data" / "mumc_ace_playbook.json"
 
     def on_init(self) -> None:
@@ -773,6 +779,7 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
         
         # Ensure data directory exists
         self._playbook_file.parent.mkdir(parents=True, exist_ok=True)
+        self.logger.info(f"📂 ACE Playbook location: {self._playbook_file.absolute()}")
 
     # ========================================================================
     # ACE v2.0 - Stream Interception for Quality Monitoring
@@ -3955,13 +3962,20 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
             self.logger.warning(f"Error formatting system prompt: {e}")
             llm_content = f"Role: {role_config.name}\nPrompt: {formatted_current_role_prompt}"
 
-        # ACE instrumentation instructions for the generator
-        llm_content += (
-            "\n\n### ACE Instrumentation\n"
-            "- Cite playbook bullets inline using the format [ACE:<bullet_id>] whenever you apply them.\n"
-            "- When calling tools, include an `ace_used_bullets` field listing the bullet IDs (comma-separated) that informed the call.\n"
-            "- End each assistant response with a line 'ACE_USED: <bullet_id1>, <bullet_id2>' when any bullets guided your decisions."
-        )
+        # ACE instrumentation instructions for the generator (only if playbook has bullets)
+        if playbook.bullets:
+            llm_content += (
+                "\n\n### ACE Instrumentation\n"
+                "- Cite playbook bullets inline using the format [ACE:<bullet_id>] whenever you apply them.\n"
+                "- When calling tools, include an `ace_used_bullets` field listing the bullet IDs (comma-separated) that informed the call.\n"
+                "- End each assistant response with a line 'ACE_USED: <bullet_id1>, <bullet_id2>' when any bullets guided your decisions."
+            )
+        else:
+            llm_content += (
+                "\n\n### ACE Learning Mode\n"
+                "- The ACE playbook is currently empty (system is learning from your interactions).\n"
+                "- Do NOT cite or reference any bullet IDs - the system will learn from errors automatically."
+            )
 
         self.logger.debug(llm_content)
 
