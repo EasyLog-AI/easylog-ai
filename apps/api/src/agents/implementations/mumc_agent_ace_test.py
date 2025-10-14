@@ -350,6 +350,13 @@ MUMC_PLAYBOOK_SECTIONS = {
 ACE_CITATION_REGEX = re.compile(r"\[ACE:(?P<bullet>[a-zA-Z0-9_-]+)\]")
 ACE_USED_LINE_REGEX = re.compile(r"ACE_USED:\s*(?P<ids>[a-zA-Z0-9_,\-\s]+)", re.IGNORECASE)
 
+# Tools that pause ACE learning during questionnaire handling
+ACE_PAUSED_TOOL_NAMES = {
+    "tool_ask_multiple_choice",
+    "tool_answer_questionaire_question",
+    "tool_get_questionaire_answer",
+}
+
 
 # ============================================================================
 # ACE v2.0 - Conversational Quality Monitoring
@@ -734,6 +741,8 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
         self._last_assistant_response: str | None = None
         self._reflection_buffer: list[dict[str, Any]] = []
         self._embedding_cache: dict[str, list[float]] = {}
+        self._ace_paused: bool = False
+        self._skip_quality_eval: bool = False
         
         # Initialize quality evaluator (ACE v2.0)
         self.quality_evaluator = ConversationalQualityEvaluator(
@@ -779,14 +788,28 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
                 buffered_text = content.text
                 self._record_message_bullet_ids(content.text)
             elif isinstance(content, ToolUseContent):
-                try:
-                    # Copy to avoid mutating original reference
-                    input_copy = dict(content.input or {})
-                    self._capture_tool_bullet_ids(input_copy)
-                except Exception as capture_error:
-                    self.logger.debug(f"ACE: Could not capture tool bullet IDs: {capture_error}")
+                if content.name in ACE_PAUSED_TOOL_NAMES:
+                    self._ace_paused = True
+                    self._skip_quality_eval = True
+                else:
+                    try:
+                        # Copy to avoid mutating original reference
+                        input_copy = dict(content.input or {})
+                        self._capture_tool_bullet_ids(input_copy)
+                    except Exception as capture_error:
+                        self.logger.debug(f"ACE: Could not capture tool bullet IDs: {capture_error}")
+                    else:
+                        self._ace_paused = False
+                        self._skip_quality_eval = False
+
+            try:
+                yield content, should_stop
+            finally:
+                if isinstance(content, ToolUseContent) and content.name in ACE_PAUSED_TOOL_NAMES:
+                    # Keep pause active until the next non-questionnaire tool call
+                    self._pending_tool_bullet_ids.clear()
+                    self._current_message_bullet_ids = []
             
-            yield content, should_stop
         
         # Post-response quality evaluation (non-blocking)
         if buffered_text and self.ace_config.enable_quality_monitoring:
@@ -810,13 +833,27 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
                 buffered_text = content.text
                 self._record_message_bullet_ids(content.text)
             elif isinstance(content, ToolUseContent):
-                try:
-                    arguments_copy = dict(content.input or {})
-                    self._capture_tool_bullet_ids(arguments_copy)
-                except Exception as capture_error:
-                    self.logger.debug(f"ACE: Could not capture tool bullet IDs (completion): {capture_error}")
+                if content.name in ACE_PAUSED_TOOL_NAMES:
+                    self._ace_paused = True
+                    self._skip_quality_eval = True
+                else:
+                    try:
+                        arguments_copy = dict(content.input or {})
+                        self._capture_tool_bullet_ids(arguments_copy)
+                    except Exception as capture_error:
+                        self.logger.debug(f"ACE: Could not capture tool bullet IDs (completion): {capture_error}")
+                    else:
+                        self._ace_paused = False
+                        self._skip_quality_eval = False
 
-            yield content, should_stop
+                try:
+                    yield content, should_stop
+                finally:
+                    if isinstance(content, ToolUseContent) and content.name in ACE_PAUSED_TOOL_NAMES:
+                        self._pending_tool_bullet_ids.clear()
+                        self._current_message_bullet_ids = []
+            else:
+                yield content, should_stop
 
         if buffered_text and self.ace_config.enable_quality_monitoring:
             try:
@@ -842,6 +879,10 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
         context = await self._build_quality_evaluation_context()
         
         # Run quality evaluation
+        if self._skip_quality_eval or self._ace_paused:
+            self._skip_quality_eval = False
+            return
+
         await self.ace_evaluate_response_quality(
             user_message=user_message,
             assistant_response=assistant_response,
@@ -1160,6 +1201,21 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
         self, name: str, tool_call_id: str, arguments: dict[str, Any], tools: list[Callable]
     ) -> tuple[ToolResultContent, bool]:
         """Override base method to automatically trigger ACE on tool errors and process violations."""
+
+        if name in ACE_PAUSED_TOOL_NAMES:
+            self._ace_paused = True
+            self._skip_quality_eval = True
+            self._pending_tool_bullet_ids.clear()
+            self._current_message_bullet_ids = []
+            try:
+                return await super()._handle_tool_call(name, tool_call_id, arguments, tools)
+            finally:
+                self._recent_tool_calls.append(name)
+                if len(self._recent_tool_calls) > self._max_tool_history:
+                    self._recent_tool_calls.pop(0)
+
+        self._ace_paused = False
+        self._skip_quality_eval = False
 
         # Capture bullet usage hints (and strip helper fields)
         pending_bullet_ids = self._capture_tool_bullet_ids(arguments)
