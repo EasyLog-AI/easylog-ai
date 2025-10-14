@@ -49,7 +49,12 @@ import toolLoadDocument from '@/app/_chats/tools/knowledge-base/toolLoadDocument
 import toolSearchKnowledgeBase from '@/app/_chats/tools/knowledge-base/toolSearchKnowledgeBase';
 import toolAnswerMultipleChoice from '@/app/_chats/tools/multiple-choice/toolAnswerMultipleChoice';
 import toolCreateMultipleChoice from '@/app/_chats/tools/multiple-choice/toolCreateMultipleChoice';
+import toolGetAuditSubmissions from '@/app/_chats/tools/ret-audits/toolGetAuditSubmissions';
+import toolGetAuditTrends from '@/app/_chats/tools/ret-audits/toolGetAuditTrends';
+import toolGetObservationsAnalysis from '@/app/_chats/tools/ret-audits/toolGetObservationsAnalysis';
+import toolGetVehicleRanking from '@/app/_chats/tools/ret-audits/toolGetVehicleRanking';
 import { ChatMessage } from '@/app/_chats/types';
+import getToolNamesFromCapabilities from '@/app/_chats/utils/getToolNamesFromCapabilities';
 import db from '@/database/client';
 import { chats } from '@/database/schema';
 import openrouter from '@/lib/ai-providers/openrouter';
@@ -188,54 +193,74 @@ export const POST = async (
 
   const stream = createUIMessageStream<ChatMessage>({
     execute: async ({ writer }) => {
+      const allTools = {
+        createBarChart: toolCreateBarChart(writer),
+        createLineChart: toolCreateLineChart(writer),
+        createPieChart: toolCreatePieChart(writer),
+        createStackedBarChart: toolCreateStackedBarChart(writer),
+        getDatasources: toolGetDataSources(user.id),
+        getPlanningProjects: toolGetPlanningProjects(user.id),
+        getPlanningProject: toolGetPlanningProject(user.id),
+        createPlanningProject: toolCreatePlanningProject(user.id),
+        updatePlanningProject: toolUpdatePlanningProject(user.id),
+        getPlanningPhases: toolGetPlanningPhases(user.id),
+        getPlanningPhase: toolGetPlanningPhase(user.id),
+        updatePlanningPhase: toolUpdatePlanningPhase(user.id),
+        createPlanningPhase: toolCreatePlanningPhase(user.id),
+        getResources: toolGetResources(user.id),
+        getProjectsOfResource: toolGetProjectsOfResource(user.id),
+        getResourceGroups: toolGetResourceGroups(user.id),
+        createMultipleAllocations: toolCreateMultipleAllocations(user.id),
+        updateMultipleAllocations: toolUpdateMultipleAllocations(user.id),
+        deleteAllocation: toolDeleteAllocation(user.id),
+        executeSql: toolExecuteSQL(writer),
+        searchKnowledgeBase: toolSearchKnowledgeBase(
+          {
+            agentId: chat.agentId
+          },
+          writer
+        ),
+        loadDocument: toolLoadDocument(),
+        clearChat: toolClearChat(chat.id, chat.agentId, user.id),
+        changeRole: toolChangeRole(chat.id, chat.agent.roles),
+        createMemory: toolCreateMemory(user.id),
+        deleteMemory: toolDeleteMemory(),
+        createMultipleChoice: toolCreateMultipleChoice(
+          {
+            chatId: chat.id
+          },
+          writer
+        ),
+        answerMultipleChoice: toolAnswerMultipleChoice({
+          chatId: chat.id
+        }),
+        getAuditSubmissions: toolGetAuditSubmissions(),
+        getAuditTrends: toolGetAuditTrends(),
+        getObservationsAnalysis: toolGetObservationsAnalysis(),
+        getVehicleRanking: toolGetVehicleRanking()
+      };
+
+      // Filter tools based on agent capabilities if specified
+      const allowedToolNames = getToolNamesFromCapabilities(
+        chat.agent.capabilities
+      );
+
+      const tools =
+        allowedToolNames.length > 0
+          ? Object.fromEntries(
+              Object.entries(allTools).filter(([name]) =>
+                allowedToolNames.includes(name)
+              )
+            )
+          : allTools; // Fallback: all tools if no capabilities specified
+
       const result = streamText({
         model: openrouter(model, {
           reasoning
         }),
         system: promptWithContext,
         messages: convertToModelMessages(validatedMessages),
-        tools: {
-          createBarChart: toolCreateBarChart(writer),
-          createLineChart: toolCreateLineChart(writer),
-          createPieChart: toolCreatePieChart(writer),
-          createStackedBarChart: toolCreateStackedBarChart(writer),
-          getDatasources: toolGetDataSources(user.id),
-          getPlanningProjects: toolGetPlanningProjects(user.id),
-          getPlanningProject: toolGetPlanningProject(user.id),
-          createPlanningProject: toolCreatePlanningProject(user.id),
-          updatePlanningProject: toolUpdatePlanningProject(user.id),
-          getPlanningPhases: toolGetPlanningPhases(user.id),
-          getPlanningPhase: toolGetPlanningPhase(user.id),
-          updatePlanningPhase: toolUpdatePlanningPhase(user.id),
-          createPlanningPhase: toolCreatePlanningPhase(user.id),
-          getResources: toolGetResources(user.id),
-          getProjectsOfResource: toolGetProjectsOfResource(user.id),
-          getResourceGroups: toolGetResourceGroups(user.id),
-          createMultipleAllocations: toolCreateMultipleAllocations(user.id),
-          updateMultipleAllocations: toolUpdateMultipleAllocations(user.id),
-          deleteAllocation: toolDeleteAllocation(user.id),
-          executeSql: toolExecuteSQL(writer),
-          searchKnowledgeBase: toolSearchKnowledgeBase(
-            {
-              agentId: chat.agentId
-            },
-            writer
-          ),
-          loadDocument: toolLoadDocument(),
-          clearChat: toolClearChat(chat.id, chat.agentId, user.id),
-          changeRole: toolChangeRole(chat.id, chat.agent.roles),
-          createMemory: toolCreateMemory(user.id),
-          deleteMemory: toolDeleteMemory(),
-          createMultipleChoice: toolCreateMultipleChoice(
-            {
-              chatId: chat.id
-            },
-            writer
-          ),
-          answerMultipleChoice: toolAnswerMultipleChoice({
-            chatId: chat.id
-          })
-        },
+        tools,
         stopWhen: [
           stepCountIs(20),
           hasToolCall('createMultipleChoice'),

@@ -159,6 +159,17 @@ export const documents = pgTable('documents', {
   ...timestamps
 });
 
+export type AgentCapabilities = {
+  charts?: boolean;
+  planning?: boolean;
+  sql?: boolean;
+  knowledgeBase?: boolean;
+  core?: boolean;
+  memories?: boolean;
+  multipleChoice?: boolean;
+  retAudits?: boolean;
+};
+
 export const agents = pgTable('agents', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
@@ -175,6 +186,19 @@ export const agents = pgTable('agents', {
   voiceChatVoice: voiceChatVoiceEnum('voice_chat_voice')
     .notNull()
     .default('marin'),
+  capabilities: jsonb('capabilities')
+    .notNull()
+    .default({
+      core: true,
+      charts: true,
+      planning: true,
+      sql: true,
+      knowledgeBase: true,
+      memories: true,
+      multipleChoice: true,
+      retAudits: true
+    })
+    .$type<AgentCapabilities>(),
   ...timestamps
 });
 
