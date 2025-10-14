@@ -2974,7 +2974,7 @@ IMPORTANT:
             )
 
         # Interaction tools
-        def tool_ask_multiple_choice(question: str, choices: list[dict[str, str]]) -> tuple[MultipleChoiceWidget, bool]:
+        def tool_ask_multiple_choice(question: str, choices: list[dict[str, str]], ace_used_bullets: Any | None = None) -> tuple[MultipleChoiceWidget, bool]:
             """Asks the user a multiple-choice question with distinct labels and values.
                 When using this tool, you must not repeat the same question or answers in text unless asked to do so by the user.
                 This widget already presents the question and choices to the user.
@@ -2991,6 +2991,8 @@ IMPORTANT:
             Raises:
                 ValueError: If a choice dictionary is missing 'label' or 'value'.
             """
+            _ = ace_used_bullets  # ACE instrumentation hint (unused during questionnaire)
+
             parsed_choices = []
             for choice_dict in choices:
                 if "label" not in choice_dict or "value" not in choice_dict:
