@@ -3971,11 +3971,8 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
                 "- End each assistant response with a line 'ACE_USED: <bullet_id1>, <bullet_id2>' when any bullets guided your decisions."
             )
         else:
-            llm_content += (
-                "\n\n### ACE Learning Mode\n"
-                "- The ACE playbook is currently empty (system is learning from your interactions).\n"
-                "- Do NOT cite or reference any bullet IDs - the system will learn from errors automatically."
-            )
+            # Empty playbook: Do NOT instruct about ACE at all to prevent hallucination
+            pass
 
         self.logger.debug(llm_content)
 
