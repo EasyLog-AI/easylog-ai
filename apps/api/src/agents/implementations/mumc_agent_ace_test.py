@@ -27,6 +27,7 @@ from prisma.types import health_data_pointsWhereInput, usersWhereInput
 from pydantic import BaseModel, Field
 
 from src.agents.base_agent import BaseAgent, SuperAgentConfig
+from src.agents.implementations.ace_prompts import ACEPrompts
 from src.agents.tools.base_tools import BaseTools
 from src.agents.tools.easylog_backend_tools import EasylogBackendTools
 from src.agents.tools.easylog_sql_tools import EasylogSqlTools
@@ -184,6 +185,18 @@ class ACEConfig(BaseModel):
         default="gpt-4o-mini",
         description="Model to use for LLM-based reflection",
     )
+    reflection_temperature: float = Field(
+        default=0.3,
+        ge=0.0,
+        le=2.0,
+        description="Temperature for reflection LLM (0.0-2.0, lower = more consistent)",
+    )
+    curation_temperature: float = Field(
+        default=0.2,
+        ge=0.0,
+        le=2.0,
+        description="Temperature for curation LLM (0.0-2.0, lower = more conservative)",
+    )
     embedding_model: str = Field(
         default="text-embedding-3-small",
         description="Embedding model for duplicate detection and similarity",
@@ -201,6 +214,12 @@ class ACEConfig(BaseModel):
     quality_model: str = Field(
         default="openai/gpt-4.1-mini",
         description="Model for quality evaluation (cheaper than main model)",
+    )
+    quality_temperature: float = Field(
+        default=0.2,
+        ge=0.0,
+        le=2.0,
+        description="Temperature for quality evaluation LLM (0.0-2.0, lower = more consistent)",
     )
     quality_check_frequency: Literal["always", "sample_10%", "sample_25%", "critical_only"] = Field(
         default="sample_25%",
@@ -480,14 +499,14 @@ class ConversationalQualityEvaluator:
             return report
 
         except json.JSONDecodeError as e:
-            self.logger.error(f"❌ ACE Quality: Invalid JSON from evaluator - {e}")
-            return None
+            self.logger.warning(f"⚠️ ACE Quality: Invalid JSON from evaluator, using rule-based fallback - {e}")
+            return self._rule_based_evaluation(user_message, assistant_response, available_context)
         except KeyError as e:
-            self.logger.error(f"❌ ACE Quality: Missing expected field - {e}")
-            return None
+            self.logger.warning(f"⚠️ ACE Quality: Missing expected field, using rule-based fallback - {e}")
+            return self._rule_based_evaluation(user_message, assistant_response, available_context)
         except Exception as e:
-            self.logger.error(f"❌ ACE Quality: Evaluation failed - {e}")
-            return None
+            self.logger.warning(f"⚠️ ACE Quality: Evaluation failed, using rule-based fallback - {e}")
+            return self._rule_based_evaluation(user_message, assistant_response, available_context)
 
     async def _call_evaluator_llm(self, eval_prompt: str) -> dict[str, Any]:
         """Call LLM for quality evaluation.
@@ -508,7 +527,7 @@ class ConversationalQualityEvaluator:
                 {"role": "user", "content": eval_prompt},
             ],
             response_format={"type": "json_object"},
-            temperature=0.2,  # Low temperature for consistency
+            temperature=self.config.quality_temperature,
         )
         
         return json.loads(response.choices[0].message.content)
@@ -580,43 +599,12 @@ class ConversationalQualityEvaluator:
         Returns:
             Formatted system prompt with evaluation criteria
         """
-        focus_categories = ", ".join(self.config.focus_categories)
-        health_signals = "\n".join(f"- {signal}" for signal in CRITICAL_HEALTH_SIGNALS)
-        verification_rules = "\n".join(f"- {rule}" for rule in FACTUAL_VERIFICATION_RULES)
-        
-        return f"""You are a healthcare conversation quality evaluator for a COPD coach AI.
-
-**Your Task:** Analyze the assistant's response and detect quality issues.
-
-**Focus Categories (Priority):** {focus_categories}
-
-**Critical Health Signals to NEVER Miss:**
-{health_signals}
-
-**Factual Verification Rules:**
-{verification_rules}
-
-**Response Format (JSON):**
-{{
-    "overall_quality": "excellent|good|acceptable|poor",
-    "issues": [
-        {{
-            "category": "missed_critical_signal|factual_error|context_violation|communication_breakdown|inappropriate_response",
-            "severity": "LOW|MEDIUM|HIGH|CRITICAL",
-            "description": "What went wrong (be specific)",
-            "suggestion": "How to fix it (max 150 chars, actionable)",
-            "relevant_context": {{"key": "value"}}
-        }}
-    ],
-    "positive_aspects": ["What was done well"],
-    "analysis_reasoning": "Your reasoning for this evaluation"
-}}
-
-**Evaluation Guidelines:**
-- Be STRICT on health signals (any missed critical signal is CRITICAL severity)
-- Be STRICT on factual errors (fabricated data is HIGH/CRITICAL)
-- Be LENIENT on minor communication style issues
-- Focus on patient safety and data accuracy above all else"""
+        return ACEPrompts.quality_evaluation_system_prompt(
+            focus_categories=self.config.focus_categories,
+            critical_health_signals=CRITICAL_HEALTH_SIGNALS,
+            factual_verification_rules=FACTUAL_VERIFICATION_RULES,
+            max_bullet_length=self.config.max_bullet_length,
+        )
 
     def _build_evaluation_prompt(
         self,
@@ -640,21 +628,13 @@ class ConversationalQualityEvaluator:
         context_str = self._format_available_context(available_context)
         focus_str = ", ".join(self.config.focus_categories)
 
-        return f"""**Conversation History (Last 5 messages):**
-{history_str}
-
-**Latest Exchange:**
-User: {user_message}
-Assistant: {assistant_response}
-
-**Available Context:**
-{context_str}
-
-**Your Task:**
-Evaluate the assistant's response for quality issues.
-Focus especially on: {focus_str}
-
-Respond in JSON format as specified in the system prompt."""
+        return ACEPrompts.quality_evaluation_user_prompt(
+            user_message=user_message,
+            assistant_response=assistant_response,
+            history_str=history_str,
+            context_str=context_str,
+            focus_str=focus_str,
+        )
 
     def _format_conversation_history(
         self, 
@@ -694,6 +674,94 @@ Respond in JSON format as specified in the system prompt."""
             return "<no additional context>"
         
         return "\n".join(f"- {key}: {value}" for key, value in context.items())
+
+    def _rule_based_evaluation(
+        self,
+        user_message: str,
+        assistant_response: str,
+        available_context: dict[str, Any],
+    ) -> QualityReport:
+        """Rule-based fallback evaluation when LLM fails.
+        
+        Uses simple pattern matching to detect critical issues.
+        
+        Args:
+            user_message: Latest user message
+            assistant_response: Assistant's response to evaluate
+            available_context: Contextual data
+            
+        Returns:
+            QualityReport with detected issues (may be empty)
+        """
+        issues: list[QualityIssue] = []
+        
+        # Check for missed critical health signals (simple keyword matching)
+        user_lower = user_message.lower()
+        health_keywords = {
+            "pufjes": "medication_change",
+            "medicijn": "medication_change",
+            "kortademig": "breathing_difficulty",
+            "hoest": "coughing",
+            "sputum": "sputum_change",
+            "vermoeid": "fatigue",
+            "pijn": "pain",
+            "niet kunnen": "activity_limitation",
+        }
+        
+        detected_signals = [
+            signal for keyword, signal in health_keywords.items() 
+            if keyword in user_lower
+        ]
+        
+        # If user mentions health signals but assistant doesn't acknowledge them
+        if detected_signals:
+            response_lower = assistant_response.lower()
+            # Check if ANY of the keywords are mentioned in response
+            acknowledged = any(keyword in response_lower for keyword in health_keywords.keys())
+            
+            if not acknowledged:
+                issues.append(QualityIssue(
+                    category="missed_critical_signal",
+                    severity="HIGH",
+                    description=f"User mentioned health signal ({', '.join(detected_signals)}) but assistant did not acknowledge",
+                    suggestion="Always acknowledge and follow up on health-related complaints",
+                    relevant_context={"detected_signals": detected_signals},
+                ))
+        
+        # Check for late evening activity suggestions
+        is_late_evening = available_context.get("is_late_evening", False)
+        if is_late_evening:
+            activity_keywords = ["wandelen", "lopen", "sporten", "bewegen", "activiteit"]
+            if any(keyword in assistant_response.lower() for keyword in activity_keywords):
+                issues.append(QualityIssue(
+                    category="inappropriate_response",
+                    severity="MEDIUM",
+                    description="Suggested physical activity during late evening hours",
+                    suggestion="Avoid suggesting activities late in the evening (22:00-06:00)",
+                    relevant_context={"hour": available_context.get("current_hour")},
+                ))
+        
+        # Determine overall quality
+        if any(issue.severity == "CRITICAL" for issue in issues):
+            overall_quality = "poor"
+        elif any(issue.severity == "HIGH" for issue in issues):
+            overall_quality = "acceptable"
+        elif any(issue.severity == "MEDIUM" for issue in issues):
+            overall_quality = "good"
+        else:
+            overall_quality = "excellent"
+        
+        self.logger.info(
+            f"🔧 ACE Quality (Rule-based fallback): {len(issues)} issue(s) detected, "
+            f"quality: {overall_quality}"
+        )
+        
+        return QualityReport(
+            overall_quality=overall_quality,
+            issues=issues,
+            positive_aspects=[],
+            analysis_reasoning="Rule-based evaluation (LLM fallback)",
+        )
 
 
 class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
@@ -1643,57 +1711,26 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
         
         error_context = f"ERROR: {error}" if error else "SUCCESS"
         
-        # Prompt LLM to analyze execution and tag bullets
-        reflection_prompt = f"""Analyze this agent tool execution and evaluate the playbook bullets.
-
-## EXECUTION DETAILS:
-Tool: {tool_name}
-Arguments: {json.dumps(tool_args, indent=2)}
-Result: {error_context}
-
-## AVAILABLE PLAYBOOK BULLETS:
-{playbook_bullets if playbook_bullets else "(No bullets yet - this is the first execution)"}
-
-## YOUR ANALYSIS TASK:
-1. **Bullet Tagging**: Which bullets (by ID) were helpful or harmful?
-   - HELPFUL: Bullet advice was followed and helped prevent errors
-   - HARMFUL: Bullet advice led to or didn't prevent this error
-   - Only tag bullets that are directly relevant to this execution
-
-2. **Error Analysis** (if error occurred):
-   - What went wrong?
-   - Why did it happen?
-   
-3. **Key Insight**: Generate ONE actionable strategy (max 150 chars) to add to playbook
-   - Must be specific and prevent future errors
-   - Must be concise and clear
-   - If this error type is new, explain how to prevent it
-
-## RESPONSE FORMAT (JSON):
-{{
-  "helpful_bullets": ["mumc-001", "mumc-003"],  // Only IDs that actually helped
-  "harmful_bullets": ["mumc-002"],              // Only IDs that were harmful
-  "error_identification": "Specific error description",
-  "root_cause": "Why this happened",
-  "key_insight": "Actionable strategy under 150 chars"
-}}
-
-IMPORTANT:
-- Only reference bullet IDs that exist in the playbook above
-- Be conservative with tagging - only tag clearly relevant bullets
-- Key insight must be under 150 characters
-- Focus on actionable, specific strategies"""
+        # Build prompts using centralized ACEPrompts
+        system_prompt = ACEPrompts.reflection_system_prompt()
+        user_prompt = ACEPrompts.reflection_user_prompt(
+            tool_name=tool_name,
+            tool_args=tool_args,
+            error_context=error_context,
+            playbook_bullets=playbook_bullets,
+            max_bullet_length=self.ace_config.max_bullet_length,
+        )
 
         try:
             # Call LLM for analysis (via OpenRouter self.client)
             response = await self.client.chat.completions.create(
                 model=self.ace_config.reflection_model,
                 messages=[
-                    {"role": "system", "content": "You are an expert at analyzing agent execution and creating actionable strategies. Be concise and specific."},
-                    {"role": "user", "content": reflection_prompt}
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
                 ],
                 response_format={"type": "json_object"},
-                temperature=0.3,  # Lower temperature for consistency
+                temperature=self.ace_config.reflection_temperature,
             )
             
             reflection_json = response.choices[0].message.content or "{}"
@@ -1815,53 +1852,27 @@ IMPORTANT:
             for section, desc in MUMC_PLAYBOOK_SECTIONS.items()
         ])
         
-        curation_prompt = f"""Decide how to update the playbook based on this new insight.
-
-## NEW INSIGHT FROM REFLECTION:
-"{key_insight}"
-
-Context: Tool '{tool_name}' execution analysis
-
-## CURRENT PLAYBOOK ({len(playbook.bullets)} bullets):
-{playbook_bullets if playbook_bullets else "(Empty playbook)"}
-
-## AVAILABLE SECTIONS:
-{sections_desc}
-
-## CURATION DECISION:
-Analyze if this insight should be added to the playbook. Consider:
-
-1. **Duplicate Check**: Is this insight already captured (similar meaning)?
-2. **Value Assessment**: Does this add unique, actionable value?
-3. **Section Assignment**: Which section fits best?
-4. **Merge Opportunity**: Should it replace or merge with existing bullet?
-
-## RESPONSE FORMAT (JSON):
-{{
-  "action": "ADD" | "SKIP" | "MERGE",
-  "reasoning": "Brief explanation of decision",
-  "section": "section_name",  // if ADD or MERGE
-  "content": "Final bullet content (max 150 chars)",  // if ADD
-  "merge_with_id": "mumc-001"  // if MERGE - which bullet to replace
-}}
-
-IMPORTANT:
-- SKIP if duplicate or low value
-- ADD if genuinely new and useful
-- MERGE if it improves an existing bullet
-- Keep content under 150 characters
-- Be conservative - quality over quantity"""
+        # Build prompts using centralized ACEPrompts
+        system_prompt = ACEPrompts.curation_system_prompt()
+        user_prompt = ACEPrompts.curation_user_prompt(
+            key_insight=key_insight,
+            tool_name=tool_name,
+            playbook_bullets=playbook_bullets,
+            sections_desc=sections_desc,
+            max_bullet_length=self.ace_config.max_bullet_length,
+            num_bullets=len(playbook.bullets),
+        )
 
         try:
             # Call LLM for curation decision (via OpenRouter self.client)
             response = await self.client.chat.completions.create(
                 model=self.ace_config.reflection_model,
                 messages=[
-                    {"role": "system", "content": "You are an expert at curating knowledge bases. Be conservative and maintain high quality standards."},
-                    {"role": "user", "content": curation_prompt}
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
                 ],
                 response_format={"type": "json_object"},
-                temperature=0.2,  # Very low temperature for consistent decisions
+                temperature=self.ace_config.curation_temperature,
             )
             
             decision_json = response.choices[0].message.content or "{}"
