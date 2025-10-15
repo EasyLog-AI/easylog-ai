@@ -8,12 +8,14 @@ export const getVehicleRankingConfig = {
     auditType: z
       .enum(['IKZ', 'PQI', 'R&M'])
       .nullable()
+      .default(null)
       .describe('Filter by audit type'),
     modality: z
       .enum(['Metro', 'Bus', 'Tram'])
       .nullable()
+      .default(null)
       .describe('Filter by transport modality'),
-    year: z.number().nullable().describe('Filter by specific year'),
+    year: z.number().nullable().default(null).describe('Filter by specific year'),
     limit: z
       .number()
       .nullable()
@@ -30,19 +32,23 @@ export const getObservationsAnalysisConfig = {
     auditType: z
       .enum(['IKZ', 'PQI', 'R&M'])
       .nullable()
+      .default(null)
       .describe('Filter by audit type'),
     modality: z
       .enum(['Metro', 'Bus', 'Tram'])
       .nullable()
+      .default(null)
       .describe('Filter by transport modality'),
     vehicleNumber: z
       .string()
       .nullable()
+      .default(null)
       .describe('Filter by specific vehicle/material number'),
-    year: z.number().nullable().describe('Filter by specific year'),
+    year: z.number().nullable().default(null).describe('Filter by specific year'),
     minScore: z
       .number()
       .nullable()
+      .default(null)
       .describe('Minimum score to include (e.g., 5 for non-trivial issues)'),
     limit: z
       .number()
@@ -60,16 +66,19 @@ export const getAuditTrendsConfig = {
     auditType: z
       .enum(['IKZ', 'PQI', 'R&M'])
       .nullable()
+      .default(null)
       .describe('Filter by audit type'),
     modality: z
       .enum(['Metro', 'Bus', 'Tram'])
       .nullable()
+      .default(null)
       .describe('Filter by transport modality'),
     vehicleNumber: z
       .string()
       .nullable()
+      .default(null)
       .describe('Filter by specific vehicle/material number'),
-    year: z.number().nullable().describe('Filter by specific year'),
+    year: z.number().nullable().default(null).describe('Filter by specific year'),
     groupBy: z
       .enum(['month', 'week'])
       .nullable()
@@ -86,19 +95,23 @@ export const getAuditSubmissionsConfig = {
     auditType: z
       .enum(['IKZ', 'PQI', 'R&M'])
       .nullable()
+      .default(null)
       .describe('Filter by audit type'),
     modality: z
       .enum(['Metro', 'Bus', 'Tram'])
       .nullable()
+      .default(null)
       .describe('Filter by transport modality'),
     vehicleNumber: z
       .string()
       .nullable()
+      .default(null)
       .describe('Filter by specific vehicle/material number'),
-    year: z.number().nullable().describe('Filter by specific year'),
+    year: z.number().nullable().default(null).describe('Filter by specific year'),
     hasSafetyRisks: z
       .boolean()
       .nullable()
+      .default(null)
       .describe('Only show audits with safety risks (20pt observations)'),
     limit: z
       .number()
