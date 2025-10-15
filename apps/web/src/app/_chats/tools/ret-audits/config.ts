@@ -43,7 +43,12 @@ export const getObservationsAnalysisConfig = {
       .string()
       .nullable()
       .default(null)
-      .describe('Filter by specific vehicle/material number'),
+      .describe('Filter by vehicle number (e.g., "5633" - matches audit_number prefix)'),
+    materialType: z
+      .string()
+      .nullable()
+      .default(null)
+      .describe('Filter by material type (e.g., "RSG3", "MG2/1")'),
     year: z.number().nullable().default(null).describe('Filter by specific year'),
     minScore: z
       .number()
@@ -77,7 +82,12 @@ export const getAuditTrendsConfig = {
       .string()
       .nullable()
       .default(null)
-      .describe('Filter by specific vehicle/material number'),
+      .describe('Filter by vehicle number (e.g., "5633" - matches audit_number prefix)'),
+    materialType: z
+      .string()
+      .nullable()
+      .default(null)
+      .describe('Filter by material type (e.g., "RSG3", "MG2/1")'),
     year: z.number().nullable().default(null).describe('Filter by specific year'),
     groupBy: z
       .enum(['month', 'week'])
@@ -106,7 +116,12 @@ export const getAuditSubmissionsConfig = {
       .string()
       .nullable()
       .default(null)
-      .describe('Filter by specific vehicle/material number'),
+      .describe('Filter by vehicle number (e.g., "5633" - matches audit_number prefix)'),
+    materialType: z
+      .string()
+      .nullable()
+      .default(null)
+      .describe('Filter by material type (e.g., "RSG3", "MG2/1")'),
     year: z.number().nullable().default(null).describe('Filter by specific year'),
     hasSafetyRisks: z
       .boolean()

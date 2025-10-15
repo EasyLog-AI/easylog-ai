@@ -51,7 +51,13 @@ const toolGetAuditSubmissions = () => {
 
         if (params.vehicleNumber) {
           conditions.push(
-            sql`JSON_UNQUOTE(JSON_EXTRACT(s.data, '$.typematerieel')) = ${params.vehicleNumber}`
+            sql`JSON_UNQUOTE(JSON_EXTRACT(s.data, '$.auditnummer')) LIKE ${`${params.vehicleNumber}%`}`
+          );
+        }
+
+        if (params.materialType) {
+          conditions.push(
+            sql`JSON_UNQUOTE(JSON_EXTRACT(s.data, '$.typematerieel')) = ${params.materialType}`
           );
         }
 
