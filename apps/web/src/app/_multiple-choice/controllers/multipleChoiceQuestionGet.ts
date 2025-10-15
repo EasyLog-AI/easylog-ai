@@ -1,3 +1,5 @@
+import multipleChoiceSchema from '@/app/_chats/schemas/multipleChoiceSchema';
+
 import multipleChoiceQuestionMiddleware from '../middleware/multipleChoiceQuestionMiddleware';
 
 const multipleChoiceQuestionGet = multipleChoiceQuestionMiddleware
@@ -9,6 +11,7 @@ const multipleChoiceQuestionGet = multipleChoiceQuestionMiddleware
       summary: 'Get a multiple choice question'
     }
   })
+  .output(multipleChoiceSchema)
   .query(async ({ ctx }) => {
     return ctx.multipleChoiceQuestion;
   });

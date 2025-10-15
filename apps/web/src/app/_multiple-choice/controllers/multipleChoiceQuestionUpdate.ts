@@ -2,7 +2,9 @@ import { TRPCError } from '@trpc/server';
 import { eq } from 'drizzle-orm';
 import z from 'zod';
 
-import { MultipleChoiceSchema } from '@/app/_chats/schemas/multipleChoiceSchema';
+import multipleChoiceSchema, {
+  MultipleChoiceSchema
+} from '@/app/_chats/schemas/multipleChoiceSchema';
 import db from '@/database/client';
 import { chats, multipleChoiceQuestions } from '@/database/schema';
 
@@ -22,6 +24,7 @@ const multipleChoiceQuestionUpdate = multipleChoiceQuestionMiddleware
       value: z.string()
     })
   )
+  .output(multipleChoiceSchema)
   .mutation(async ({ ctx, input }) => {
     if (!ctx.multipleChoiceQuestion.options.includes(input.value)) {
       throw new TRPCError({
