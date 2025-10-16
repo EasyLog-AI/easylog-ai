@@ -6,7 +6,7 @@ import toolGetObservationsAnalysis from '@/app/_chats/tools/ret-audits/toolGetOb
 import toolGetVehicleRanking from '@/app/_chats/tools/ret-audits/toolGetVehicleRanking';
 import getToolNamesFromCapabilities from '@/app/_chats/utils/getToolNamesFromCapabilities';
 import db from '@/database/client';
-import openrouter from '@/lib/ai-providers/openrouter';
+import createModel from '@/lib/ai-providers/create-model';
 
 const testAgentPrompt = async (slug: string, userMessage: string) => {
   console.log('🔍 Loading agent:', slug);
@@ -55,9 +55,28 @@ const testAgentPrompt = async (slug: string, userMessage: string) => {
         : Object.keys(allTools)
     );
 
+    console.log('🤖 Testing provider:', agent.defaultProvider);
+    console.log('🧠 Model:', agent.defaultModel);
+    console.log('💭 Reasoning enabled:', agent.defaultReasoning);
+    console.log('📦 Cache control enabled:', agent.defaultCacheControl);
+
     const result = await generateText({
       stopWhen: stepCountIs(5),
-      model: openrouter('anthropic/claude-sonnet-4.5'),
+      ...createModel(agent.defaultProvider, agent.defaultModel, {
+        reasoning: {
+          enabled: agent.defaultReasoning,
+          effort: agent.defaultReasoningEffort
+        },
+        cacheControl: {
+          enabled: agent.defaultCacheControl
+        },
+        contextManagement: {
+          enabled: true // Test context management
+        },
+        transforms: {
+          enabled: true // Test transforms
+        }
+      }),
       messages: [
         {
           role: 'system',
