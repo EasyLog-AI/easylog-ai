@@ -4,13 +4,8 @@ import serverConfig from '@/server.config';
 
 const createAmazonBedrockProvider = () => {
   return createAmazonBedrock({
-    bedrockOptions: {
-      region: serverConfig.awsRegion,
-      credentials: {
-        accessKeyId: serverConfig.awsAccessKeyId ?? '',
-        secretAccessKey: serverConfig.awsSecretAccessKey ?? ''
-      }
-    }
+    region: serverConfig.awsRegion,
+    apiKey: serverConfig.awsAPIKey
   });
 };
 
