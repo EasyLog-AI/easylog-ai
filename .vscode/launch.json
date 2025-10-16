@@ -7,10 +7,7 @@
       "request": "launch",
       "module": "uvicorn",
       "cwd": "${workspaceFolder}/apps/api",
-      "args": [
-        "src.main:app",
-        "--reload"
-      ],
+      "args": ["src.main:app", "--reload"],
       "jinja": true
     },
     {
@@ -31,10 +28,7 @@
   "compounds": [
     {
       "name": "Next.js + Trigger.dev",
-      "configurations": [
-        "Next.js: debug server-side",
-        "Trigger.dev: debug"
-      ]
+      "configurations": ["Next.js: debug server-side", "Trigger.dev: debug"]
     }
   ]
 }
