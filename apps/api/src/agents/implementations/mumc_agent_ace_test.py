@@ -203,8 +203,8 @@ class ACEConfig(BaseModel):
         description="Temperature for curation LLM (0.0-2.0, lower = more conservative)",
     )
     embedding_model: str = Field(
-        default="text-embedding-3-small",
-        description="Embedding model for duplicate detection and similarity",
+        default="",  # Disabled - OpenRouter embedding format incompatible
+        description="Embedding model for duplicate detection and similarity (disabled for now)",
     )
     embedding_similarity_threshold: float = Field(
         default=0.88,
