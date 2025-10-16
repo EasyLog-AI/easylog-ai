@@ -46,6 +46,14 @@ export const reasoningEffortEnum = pgEnum('reasoning_effort_enum', [
   'low'
 ]);
 
+export const aiProviderEnum = pgEnum('ai_provider_enum', [
+  'openrouter',
+  'anthropic',
+  'amazon-bedrock'
+]);
+
+export type AIProvider = (typeof aiProviderEnum.enumValues)[number];
+
 export const voiceChatVoiceEnum = pgEnum('voice_chat_voice_enum', [
   'alloy',
   'ash',
@@ -176,10 +184,16 @@ export const agents = pgTable('agents', {
   slug: text('slug').notNull().unique(),
   prompt: text('prompt').notNull().default('You are a helpful assistant.'),
   defaultModel: text('default_model').notNull().default('gpt-5'),
+  defaultProvider: aiProviderEnum('default_provider')
+    .notNull()
+    .default('openrouter'),
   defaultReasoning: boolean('default_reasoning').notNull().default(false),
   defaultReasoningEffort: reasoningEffortEnum(
     'default_reasoning_effort'
   ).notNull(),
+  defaultCacheControl: boolean('default_cache_control')
+    .notNull()
+    .default(false),
   autoStartMessage: text('auto_start_message').default('[hello]'),
   voiceChatEnabled: boolean('voice_chat_enabled').notNull().default(false),
   voiceChatAutoMute: boolean('voice_chat_auto_mute').notNull().default(false),
@@ -214,10 +228,12 @@ export const agentRoles = pgTable('agent_roles', {
     .notNull()
     .default('You are a helpful assistant.'),
   model: text('model').notNull().default('gpt-5'),
+  provider: aiProviderEnum('provider').notNull().default('openrouter'),
   reasoning: boolean('reasoning').notNull().default(false),
   reasoningEffort: reasoningEffortEnum('reasoning_effort')
     .notNull()
     .default('medium'),
+  cacheControl: boolean('cache_control').notNull().default(false),
   ...timestamps
 });
 
@@ -263,10 +279,12 @@ export const superAgents = pgTable('super_agents', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
   model: text('model').notNull().default('gpt-5'),
+  provider: aiProviderEnum('provider').notNull().default('openrouter'),
   reasoning: boolean('reasoning').notNull().default(false),
   reasoningEffort: reasoningEffortEnum('reasoning_effort')
     .notNull()
     .default('medium'),
+  cacheControl: boolean('cache_control').notNull().default(false),
   agentId: uuid('agent_id')
     .references(() => agents.id, { onDelete: 'cascade' })
     .notNull(),

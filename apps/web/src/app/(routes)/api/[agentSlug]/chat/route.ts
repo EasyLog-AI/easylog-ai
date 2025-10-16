@@ -57,7 +57,7 @@ import { ChatMessage } from '@/app/_chats/types';
 import getToolNamesFromCapabilities from '@/app/_chats/utils/getToolNamesFromCapabilities';
 import db from '@/database/client';
 import { chats } from '@/database/schema';
-import openrouter from '@/lib/ai-providers/openrouter';
+import createModel from '@/lib/ai-providers/create-model';
 import isUUID from '@/utils/is-uuid';
 
 export const maxDuration = 800;
@@ -185,10 +185,15 @@ export const POST = async (
     .replaceAll('{{now}}', new Date().toISOString());
 
   const model = activeRole?.model ?? chat.agent.defaultModel;
+  const provider = activeRole?.provider ?? chat.agent.defaultProvider;
 
   const reasoning = {
     enabled: activeRole?.reasoning ?? chat.agent.defaultReasoning,
     effort: activeRole?.reasoningEffort ?? chat.agent.defaultReasoningEffort
+  };
+
+  const cacheControl = {
+    enabled: activeRole?.cacheControl ?? chat.agent.defaultCacheControl
   };
 
   const stream = createUIMessageStream<ChatMessage>({
@@ -255,8 +260,9 @@ export const POST = async (
           : allTools; // Fallback: all tools if no capabilities specified
 
       const result = streamText({
-        model: openrouter(model, {
-          reasoning
+        ...createModel(provider, model, {
+          reasoning,
+          cacheControl
         }),
         system: promptWithContext,
         messages: convertToModelMessages(validatedMessages),

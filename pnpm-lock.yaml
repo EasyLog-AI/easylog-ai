@@ -41,6 +41,12 @@ importers:
 
   apps/web:
     dependencies:
+      '@ai-sdk/amazon-bedrock':
+        specifier: ^3.0.41
+        version: 3.0.41(zod@3.25.64)
+      '@ai-sdk/anthropic':
+        specifier: ^2.0.31
+        version: 2.0.31(zod@3.25.64)
       '@ai-sdk/openai':
         specifier: ^2.0.46
         version: 2.0.46(zod@3.25.64)
@@ -396,6 +402,18 @@ importers:
 
 packages:
 
+  '@ai-sdk/amazon-bedrock@3.0.41':
+    resolution: {integrity: sha512-rdu64hProGyNy87cFNgRddi+reOYAErhh8SzWu/ou6lu0ikwGIGvYKpHXyANQWsMiccbfl1FpMQSbiA8kS7XUw==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
+
+  '@ai-sdk/anthropic@2.0.31':
+    resolution: {integrity: sha512-k/5JX5ktl8cDURYowwtahuRlKJ/Z+hsAeZmKFoxyb/SRLthdbW01Pqs6eIgPB8PH/c1B6uhFcW1jvld6zCzj8g==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
+
   '@ai-sdk/gateway@1.0.35':
     resolution: {integrity: sha512-cdsXbeRRMi6QxbZscin69Asx2fi0d2TmmPngcPFUMpZbchGEBiJYVNvIfiALKFKXEq0l/w0xGNV3E13vroaleA==}
     engines: {node: '>=18'}
@@ -410,6 +428,12 @@ packages:
 
   '@ai-sdk/provider-utils@3.0.11':
     resolution: {integrity: sha512-4hgHj89VqyOHzGaV85TkcgvO8WjecVF35TOUVg+C56vnzpWSgdIZu/ZWZNdZ6BTrv8y0N1toBWW7XcWiRRicLg==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
+
+  '@ai-sdk/provider-utils@3.0.12':
+    resolution: {integrity: sha512-ZtbdvYxdMoria+2SlNarEk6Hlgyf+zzcznlD55EAl+7VZvJaSg2sqPvwArY7L6TfDEDJsnCq0fdhBSkYo0Xqdg==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
@@ -3863,6 +3887,9 @@ packages:
   aws-ssl-profiles@1.1.2:
     resolution: {integrity: sha512-NZKeq9AfyQvEeNlN0zSYAaWrmBffJh3IELMZfRpJVWgrpEbtEpnjvzqBPf+mxoI287JohRDoa+/nsfqqiZmF6g==}
     engines: {node: '>= 6.0.0'}
+
+  aws4fetch@1.0.20:
+    resolution: {integrity: sha512-/djoAN709iY65ETD6LKCtyyEI04XIBP5xVvfmNxsEP0uJB5tyaGBztSryRr4HqMStr9R06PisQE7m9zDTXKu6g==}
 
   axe-core@4.10.2:
     resolution: {integrity: sha512-RE3mdQ7P3FRSe7eqCWoeQ/Z9QXrtniSjp1wUjt5nRC3WIpz5rSCve6o3fsZ2aCpJtrZjSZgjwXAoTO5k4tEI0w==}
@@ -8325,6 +8352,22 @@ packages:
 
 snapshots:
 
+  '@ai-sdk/amazon-bedrock@3.0.41(zod@3.25.64)':
+    dependencies:
+      '@ai-sdk/anthropic': 2.0.31(zod@3.25.64)
+      '@ai-sdk/provider': 2.0.0
+      '@ai-sdk/provider-utils': 3.0.12(zod@3.25.64)
+      '@smithy/eventstream-codec': 4.0.4
+      '@smithy/util-utf8': 4.0.0
+      aws4fetch: 1.0.20
+      zod: 3.25.64
+
+  '@ai-sdk/anthropic@2.0.31(zod@3.25.64)':
+    dependencies:
+      '@ai-sdk/provider': 2.0.0
+      '@ai-sdk/provider-utils': 3.0.12(zod@3.25.64)
+      zod: 3.25.64
+
   '@ai-sdk/gateway@1.0.35(zod@3.25.64)':
     dependencies:
       '@ai-sdk/provider': 2.0.0
@@ -8339,6 +8382,13 @@ snapshots:
       zod: 3.25.64
 
   '@ai-sdk/provider-utils@3.0.11(zod@3.25.64)':
+    dependencies:
+      '@ai-sdk/provider': 2.0.0
+      '@standard-schema/spec': 1.0.0
+      eventsource-parser: 3.0.6
+      zod: 3.25.64
+
+  '@ai-sdk/provider-utils@3.0.12(zod@3.25.64)':
     dependencies:
       '@ai-sdk/provider': 2.0.0
       '@standard-schema/spec': 1.0.0
@@ -12487,6 +12537,8 @@ snapshots:
       possible-typed-array-names: 1.0.0
 
   aws-ssl-profiles@1.1.2: {}
+
+  aws4fetch@1.0.20: {}
 
   axe-core@4.10.2: {}
 
