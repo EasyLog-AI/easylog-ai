@@ -13,7 +13,7 @@ const toolGetPlanningProjects = (userId: string) => {
       const client = await getEasylogClient(userId);
 
       const [projects, error] = await tryCatch(
-        client.planning.v2DatasourcesProjectsGet({
+        client.planning.listProjects({
           startDate: startDate ? new Date(startDate) : undefined,
           endDate: endDate ? new Date(endDate) : undefined
         })

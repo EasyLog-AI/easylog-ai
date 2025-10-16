@@ -176,6 +176,8 @@ export type AgentCapabilities = {
   memories?: boolean;
   multipleChoice?: boolean;
   retAudits?: boolean;
+  followUps?: boolean;
+  submissions?: boolean;
 };
 
 export const agents = pgTable('agents', {

@@ -1,10 +1,7 @@
 import * as Sentry from '@sentry/nextjs';
 import { tool } from 'ai';
 
-import {
-  AdditionalAllocationData,
-  DatasourceAllocationMultipleUpdateBody
-} from '@/lib/easylog/generated-client/models';
+import type { EntityAllocationUpdateBulkPayloadAllocationsInner } from '@/lib/easylog/generated-client/models';
 import tryCatch from '@/utils/try-catch';
 
 import { updateMultipleAllocationsConfig } from './config';
@@ -16,28 +13,28 @@ const toolUpdateMultipleAllocations = (userId: string) => {
     execute: async ({ allocations }) => {
       const client = await getEasylogClient(userId);
 
-      const datasourceAllocationMultipleUpdateBody: DatasourceAllocationMultipleUpdateBody =
-        {
-          allocations: allocations.map((allocation) => ({
-            id: allocation.id,
-            start: new Date(allocation.start),
-            end: new Date(allocation.end),
-            ...(allocation.type !== undefined && { type: allocation.type }),
-            ...(allocation.comment !== undefined && {
-              comment: allocation.comment
-            }),
-            ...(allocation.parentId !== undefined && {
-              parentId: allocation.parentId
-            }),
-            ...(allocation.fields !== undefined && {
-              fields: allocation.fields as AdditionalAllocationData[]
-            })
-          }))
-        };
+      const allocationUpdates: EntityAllocationUpdateBulkPayloadAllocationsInner[] =
+        allocations.map((allocation) => ({
+          id: allocation.id,
+          start: new Date(allocation.start),
+          end: new Date(allocation.end),
+          ...(allocation.type !== undefined && { type: allocation.type }),
+          ...(allocation.comment !== undefined && {
+            comment: allocation.comment
+          }),
+          ...(allocation.parentId !== undefined && {
+            parentId: allocation.parentId
+          }),
+          ...(allocation.fields !== undefined && {
+            fields: allocation.fields
+          })
+        }));
 
       const [updatedAllocations, error] = await tryCatch(
-        client.allocations.v2DatasourcesAllocationsMultiplePut({
-          datasourceAllocationMultipleUpdateBody
+        client.allocations.updateMultipleAllocations({
+          entityAllocationUpdateBulkPayload: {
+            allocations: allocationUpdates
+          }
         })
       );
 

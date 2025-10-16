@@ -13,7 +13,7 @@ paths:
       tags:
         - Allocations
       summary: 'Show allocation'
-      operationId: 80f35f8b217b7cd8bf36ad223d6cbdc3
+      operationId: showAllocation
       parameters:
         -
           name: allocation
@@ -33,7 +33,7 @@ paths:
       tags:
         - Allocations
       summary: 'Delete allocation'
-      operationId: 48b533fbc9852c80d9329e7068cd9437
+      operationId: deleteAllocation
       parameters:
         -
           name: allocation
@@ -51,7 +51,7 @@ paths:
       tags:
         - Allocations
       summary: 'Update allocation (deprecated)'
-      operationId: 807f23f9ac132c6dbe9f0933971ba71a
+      operationId: updateAllocation
       parameters:
         -
           name: allocation
@@ -80,7 +80,7 @@ paths:
       tags:
         - Allocations
       summary: 'Show multiple allocations'
-      operationId: c9ff5e98685c16a4f47a5a83ce1c8ff6
+      operationId: showMultipleAllocations
       parameters:
         -
           name: ids
@@ -102,13 +102,13 @@ paths:
       tags:
         - Allocations
       summary: 'Update multiple allocations'
-      operationId: 5eb8813b275e790b00fa7c1b647ece45
+      operationId: updateMultipleAllocations
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/EntityAllocationBulkPayload'
+              $ref: '#/components/schemas/EntityAllocationUpdateBulkPayload'
       responses:
         201:
           description: 'Allocations updated'
@@ -120,7 +120,7 @@ paths:
       tags:
         - Allocations
       summary: 'Create multiple allocations'
-      operationId: 0863fb1e5c361fd6eaaf8f6ddc95d99e
+      operationId: createMultipleAllocations
       requestBody:
         required: true
         content:
@@ -139,7 +139,7 @@ paths:
       tags:
         - Allocations
       summary: 'Create allocation (deprecated)'
-      operationId: 4057f6a7ca356a8dfedfffa3d0d92f46
+      operationId: createAllocation
       requestBody:
         required: true
         content:
@@ -424,7 +424,7 @@ paths:
       tags:
         - Datasources
       summary: 'List datasources for the authenticated client'
-      operationId: 6a0a612ba4d6f5c36b9a17437b0e24da
+      operationId: listDatasources
       parameters:
         -
           name: 'types[]'
@@ -448,7 +448,7 @@ paths:
       tags:
         - Datasources
       summary: 'Retrieve a single datasource'
-      operationId: 2e63ab79cdb720663c3edf47fee45c62
+      operationId: showDatasource
       parameters:
         -
           name: entity
@@ -1247,7 +1247,7 @@ paths:
       tags:
         - 'Planning phases'
       summary: 'List project phases'
-      operationId: 83ce4b16b2af73d27a64fb48ae1fc62f
+      operationId: listProjectPhases
       parameters:
         -
           name: project
@@ -1272,7 +1272,7 @@ paths:
       tags:
         - 'Planning phases'
       summary: 'Create project phase'
-      operationId: d675b0fdc020c9506b62049495c84c4d
+      operationId: createProjectPhase
       parameters:
         -
           name: project
@@ -1302,7 +1302,7 @@ paths:
       tags:
         - 'Planning phases'
       summary: 'Show phase'
-      operationId: 0d3e5e87594938822a3f4342dad62f36
+      operationId: showProjectPhase
       parameters:
         -
           name: phase
@@ -1322,7 +1322,7 @@ paths:
       tags:
         - 'Planning phases'
       summary: 'Delete phase'
-      operationId: 0311da1cea655bc2d1604d7d41b7bfd9
+      operationId: deleteProjectPhase
       parameters:
         -
           name: phase
@@ -1340,7 +1340,7 @@ paths:
       tags:
         - 'Planning phases'
       summary: 'Update phase'
-      operationId: ad1d21e7985e497ed7c5ff220ac5ead2
+      operationId: updateProjectPhase
       parameters:
         -
           name: phase
@@ -1369,7 +1369,7 @@ paths:
       tags:
         - Planning
       summary: 'List projects'
-      operationId: 74eee5830a4b7a7dcf6cfa37fdc05cc6
+      operationId: listProjects
       parameters:
         -
           name: 'types[]'
@@ -1406,7 +1406,7 @@ paths:
       tags:
         - Planning
       summary: 'Create project'
-      operationId: 9087972305479790db2ba10ea4171932
+      operationId: createProject
       requestBody:
         required: true
         content:
@@ -1431,7 +1431,7 @@ paths:
       tags:
         - Planning
       summary: 'Show project'
-      operationId: 8758805bf050a2cd9ec432cb31bf8a94
+      operationId: showProject
       parameters:
         -
           name: project
@@ -1468,7 +1468,7 @@ paths:
       tags:
         - Planning
       summary: 'Delete project'
-      operationId: 0b5ba3d62e93a3ed3e284afd7601dc64
+      operationId: deleteProject
       parameters:
         -
           name: project
@@ -1486,7 +1486,7 @@ paths:
       tags:
         - Planning
       summary: 'Update project'
-      operationId: b11778cc2f15aa8c6df61b6fb5f4b2cc
+      operationId: updateProject
       parameters:
         -
           name: project
@@ -1515,7 +1515,7 @@ paths:
       tags:
         - Planning
       summary: 'List projects for a resource group'
-      operationId: c7fe599e2a4b018c9c0eb211a038b108
+      operationId: listProjectsForResource
       parameters:
         -
           name: resource
@@ -1557,12 +1557,45 @@ paths:
                   type: object
         500:
           description: 'The entity is not a resource.'
+  '/v2/datasources/{entity}/project':
+    post:
+      tags:
+        - Planning
+      summary: 'Create project in specific datasource'
+      operationId: createProjectInDatasource
+      parameters:
+        -
+          name: entity
+          in: path
+          description: 'Datasource/Entity identifier (ID or slug)'
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectPayload'
+      responses:
+        200:
+          description: Project
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        400:
+          description: 'Could not store project, client id invalid.'
+        403:
+          description: Forbidden
+        500:
+          description: 'Could not store project.'
   /v2/datasources/resources:
     get:
       tags:
         - Datasources
       summary: 'List resource entities'
-      operationId: eaf34e7e001fc60bfae7ca7815847c0d
+      operationId: listResources
       responses:
         200:
           description: Resources
@@ -1575,7 +1608,7 @@ paths:
       tags:
         - Datasources
       summary: 'Retrieve a resource'
-      operationId: 09ddae27e276f3ba7e37930c182b15fd
+      operationId: showResource
       parameters:
         -
           name: resource
@@ -1599,7 +1632,7 @@ paths:
       tags:
         - Datasources
       summary: 'Retrieve resource data by group'
-      operationId: 1fc1206aaba89a63335ac7991e0f5cc3
+      operationId: showResourceByGroup
       parameters:
         -
           name: resource
@@ -2642,6 +2675,7 @@ components:
         -
           $ref: '#/components/schemas/Pagination'
         -
+          title: ResourceCollectionData
           required:
             - data
           properties:
@@ -2875,11 +2909,10 @@ components:
                   - 'null'
                 format: int64
               fields:
+                description: 'Additional allocation fields as key-value pairs. Values can be strings, numbers, booleans, objects, or arrays. Allowed fields depend on the resource configuration.'
                 type:
                   - object
                   - 'null'
-                additionalProperties:
-                  type: string
             type: object
       type: object
     EntityAllocationCollection:
@@ -2923,11 +2956,10 @@ components:
           type: string
           format: date-time
         fields:
+          description: 'Additional allocation fields as key-value pairs. Values can be strings, numbers, booleans, objects, or arrays. Allowed fields depend on the resource configuration.'
           type:
             - object
             - 'null'
-          additionalProperties:
-            type: string
       type: object
     EntityAllocation:
       required:
@@ -2991,6 +3023,51 @@ components:
             - string
             - 'null'
           format: date-time
+      type: object
+    EntityAllocationUpdateBulkPayload:
+      required:
+        - allocations
+      properties:
+        allocations:
+          type: array
+          items:
+            required:
+              - id
+            properties:
+              id:
+                description: 'The ID of the allocation to update'
+                type: integer
+                format: int64
+              start:
+                description: 'Start date and time'
+                type: string
+                format: date-time
+              end:
+                description: 'End date and time'
+                type: string
+                format: date-time
+              type:
+                description: 'Allocation type'
+                type:
+                  - string
+                  - 'null'
+              comment:
+                description: Comment
+                type:
+                  - string
+                  - 'null'
+              parent_id:
+                description: 'Parent allocation ID'
+                type:
+                  - integer
+                  - 'null'
+                format: int64
+              fields:
+                description: 'Additional allocation fields as key-value pairs. Values can be strings, numbers, booleans, objects, or arrays. Allowed fields depend on the resource configuration.'
+                type:
+                  - object
+                  - 'null'
+            type: object
       type: object
     PhaseCreatePayload:
       required:
@@ -3061,10 +3138,41 @@ components:
                 $ref: '#/components/schemas/Project'
           type: object
     ProjectPayload:
-      description: 'Dynamic project payload. Required keys depend on datasource configuration.'
+      description: 'Project creation/update payload'
+      required:
+        - name
+        - color
+        - report_visible
+        - exclude_in_workdays
+        - start
+        - end
+      properties:
+        name:
+          description: 'Project name'
+          type: string
+        color:
+          description: 'Project color code'
+          type: string
+        report_visible:
+          description: 'Whether the project is visible in reports'
+          type: boolean
+        exclude_in_workdays:
+          description: 'Whether to exclude project in workday calculations'
+          type: boolean
+        start:
+          description: 'Project start date (not required for dateless projects)'
+          type: string
+          format: date-time
+        end:
+          description: 'Project end date (not required for dateless projects)'
+          type: string
+          format: date-time
+        extra_data:
+          description: 'Additional fields (can contain strings, numbers, booleans, objects, arrays). Keys must exist in extra_data_fields on the project datasource'
+          type:
+            - object
+            - 'null'
       type: object
-      additionalProperties:
-        type: string
     Project:
       required:
         - id
@@ -3083,8 +3191,6 @@ components:
           type:
             - object
             - 'null'
-          additionalProperties:
-            type: string
         allocation_types:
           type:
             - array
@@ -3117,8 +3223,7 @@ components:
         password:
           tokenUrl: 'http://localhost/oauth/token'
           refreshUrl: 'http://localhost/token/refresh'
-          scopes:
-            openid: 'OpenID Connect scope'
+          scopes: {}
 tags:
   -
     name: Categories

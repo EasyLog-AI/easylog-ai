@@ -1,19 +1,17 @@
 # FormsApi
 
-All URIs are relative to */api*
+All URIs are relative to _/api_
 
-| Method | HTTP request | Description |
-|------------- | ------------- | -------------|
-| [**createForm**](FormsApi.md#createform) | **POST** /v2/forms | Create form |
-| [**deleteForm**](FormsApi.md#deleteform) | **DELETE** /v2/forms/{form} | Delete form |
-| [**getFormSchema**](FormsApi.md#getformschema) | **GET** /v2/forms/{form}/schema | Get form JSON schema |
+| Method                                                   | HTTP request                        | Description                |
+| -------------------------------------------------------- | ----------------------------------- | -------------------------- |
+| [**createForm**](FormsApi.md#createform)                 | **POST** /v2/forms                  | Create form                |
+| [**deleteForm**](FormsApi.md#deleteform)                 | **DELETE** /v2/forms/{form}         | Delete form                |
+| [**getFormSchema**](FormsApi.md#getformschema)           | **GET** /v2/forms/{form}/schema     | Get form JSON schema       |
 | [**listFormCategories**](FormsApi.md#listformcategories) | **GET** /v2/forms/{form}/categories | List categories for a form |
-| [**listFormVersions**](FormsApi.md#listformversions) | **GET** /v2/forms/{form}/versions | List form versions |
-| [**listForms**](FormsApi.md#listforms) | **GET** /v2/forms | List forms |
-| [**showForm**](FormsApi.md#showform) | **GET** /v2/forms/{form} | Show form |
-| [**updateForm**](FormsApi.md#updateform) | **PATCH** /v2/forms/{form} | Update form |
-
-
+| [**listFormVersions**](FormsApi.md#listformversions)     | **GET** /v2/forms/{form}/versions   | List form versions         |
+| [**listForms**](FormsApi.md#listforms)                   | **GET** /v2/forms                   | List forms                 |
+| [**showForm**](FormsApi.md#showform)                     | **GET** /v2/forms/{form}            | Show form                  |
+| [**updateForm**](FormsApi.md#updateform)                 | **PATCH** /v2/forms/{form}          | Update form                |
 
 ## createForm
 
@@ -34,7 +32,7 @@ import type { CreateFormRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
+  const config = new Configuration({
     // To configure OAuth2 access token for authorization: passport password
     accessToken: "YOUR ACCESS TOKEN",
   });
@@ -59,10 +57,9 @@ example().catch(console.error);
 
 ### Parameters
 
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **storeFormInput** | [StoreFormInput](StoreFormInput.md) |  | |
+| Name               | Type                                | Description | Notes |
+| ------------------ | ----------------------------------- | ----------- | ----- |
+| **storeFormInput** | [StoreFormInput](StoreFormInput.md) |             |       |
 
 ### Return type
 
@@ -77,15 +74,14 @@ example().catch(console.error);
 - **Content-Type**: `application/json`
 - **Accept**: `application/json`
 
-
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **201** | Created form |  -  |
-| **422** | Validation error |  -  |
+
+| Status code | Description      | Response headers |
+| ----------- | ---------------- | ---------------- |
+| **201**     | Created form     | -                |
+| **422**     | Validation error | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
 
 ## deleteForm
 
@@ -98,23 +94,20 @@ Remove the specified resource from storage.
 ### Example
 
 ```ts
-import {
-  Configuration,
-  FormsApi,
-} from '';
+import { Configuration, FormsApi } from '';
 import type { DeleteFormRequest } from '';
 
 async function example() {
-  console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
+  console.log('🚀 Testing  SDK...');
+  const config = new Configuration({
     // To configure OAuth2 access token for authorization: passport password
-    accessToken: "YOUR ACCESS TOKEN",
+    accessToken: 'YOUR ACCESS TOKEN'
   });
   const api = new FormsApi(config);
 
   const body = {
     // number
-    form: 56,
+    form: 56
   } satisfies DeleteFormRequest;
 
   try {
@@ -131,10 +124,9 @@ example().catch(console.error);
 
 ### Parameters
 
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **form** | `number` |  | [Defaults to `undefined`] |
+| Name     | Type     | Description | Notes                     |
+| -------- | -------- | ----------- | ------------------------- |
+| **form** | `number` |             | [Defaults to `undefined`] |
 
 ### Return type
 
@@ -149,15 +141,14 @@ example().catch(console.error);
 - **Content-Type**: Not defined
 - **Accept**: Not defined
 
-
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **204** | Form deleted |  -  |
-| **404** | Form not found |  -  |
+
+| Status code | Description    | Response headers |
+| ----------- | -------------- | ---------------- |
+| **204**     | Form deleted   | -                |
+| **404**     | Form not found | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
 
 ## getFormSchema
 
@@ -170,23 +161,20 @@ Get form JSON schema.
 ### Example
 
 ```ts
-import {
-  Configuration,
-  FormsApi,
-} from '';
+import { Configuration, FormsApi } from '';
 import type { GetFormSchemaRequest } from '';
 
 async function example() {
-  console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
+  console.log('🚀 Testing  SDK...');
+  const config = new Configuration({
     // To configure OAuth2 access token for authorization: passport password
-    accessToken: "YOUR ACCESS TOKEN",
+    accessToken: 'YOUR ACCESS TOKEN'
   });
   const api = new FormsApi(config);
 
   const body = {
     // number
-    form: 56,
+    form: 56
   } satisfies GetFormSchemaRequest;
 
   try {
@@ -203,10 +191,9 @@ example().catch(console.error);
 
 ### Parameters
 
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **form** | `number` |  | [Defaults to `undefined`] |
+| Name     | Type     | Description | Notes                     |
+| -------- | -------- | ----------- | ------------------------- |
+| **form** | `number` |             | [Defaults to `undefined`] |
 
 ### Return type
 
@@ -221,15 +208,14 @@ example().catch(console.error);
 - **Content-Type**: Not defined
 - **Accept**: Not defined
 
-
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Form schema |  -  |
-| **404** | Form not found |  -  |
+
+| Status code | Description    | Response headers |
+| ----------- | -------------- | ---------------- |
+| **200**     | Form schema    | -                |
+| **404**     | Form not found | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
 
 ## listFormCategories
 
@@ -242,23 +228,20 @@ List categories for a form.
 ### Example
 
 ```ts
-import {
-  Configuration,
-  FormsApi,
-} from '';
+import { Configuration, FormsApi } from '';
 import type { ListFormCategoriesRequest } from '';
 
 async function example() {
-  console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
+  console.log('🚀 Testing  SDK...');
+  const config = new Configuration({
     // To configure OAuth2 access token for authorization: passport password
-    accessToken: "YOUR ACCESS TOKEN",
+    accessToken: 'YOUR ACCESS TOKEN'
   });
   const api = new FormsApi(config);
 
   const body = {
     // number
-    form: 56,
+    form: 56
   } satisfies ListFormCategoriesRequest;
 
   try {
@@ -275,10 +258,9 @@ example().catch(console.error);
 
 ### Parameters
 
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **form** | `number` |  | [Defaults to `undefined`] |
+| Name     | Type     | Description | Notes                     |
+| -------- | -------- | ----------- | ------------------------- |
+| **form** | `number` |             | [Defaults to `undefined`] |
 
 ### Return type
 
@@ -293,15 +275,14 @@ example().catch(console.error);
 - **Content-Type**: Not defined
 - **Accept**: `application/json`
 
-
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Categories |  -  |
-| **404** | Form not found |  -  |
+
+| Status code | Description    | Response headers |
+| ----------- | -------------- | ---------------- |
+| **200**     | Categories     | -                |
+| **404**     | Form not found | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
 
 ## listFormVersions
 
@@ -314,23 +295,20 @@ List form versions.
 ### Example
 
 ```ts
-import {
-  Configuration,
-  FormsApi,
-} from '';
+import { Configuration, FormsApi } from '';
 import type { ListFormVersionsRequest } from '';
 
 async function example() {
-  console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
+  console.log('🚀 Testing  SDK...');
+  const config = new Configuration({
     // To configure OAuth2 access token for authorization: passport password
-    accessToken: "YOUR ACCESS TOKEN",
+    accessToken: 'YOUR ACCESS TOKEN'
   });
   const api = new FormsApi(config);
 
   const body = {
     // number
-    form: 56,
+    form: 56
   } satisfies ListFormVersionsRequest;
 
   try {
@@ -347,10 +325,9 @@ example().catch(console.error);
 
 ### Parameters
 
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **form** | `number` |  | [Defaults to `undefined`] |
+| Name     | Type     | Description | Notes                     |
+| -------- | -------- | ----------- | ------------------------- |
+| **form** | `number` |             | [Defaults to `undefined`] |
 
 ### Return type
 
@@ -365,15 +342,14 @@ example().catch(console.error);
 - **Content-Type**: Not defined
 - **Accept**: Not defined
 
-
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Form versions |  -  |
-| **404** | Form not found |  -  |
+
+| Status code | Description    | Response headers |
+| ----------- | -------------- | ---------------- |
+| **200**     | Form versions  | -                |
+| **404**     | Form not found | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
 
 ## listForms
 
@@ -386,17 +362,14 @@ Display a listing of the resource.
 ### Example
 
 ```ts
-import {
-  Configuration,
-  FormsApi,
-} from '';
+import { Configuration, FormsApi } from '';
 import type { ListFormsRequest } from '';
 
 async function example() {
-  console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
+  console.log('🚀 Testing  SDK...');
+  const config = new Configuration({
     // To configure OAuth2 access token for authorization: passport password
-    accessToken: "YOUR ACCESS TOKEN",
+    accessToken: 'YOUR ACCESS TOKEN'
   });
   const api = new FormsApi(config);
 
@@ -429,14 +402,13 @@ This endpoint does not need any parameter.
 - **Content-Type**: Not defined
 - **Accept**: `application/json`
 
-
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Forms collection |  -  |
+
+| Status code | Description      | Response headers |
+| ----------- | ---------------- | ---------------- |
+| **200**     | Forms collection | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
 
 ## showForm
 
@@ -449,23 +421,20 @@ Display the specified resource.
 ### Example
 
 ```ts
-import {
-  Configuration,
-  FormsApi,
-} from '';
+import { Configuration, FormsApi } from '';
 import type { ShowFormRequest } from '';
 
 async function example() {
-  console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
+  console.log('🚀 Testing  SDK...');
+  const config = new Configuration({
     // To configure OAuth2 access token for authorization: passport password
-    accessToken: "YOUR ACCESS TOKEN",
+    accessToken: 'YOUR ACCESS TOKEN'
   });
   const api = new FormsApi(config);
 
   const body = {
     // number
-    form: 56,
+    form: 56
   } satisfies ShowFormRequest;
 
   try {
@@ -482,10 +451,9 @@ example().catch(console.error);
 
 ### Parameters
 
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **form** | `number` |  | [Defaults to `undefined`] |
+| Name     | Type     | Description | Notes                     |
+| -------- | -------- | ----------- | ------------------------- |
+| **form** | `number` |             | [Defaults to `undefined`] |
 
 ### Return type
 
@@ -500,15 +468,14 @@ example().catch(console.error);
 - **Content-Type**: Not defined
 - **Accept**: `application/json`
 
-
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Form |  -  |
-| **404** | Form not found |  -  |
+
+| Status code | Description    | Response headers |
+| ----------- | -------------- | ---------------- |
+| **200**     | Form           | -                |
+| **404**     | Form not found | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
 
 ## updateForm
 
@@ -529,7 +496,7 @@ import type { UpdateFormRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
+  const config = new Configuration({
     // To configure OAuth2 access token for authorization: passport password
     accessToken: "YOUR ACCESS TOKEN",
   });
@@ -556,11 +523,10 @@ example().catch(console.error);
 
 ### Parameters
 
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **form** | `number` |  | [Defaults to `undefined`] |
-| **updateFormInput** | [UpdateFormInput](UpdateFormInput.md) |  | |
+| Name                | Type                                  | Description | Notes                     |
+| ------------------- | ------------------------------------- | ----------- | ------------------------- |
+| **form**            | `number`                              |             | [Defaults to `undefined`] |
+| **updateFormInput** | [UpdateFormInput](UpdateFormInput.md) |             |                           |
 
 ### Return type
 
@@ -575,13 +541,12 @@ example().catch(console.error);
 - **Content-Type**: `application/json`
 - **Accept**: `application/json`
 
-
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Updated form |  -  |
-| **404** | Form not found |  -  |
-| **422** | Validation error |  -  |
+
+| Status code | Description      | Response headers |
+| ----------- | ---------------- | ---------------- |
+| **200**     | Updated form     | -                |
+| **404**     | Form not found   | -                |
+| **422**     | Validation error | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-

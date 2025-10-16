@@ -13,8 +13,8 @@ const toolGetPlanningPhases = (userId: string) => {
       const client = await getEasylogClient(userId);
 
       const [phases, error] = await tryCatch(
-        client.planningPhases.v2DatasourcesProjectProjectIdPhasesGet({
-          projectId
+        client.planningPhases.listProjectPhases({
+          project: projectId
         })
       );
 

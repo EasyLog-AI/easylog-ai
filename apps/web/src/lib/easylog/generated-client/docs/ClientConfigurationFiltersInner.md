@@ -1,42 +1,40 @@
-
 # ClientConfigurationFiltersInner
-
 
 ## Properties
 
-Name | Type
------------- | -------------
-`field` | string
-`label` | string
-`enabled` | boolean
-`slugs` | Array&lt;string&gt;
-`options` | Array&lt;string&gt;
+| Name      | Type                |
+| --------- | ------------------- |
+| `field`   | string              |
+| `label`   | string              |
+| `enabled` | boolean             |
+| `slugs`   | Array&lt;string&gt; |
+| `options` | Array&lt;string&gt; |
 
 ## Example
 
 ```typescript
-import type { ClientConfigurationFiltersInner } from ''
+import type { ClientConfigurationFiltersInner } from '';
 
 // TODO: Update the object below with actual values
 const example = {
-  "field": null,
-  "label": null,
-  "enabled": null,
-  "slugs": null,
-  "options": null,
-} satisfies ClientConfigurationFiltersInner
+  field: null,
+  label: null,
+  enabled: null,
+  slugs: null,
+  options: null
+} satisfies ClientConfigurationFiltersInner;
 
-console.log(example)
+console.log(example);
 
 // Convert the instance to a JSON string
-const exampleJSON: string = JSON.stringify(example)
-console.log(exampleJSON)
+const exampleJSON: string = JSON.stringify(example);
+console.log(exampleJSON);
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as ClientConfigurationFiltersInner
-console.log(exampleParsed)
+const exampleParsed = JSON.parse(
+  exampleJSON
+) as ClientConfigurationFiltersInner;
+console.log(exampleParsed);
 ```
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
-

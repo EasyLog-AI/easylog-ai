@@ -73,11 +73,9 @@ export const createPlanningProjectConfig = {
     start: z.string().describe('New start date in YYYY-MM-DD format'),
     end: z.string().describe('New end date in YYYY-MM-DD format'),
     extraData: z
-      .object({})
-      .catchall(z.union([z.number(), z.string()]))
-      .strict()
+      .record(z.union([z.string(), z.number(), z.boolean(), z.null(), z.any()]))
       .nullable()
-      .describe('Optional additional data as a dictionary or JSON string')
+      .describe('Optional additional data as a JSON object. Keys must exist in extra_data_fields on the datasource')
   })
 } as const;
 
@@ -236,14 +234,123 @@ export const updatePlanningProjectConfig = {
     reportVisible: z.boolean().describe('Flag to control report visibility'),
     excludeInWorkdays: z
       .boolean()
-      .describe('Fflag to exclude project in workday calculations'),
+      .describe('Flag to exclude project in workday calculations'),
     start: z.string().describe('New start date in YYYY-MM-DD format'),
     end: z.string().describe('New end date in YYYY-MM-DD format'),
     extraData: z
-      .object({})
-      .catchall(z.union([z.number(), z.string()]))
-      .strict()
+      .record(z.union([z.string(), z.number(), z.boolean(), z.null(), z.any()]))
       .nullable()
-      .describe('Optional additional data as a dictionary or JSON string')
+      .describe('Optional additional data as a JSON object. Keys must exist in extra_data_fields on the datasource')
+  })
+} as const;
+
+// Follow-ups
+
+export const listFollowUpsConfig = {
+  name: 'listFollowUps',
+  description: 'Retrieve all follow-ups for the current client. Follow-ups are filtered by user group membership unless the user has the FollowUpOverrideGroups permission.',
+  inputSchema: z.object({})
+} as const;
+
+export const showFollowUpConfig = {
+  name: 'showFollowUp',
+  description: 'Retrieve detailed information about a specific follow-up.',
+  inputSchema: z.object({
+    followUpId: z.number().describe('The ID of the follow-up to retrieve')
+  })
+} as const;
+
+export const createFollowUpConfig = {
+  name: 'createFollowUp',
+  description: 'Create a new follow-up form definition for the current client. Follow-ups are form templates that users can fill out.',
+  inputSchema: z.object({
+    name: z.string().describe('The name/title of the follow-up form'),
+    slug: z.string().describe('Unique slug identifier for the follow-up (e.g., "incident-report")'),
+    description: z.string().nullable().optional().describe('Optional description of the follow-up form'),
+    followUpCategoryId: z.number().nullable().optional().describe('Optional category ID to group this follow-up under'),
+    icon: z.string().nullable().optional().describe('Optional icon name for the follow-up'),
+    scheme: z.record(z.any()).describe('JSON schema defining the form fields and structure'),
+    canUseJsonTable: z.boolean().nullable().optional().describe('Whether this follow-up can use JSON table view')
+  })
+} as const;
+
+export const updateFollowUpConfig = {
+  name: 'updateFollowUp',
+  description: 'Update an existing follow-up form definition.',
+  inputSchema: z.object({
+    followUpId: z.number().describe('The ID of the follow-up to update'),
+    name: z.string().nullable().optional().describe('The name/title of the follow-up form'),
+    slug: z.string().nullable().optional().describe('Unique slug identifier for the follow-up'),
+    description: z.string().nullable().optional().describe('Optional description of the follow-up form'),
+    followUpCategoryId: z.number().nullable().optional().describe('Optional category ID to group this follow-up under'),
+    icon: z.string().nullable().optional().describe('Optional icon name for the follow-up'),
+    scheme: z.record(z.any()).nullable().optional().describe('JSON schema defining the form fields and structure'),
+    canUseJsonTable: z.boolean().nullable().optional().describe('Whether this follow-up can use JSON table view')
+  })
+} as const;
+
+export const deleteFollowUpConfig = {
+  name: 'deleteFollowUp',
+  description: 'Delete a follow-up.',
+  inputSchema: z.object({
+    followUpId: z.number().describe('The ID of the follow-up to delete')
+  })
+} as const;
+
+// Submissions
+
+export const listSubmissionsConfig = {
+  name: 'listSubmissions',
+  description: 'Retrieve all submissions for the current user. Regular users only see their own submissions. Users with ViewAllSubmissions permission can see all submissions in their client and filter by issuer_id.',
+  inputSchema: z.object({
+    projectFormId: z.number().optional().describe('Optional filter by project form ID'),
+    issuerId: z.number().optional().describe('Optional filter by issuer ID (requires ViewAllSubmissions permission)'),
+    from: z.string().optional().describe('Optional filter for submissions from this date (YYYY-MM-DD)'),
+    to: z.string().optional().describe('Optional filter for submissions until this date (YYYY-MM-DD)'),
+    with: z.string().optional().describe('Optional comma-separated list of relations to include (e.g. "form,issuer,media")')
+  })
+} as const;
+
+export const showSubmissionConfig = {
+  name: 'showSubmission',
+  description: 'Display a specific submission. Users can only view submissions they created or if they have ViewAllSubmissions permission.',
+  inputSchema: z.object({
+    submissionId: z.number().describe('The ID of the submission to retrieve')
+  })
+} as const;
+
+export const createSubmissionConfig = {
+  name: 'createSubmission',
+  description: 'Create and persist a new submission with form data. This is a simplified version that does not support file uploads. For file uploads, use prepareSubmission first.',
+  inputSchema: z.object({
+    projectFormId: z.number().describe('The ID of the project form to submit to'),
+    formVersionId: z.number().describe('The ID of the form version being submitted'),
+    data: z.record(z.any()).describe('The form data as a key-value object'),
+    checksum: z.string().optional().describe('Optional checksum for validation')
+  })
+} as const;
+
+export const updateSubmissionConfig = {
+  name: 'updateSubmission',
+  description: 'Update submission data. Users can only update submissions they created or if they have ViewAllSubmissions permission. Only the data field can be updated.',
+  inputSchema: z.object({
+    submissionId: z.number().describe('The ID of the submission to update'),
+    data: z.record(z.any()).describe('The updated form data as a key-value object')
+  })
+} as const;
+
+export const deleteSubmissionConfig = {
+  name: 'deleteSubmission',
+  description: 'Delete a submission and all associated media. Users can only delete submissions they created or if they have ViewAllSubmissions permission.',
+  inputSchema: z.object({
+    submissionId: z.number().describe('The ID of the submission to delete')
+  })
+} as const;
+
+export const listSubmissionMediaConfig = {
+  name: 'listSubmissionMedia',
+  description: 'Get all media files attached to a submission.',
+  inputSchema: z.object({
+    submissionId: z.number().describe('The ID of the submission to get media for')
   })
 } as const;

@@ -76,6 +76,29 @@ const getToolNamesFromCapabilities = (
     );
   }
 
+  // Follow-ups capability
+  if (capabilities.followUps) {
+    toolNames.push(
+      'listFollowUps',
+      'showFollowUp',
+      'createFollowUp',
+      'updateFollowUp',
+      'deleteFollowUp'
+    );
+  }
+
+  // Submissions capability
+  if (capabilities.submissions) {
+    toolNames.push(
+      'listSubmissions',
+      'showSubmission',
+      'createSubmission',
+      'updateSubmission',
+      'deleteSubmission',
+      'listSubmissionMedia'
+    );
+  }
+
   return toolNames;
 };
 

@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/nextjs';
 import { tool } from 'ai';
 
-import { ProjectBody } from '@/lib/easylog/generated-client/models';
+import { ProjectPayload } from '@/lib/easylog/generated-client/models';
 import tryCatch from '@/utils/try-catch';
 
 import { createPlanningProjectConfig } from './config';
@@ -13,18 +13,22 @@ const toolCreatePlanningProject = (userId: string) => {
     execute: async ({ datasourceId, ...updateData }) => {
       const client = await getEasylogClient(userId);
 
-      const projectBody = {
+      const projectPayload: ProjectPayload = {
         ...updateData,
         start: new Date(updateData.start),
         end: new Date(updateData.end),
         extraData: updateData.extraData ? updateData.extraData : undefined
-      } satisfies ProjectBody;
+      };
 
       const [createdProjectResponse, error] = await tryCatch(
-        client.planning.v2DatasourcesDatasourceIdProjectPost({
-          datasourceId,
-          projectBody: projectBody as ProjectBody
-        })
+        datasourceId
+          ? client.planning.createProjectInDatasource({
+              entity: datasourceId.toString(),
+              projectPayload
+            })
+          : client.planning.createProject({
+              projectPayload
+            })
       );
 
       if (error) {

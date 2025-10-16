@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/nextjs';
 import { tool } from 'ai';
 
-import { PhaseBody } from '@/lib/easylog/generated-client/models';
+import { PhaseCreatePayload } from '@/lib/easylog/generated-client/models';
 import tryCatch from '@/utils/try-catch';
 
 import { createPlanningPhaseConfig } from './config';
@@ -13,16 +13,16 @@ const toolCreatePlanningPhase = (userId: string) => {
     execute: async ({ projectId, slug, start, end }) => {
       const client = await getEasylogClient(userId);
 
-      const phaseBody: PhaseBody = {
+      const phaseCreatePayload: PhaseCreatePayload = {
         slug,
         start: new Date(start),
         end: new Date(end)
       };
 
       const [phase, error] = await tryCatch(
-        client.planningPhases.v2DatasourcesProjectProjectIdPhasesPost({
-          projectId,
-          phaseBody
+        client.planningPhases.createProjectPhase({
+          project: projectId,
+          phaseCreatePayload
         })
       );
 

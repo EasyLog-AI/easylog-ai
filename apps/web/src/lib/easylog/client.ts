@@ -1,14 +1,20 @@
 import {
   AllocationsApi,
   AnnouncementsApi,
-  AuthenticationApi,
-  ChatsAlphaApi,
+  BulletinApi,
+  CalendarApi,
+  CategoriesApi,
   Configuration,
+  ConfigurationApi,
   DatasourcesApi,
-  DefaultApi,
+  FollowUpCategoriesApi,
+  FollowUpEntriesApi,
+  FollowUpsApi,
+  FormsApi,
   PlanningApi,
   PlanningPhasesApi,
-  PlanningResourcesApi
+  ReportsApi,
+  SubmissionsApi
 } from './generated-client/index';
 
 export interface ClientConfig {
@@ -26,15 +32,21 @@ const createClient = ({
   });
 
   return {
-    chatsAlpha: new ChatsAlphaApi(config),
+    allocations: new AllocationsApi(config),
     announcements: new AnnouncementsApi(config),
-    authentication: new AuthenticationApi(config),
-    default: new DefaultApi(config),
+    bulletin: new BulletinApi(config),
+    calendar: new CalendarApi(config),
+    categories: new CategoriesApi(config),
+    configuration: new ConfigurationApi(config),
     datasources: new DatasourcesApi(config),
+    followUpCategories: new FollowUpCategoriesApi(config),
+    followUpEntries: new FollowUpEntriesApi(config),
+    followUps: new FollowUpsApi(config),
+    forms: new FormsApi(config),
     planning: new PlanningApi(config),
     planningPhases: new PlanningPhasesApi(config),
-    planningResources: new PlanningResourcesApi(config),
-    allocations: new AllocationsApi(config)
+    reports: new ReportsApi(config),
+    submissions: new SubmissionsApi(config)
   };
 };
 

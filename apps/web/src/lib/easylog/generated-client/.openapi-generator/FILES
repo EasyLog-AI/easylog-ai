@@ -45,6 +45,8 @@ docs/EntityAllocationBulkPayload.md
 docs/EntityAllocationBulkPayloadResourcesInner.md
 docs/EntityAllocationCollection.md
 docs/EntityAllocationPayload.md
+docs/EntityAllocationUpdateBulkPayload.md
+docs/EntityAllocationUpdateBulkPayloadAllocationsInner.md
 docs/EntityCollection.md
 docs/EntityResourceGroupsInner.md
 docs/FollowUp.md
@@ -69,8 +71,6 @@ docs/FormsApi.md
 docs/ListSubmissionMedia200Response.md
 docs/MediaResource.md
 docs/MediaResourceOpenLabel.md
-docs/Model1fc1206aaba89a63335ac7991e0f5cc3200Response.md
-docs/Model2e63ab79cdb720663c3edf47fee45c62200Response.md
 docs/Pagination.md
 docs/PaginationLink.md
 docs/PaginationLinks.md
@@ -88,10 +88,13 @@ docs/PrepareSubmissionRequest.md
 docs/PrepareSubmissionRequestFilesInner.md
 docs/Project.md
 docs/ProjectCollection.md
+docs/ProjectPayload.md
 docs/ReportsApi.md
 docs/Resource.md
 docs/ResourceCollection.md
+docs/ShowDatasource200Response.md
 docs/ShowDatasourceEntry200Response.md
+docs/ShowResourceByGroup200Response.md
 docs/StoreCategoryInput.md
 docs/StoreFollowUpInput.md
 docs/StoreFormInput.md
@@ -129,6 +132,8 @@ models/EntityAllocationBulkPayload.ts
 models/EntityAllocationBulkPayloadResourcesInner.ts
 models/EntityAllocationCollection.ts
 models/EntityAllocationPayload.ts
+models/EntityAllocationUpdateBulkPayload.ts
+models/EntityAllocationUpdateBulkPayloadAllocationsInner.ts
 models/EntityCollection.ts
 models/EntityResourceGroupsInner.ts
 models/FollowUp.ts
@@ -149,8 +154,6 @@ models/FormResource.ts
 models/ListSubmissionMedia200Response.ts
 models/MediaResource.ts
 models/MediaResourceOpenLabel.ts
-models/Model1fc1206aaba89a63335ac7991e0f5cc3200Response.ts
-models/Model2e63ab79cdb720663c3edf47fee45c62200Response.ts
 models/Pagination.ts
 models/PaginationLink.ts
 models/PaginationLinks.ts
@@ -166,9 +169,12 @@ models/PrepareSubmissionRequest.ts
 models/PrepareSubmissionRequestFilesInner.ts
 models/Project.ts
 models/ProjectCollection.ts
+models/ProjectPayload.ts
 models/Resource.ts
 models/ResourceCollection.ts
+models/ShowDatasource200Response.ts
 models/ShowDatasourceEntry200Response.ts
+models/ShowResourceByGroup200Response.ts
 models/StoreCategoryInput.ts
 models/StoreFollowUpInput.ts
 models/StoreFormInput.ts

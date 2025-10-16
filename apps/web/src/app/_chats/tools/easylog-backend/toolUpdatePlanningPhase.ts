@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/nextjs';
 import { tool } from 'ai';
 
-import { PhaseUpdateBody } from '@/lib/easylog/generated-client/models';
+import { PhaseUpdatePayload } from '@/lib/easylog/generated-client/models';
 import tryCatch from '@/utils/try-catch';
 
 import { updatePlanningPhaseConfig } from './config';
@@ -13,15 +13,15 @@ const toolUpdatePlanningPhase = (userId: string) => {
     execute: async ({ phaseId, start, end }) => {
       const client = await getEasylogClient(userId);
 
-      const phaseUpdateBody: PhaseUpdateBody = {
+      const phaseUpdatePayload: PhaseUpdatePayload = {
         start: new Date(start),
         end: new Date(end)
       };
 
       const [updatedPhaseResponse, error] = await tryCatch(
-        client.planningPhases.v2DatasourcesPhasesPhaseIdPut({
-          phaseId,
-          phaseUpdateBody
+        client.planningPhases.updateProjectPhase({
+          phase: phaseId,
+          phaseUpdatePayload
         })
       );
 

@@ -13,17 +13,15 @@ const toolGetProjectsOfResource = (userId: string) => {
       const client = await getEasylogClient(userId);
 
       const [projects, error] = await tryCatch(
-        client.planningResources.v2DatasourcesResourcesResourceIdProjectsDatasourceSlugGet(
-          {
-            resourceId,
-            datasourceSlug
-          }
-        )
+        client.planning.listProjectsForResource({
+          resource: resourceId,
+          slug: datasourceSlug
+        })
       );
 
       if (error) {
         Sentry.captureException(error);
-        return `Error getting projects: ${error.message}`;
+        return `Error getting projects of resource: ${error.message}`;
       }
 
       console.log('projects of resource', projects);

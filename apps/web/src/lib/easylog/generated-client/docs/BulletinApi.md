@@ -1,12 +1,10 @@
 # BulletinApi
 
-All URIs are relative to */api*
+All URIs are relative to _/api_
 
-| Method | HTTP request | Description |
-|------------- | ------------- | -------------|
+| Method                                                    | HTTP request               | Description                      |
+| --------------------------------------------------------- | -------------------------- | -------------------------------- |
 | [**listBulletinItems**](BulletinApi.md#listbulletinitems) | **GET** /v2/bulletin-items | List bulletin chapters and items |
-
-
 
 ## listBulletinItems
 
@@ -19,17 +17,14 @@ Get all bulletin chapters with their items, organized hierarchically. Includes i
 ### Example
 
 ```ts
-import {
-  Configuration,
-  BulletinApi,
-} from '';
+import { Configuration, BulletinApi } from '';
 import type { ListBulletinItemsRequest } from '';
 
 async function example() {
-  console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
+  console.log('🚀 Testing  SDK...');
+  const config = new Configuration({
     // To configure OAuth2 access token for authorization: passport password
-    accessToken: "YOUR ACCESS TOKEN",
+    accessToken: 'YOUR ACCESS TOKEN'
   });
   const api = new BulletinApi(config);
 
@@ -62,11 +57,10 @@ This endpoint does not need any parameter.
 - **Content-Type**: Not defined
 - **Accept**: `application/json`
 
-
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Bulletin chapters and items |  -  |
+
+| Status code | Description                 | Response headers |
+| ----------- | --------------------------- | ---------------- |
+| **200**     | Bulletin chapters and items | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
