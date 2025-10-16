@@ -46,7 +46,7 @@ const ChatMessageAssistantMultipleChoice = ({
           })
         });
 
-        const previousValue = multipleChoiceQuestion?.value;
+        const previousValue = multipleChoiceQuestion?.answer;
 
         queryClient.setQueryData(
           api.multipleChoice.get.queryKey({
@@ -121,7 +121,7 @@ const ChatMessageAssistantMultipleChoice = ({
 
   const isLastMessage = messages[messages.length - 1].id === messageId;
 
-  const currentValue = multipleChoiceQuestion?.value || answer;
+  const currentValue = multipleChoiceQuestion?.answer || answer;
 
   return (
     <div className="bg-surface-muted shadow-short my-2 max-w-4xl space-y-4 overflow-auto rounded-xl p-3">

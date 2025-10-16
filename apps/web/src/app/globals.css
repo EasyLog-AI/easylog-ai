@@ -63,6 +63,7 @@
   --brand-2: color-mix(in oklch, var(--brand-1) 75%, white);
 
   --animate-scale-in: scale-in 1s ease-in-out infinite;
+  --animate-shimmer: shimmer 2s linear infinite;
 
   --color-fill-primary: var(--color-white);
   --color-fill-primary-hover: color-mix(in oklch, var(--color-stone-50) 97%, black);
@@ -192,6 +193,15 @@
     }
     50% {
       transform: scale(1.25);
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
     }
   }
 }
