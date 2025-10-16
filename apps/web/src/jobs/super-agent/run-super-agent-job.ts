@@ -20,7 +20,7 @@ import {
   chats,
   scratchpadMessages as scratchpadMessagesTable
 } from '@/database/schema';
-import openrouter from '@/lib/ai-providers/openrouter';
+import createModel from '@/lib/ai-providers/create-model';
 import tryCatch from '@/utils/try-catch';
 
 export const runSuperAgentJob = schemaTask({
@@ -216,10 +216,13 @@ Silently monitor and analyze conversations, storing insights in your scratchpad.
 
     const [result, error] = await tryCatch(
       generateText({
-        model: openrouter(superAgent.model, {
+        ...createModel(superAgent.provider, superAgent.model, {
           reasoning: {
             enabled: superAgent.reasoning,
             effort: superAgent.reasoningEffort
+          },
+          cacheControl: {
+            enabled: superAgent.cacheControl
           }
         }),
         messages: [

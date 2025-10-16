@@ -18,7 +18,10 @@ const rawEnv = {
   EASYLOG_DB_PASSWORD: process.env.EASYLOG_DB_PASSWORD,
   BLOB_READ_WRITE_TOKEN: process.env.BLOB_READ_WRITE_TOKEN,
   MISTRAL_API_KEY: process.env.MISTRAL_API_KEY,
-  OPENAI_API_KEY: process.env.OPENAI_API_KEY
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+  ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+  AWS_API_KEY: process.env.AWS_API_KEY,
+  AWS_REGION: process.env.AWS_REGION
 };
 
 const envSchema = z.object({
@@ -46,7 +49,10 @@ const envSchema = z.object({
   EASYLOG_DB_PASSWORD: z.string(),
   BLOB_READ_WRITE_TOKEN: z.string(),
   MISTRAL_API_KEY: z.string(),
-  OPENAI_API_KEY: z.string()
+  OPENAI_API_KEY: z.string(),
+  ANTHROPIC_API_KEY: z.string().optional(),
+  AWS_API_KEY: z.string().optional(),
+  AWS_REGION: z.string().optional().default('us-east-1')
 });
 
 const serverEnv = envSchema.parse(rawEnv);
