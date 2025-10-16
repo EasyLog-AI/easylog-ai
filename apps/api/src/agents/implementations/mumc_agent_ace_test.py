@@ -1119,8 +1119,14 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
         # Extract embedding from response (handle multiple formats)
         embedding: list[float] | None = None
         try:
+            # String format FIRST (OpenRouter often returns JSON string)
+            if isinstance(response, str):
+                payload = json.loads(response.strip())
+                data_list = payload.get("data", [])
+                if data_list:
+                    embedding = data_list[0].get("embedding")
             # OpenAI format: response.data[0].embedding
-            if hasattr(response, "data") and isinstance(response.data, list) and response.data:
+            elif hasattr(response, "data") and isinstance(response.data, list) and response.data:
                 first_item = response.data[0]
                 if hasattr(first_item, "embedding"):
                     embedding = first_item.embedding
@@ -1133,12 +1139,6 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
                     first_item = data_list[0]
                     if isinstance(first_item, dict):
                         embedding = first_item.get("embedding")
-            # String format (OpenRouter sometimes returns JSON string)
-            elif isinstance(response, str):
-                payload = json.loads(response.strip())
-                data_list = payload.get("data", [])
-                if data_list:
-                    embedding = data_list[0].get("embedding")
             # Unsupported format
             else:
                 self.logger.warning(
