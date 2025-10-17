@@ -30,12 +30,16 @@ import toolClearChat from '@/app/_chats/tools/core/toolClearChat';
 import toolCreateMemory from '@/app/_chats/tools/core/toolCreateMemory';
 import toolDeleteMemory from '@/app/_chats/tools/core/toolDeleteMemory';
 import toolCreateFollowUp from '@/app/_chats/tools/easylog-backend/toolCreateFollowUp';
+import toolCreateFollowUpEntry from '@/app/_chats/tools/easylog-backend/toolCreateFollowUpEntry';
+import toolCreateForm from '@/app/_chats/tools/easylog-backend/toolCreateForm';
 import toolCreateMultipleAllocations from '@/app/_chats/tools/easylog-backend/toolCreateMultipleAllocations';
 import toolCreatePlanningPhase from '@/app/_chats/tools/easylog-backend/toolCreatePlanningPhase';
 import toolCreatePlanningProject from '@/app/_chats/tools/easylog-backend/toolCreatePlanningProject';
 import toolCreateSubmission from '@/app/_chats/tools/easylog-backend/toolCreateSubmission';
 import toolDeleteAllocation from '@/app/_chats/tools/easylog-backend/toolDeleteAllocation';
 import toolDeleteFollowUp from '@/app/_chats/tools/easylog-backend/toolDeleteFollowUp';
+import toolDeleteFollowUpEntry from '@/app/_chats/tools/easylog-backend/toolDeleteFollowUpEntry';
+import toolDeleteForm from '@/app/_chats/tools/easylog-backend/toolDeleteForm';
 import toolDeleteSubmission from '@/app/_chats/tools/easylog-backend/toolDeleteSubmission';
 import toolGetDataSources from '@/app/_chats/tools/easylog-backend/toolGetDataSources';
 import toolGetPlanningPhase from '@/app/_chats/tools/easylog-backend/toolGetPlanningPhase';
@@ -45,16 +49,26 @@ import toolGetPlanningProjects from '@/app/_chats/tools/easylog-backend/toolGetP
 import toolGetProjectsOfResource from '@/app/_chats/tools/easylog-backend/toolGetProjectsOfResource';
 import toolGetResourceGroups from '@/app/_chats/tools/easylog-backend/toolGetResourceGroups';
 import toolGetResources from '@/app/_chats/tools/easylog-backend/toolGetResources';
+import toolListFollowUpCategories from '@/app/_chats/tools/easylog-backend/toolListFollowUpCategories';
+import toolListFollowUpEntries from '@/app/_chats/tools/easylog-backend/toolListFollowUpEntries';
 import toolListFollowUps from '@/app/_chats/tools/easylog-backend/toolListFollowUps';
+import toolListForms from '@/app/_chats/tools/easylog-backend/toolListForms';
 import toolListSubmissionMedia from '@/app/_chats/tools/easylog-backend/toolListSubmissionMedia';
 import toolListSubmissions from '@/app/_chats/tools/easylog-backend/toolListSubmissions';
+import toolPrepareSubmission from '@/app/_chats/tools/easylog-backend/toolPrepareSubmission';
 import toolShowFollowUp from '@/app/_chats/tools/easylog-backend/toolShowFollowUp';
+import toolShowFollowUpCategory from '@/app/_chats/tools/easylog-backend/toolShowFollowUpCategory';
+import toolShowFollowUpEntry from '@/app/_chats/tools/easylog-backend/toolShowFollowUpEntry';
+import toolShowForm from '@/app/_chats/tools/easylog-backend/toolShowForm';
 import toolShowSubmission from '@/app/_chats/tools/easylog-backend/toolShowSubmission';
 import toolUpdateFollowUp from '@/app/_chats/tools/easylog-backend/toolUpdateFollowUp';
+import toolUpdateFollowUpEntry from '@/app/_chats/tools/easylog-backend/toolUpdateFollowUpEntry';
+import toolUpdateForm from '@/app/_chats/tools/easylog-backend/toolUpdateForm';
 import toolUpdateMultipleAllocations from '@/app/_chats/tools/easylog-backend/toolUpdateMultipleAllocations';
 import toolUpdatePlanningPhase from '@/app/_chats/tools/easylog-backend/toolUpdatePlanningPhase';
 import toolUpdatePlanningProject from '@/app/_chats/tools/easylog-backend/toolUpdatePlanningProject';
 import toolUpdateSubmission from '@/app/_chats/tools/easylog-backend/toolUpdateSubmission';
+import toolUploadSubmissionMedia from '@/app/_chats/tools/easylog-backend/toolUploadSubmissionMedia';
 import toolExecuteSQL from '@/app/_chats/tools/execute-sql/toolExecuteSQL';
 import toolLoadDocument from '@/app/_chats/tools/knowledge-base/toolLoadDocument';
 import toolSearchKnowledgeBase from '@/app/_chats/tools/knowledge-base/toolSearchKnowledgeBase';
@@ -234,12 +248,26 @@ export const POST = async (
         createFollowUp: toolCreateFollowUp(user.id),
         updateFollowUp: toolUpdateFollowUp(user.id),
         deleteFollowUp: toolDeleteFollowUp(user.id),
+        listFollowUpEntries: toolListFollowUpEntries(user.id),
+        showFollowUpEntry: toolShowFollowUpEntry(user.id),
+        createFollowUpEntry: toolCreateFollowUpEntry(user.id),
+        updateFollowUpEntry: toolUpdateFollowUpEntry(user.id),
+        deleteFollowUpEntry: toolDeleteFollowUpEntry(user.id),
+        listFollowUpCategories: toolListFollowUpCategories(user.id),
+        showFollowUpCategory: toolShowFollowUpCategory(user.id),
+        listForms: toolListForms(user.id),
+        showForm: toolShowForm(user.id),
+        createForm: toolCreateForm(user.id),
+        updateForm: toolUpdateForm(user.id),
+        deleteForm: toolDeleteForm(user.id),
         listSubmissions: toolListSubmissions(user.id),
         showSubmission: toolShowSubmission(user.id),
         createSubmission: toolCreateSubmission(user.id),
         updateSubmission: toolUpdateSubmission(user.id),
         deleteSubmission: toolDeleteSubmission(user.id),
         listSubmissionMedia: toolListSubmissionMedia(user.id),
+        prepareSubmission: toolPrepareSubmission(user.id),
+        uploadSubmissionMedia: toolUploadSubmissionMedia(user.id),
         executeSql: toolExecuteSQL(writer),
         searchKnowledgeBase: toolSearchKnowledgeBase(
           {

@@ -9,16 +9,22 @@ import getEasylogClient from './utils/getEasylogClient';
 const toolListSubmissions = (userId: string) => {
   return tool({
     ...listSubmissionsConfig,
-    execute: async ({ projectFormId, issuerId, from, to, with: withRelations }) => {
+    execute: async ({
+      projectFormId,
+      issuerId,
+      from,
+      to,
+      with: withRelations
+    }) => {
       const client = await getEasylogClient(userId);
 
       const [submissions, error] = await tryCatch(
         client.submissions.listSubmissions({
-          projectFormId,
-          issuerId,
+          projectFormId: projectFormId ?? undefined,
+          issuerId: issuerId ?? undefined,
           from: from ? new Date(from) : undefined,
           to: to ? new Date(to) : undefined,
-          _with: withRelations
+          _with: withRelations ?? undefined
         })
       );
 

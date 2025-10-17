@@ -9,7 +9,7 @@ import getEasylogClient from './utils/getEasylogClient';
 const toolCreateSubmission = (userId: string) => {
   return tool({
     ...createSubmissionConfig,
-    execute: async ({ projectFormId, formVersionId, data, checksum }) => {
+    execute: async ({ projectFormId, formVersionId, data }) => {
       const client = await getEasylogClient(userId);
 
       const [submission, error] = await tryCatch(
@@ -17,8 +17,7 @@ const toolCreateSubmission = (userId: string) => {
           projectForm: projectFormId,
           persistSubmissionRequest: {
             data,
-            formVersionId,
-            checksum
+            formVersionId
           }
         })
       );

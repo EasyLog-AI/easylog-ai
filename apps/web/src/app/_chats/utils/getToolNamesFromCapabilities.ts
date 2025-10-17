@@ -83,7 +83,19 @@ const getToolNamesFromCapabilities = (
       'showFollowUp',
       'createFollowUp',
       'updateFollowUp',
-      'deleteFollowUp'
+      'deleteFollowUp',
+      'listFollowUpEntries',
+      'showFollowUpEntry',
+      'createFollowUpEntry',
+      'updateFollowUpEntry',
+      'deleteFollowUpEntry',
+      'listFollowUpCategories',
+      'showFollowUpCategory',
+      'listForms',
+      'showForm',
+      'createForm',
+      'updateForm',
+      'deleteForm'
     );
   }
 
@@ -95,7 +107,9 @@ const getToolNamesFromCapabilities = (
       'createSubmission',
       'updateSubmission',
       'deleteSubmission',
-      'listSubmissionMedia'
+      'listSubmissionMedia',
+      'prepareSubmission',
+      'uploadSubmissionMedia'
     );
   }
 

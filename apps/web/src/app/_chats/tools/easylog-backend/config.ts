@@ -353,6 +353,165 @@ export const deleteFollowUpConfig = {
   })
 } as const;
 
+export const listFollowUpEntriesConfig = {
+  name: 'listFollowUpEntries',
+  description:
+    'List all entries for a specific follow-up. Entries represent submitted data for a follow-up form.',
+  inputSchema: z.object({
+    followUpId: z
+      .number()
+      .describe('The ID of the follow-up to list entries for')
+  })
+} as const;
+
+export const showFollowUpEntryConfig = {
+  name: 'showFollowUpEntry',
+  description: 'Retrieve details for a specific follow-up entry.',
+  inputSchema: z.object({
+    followUpEntryId: z
+      .number()
+      .describe('The ID of the follow-up entry to retrieve')
+  })
+} as const;
+
+export const createFollowUpEntryConfig = {
+  name: 'createFollowUpEntry',
+  description:
+    'Create a new follow-up entry by submitting data for a follow-up form.',
+  inputSchema: z.object({
+    followUpId: z
+      .number()
+      .describe('The ID of the follow-up to create an entry for'),
+    data: z
+      .record(z.any())
+      .describe('JSON object containing the submitted follow-up data')
+  })
+} as const;
+
+export const updateFollowUpEntryConfig = {
+  name: 'updateFollowUpEntry',
+  description: 'Update the data of an existing follow-up entry.',
+  inputSchema: z.object({
+    followUpEntryId: z
+      .number()
+      .describe('The ID of the follow-up entry to update'),
+    data: z
+      .record(z.any())
+      .describe('Updated JSON object containing the follow-up data')
+  })
+} as const;
+
+export const deleteFollowUpEntryConfig = {
+  name: 'deleteFollowUpEntry',
+  description: 'Delete a follow-up entry.',
+  inputSchema: z.object({
+    followUpEntryId: z
+      .number()
+      .describe('The ID of the follow-up entry to delete')
+  })
+} as const;
+
+export const listFollowUpCategoriesConfig = {
+  name: 'listFollowUpCategories',
+  description:
+    'List all follow-up categories available to the current user. Categories may be filtered based on group membership.',
+  inputSchema: z.object({})
+} as const;
+
+export const showFollowUpCategoryConfig = {
+  name: 'showFollowUpCategory',
+  description: 'Retrieve details for a specific follow-up category.',
+  inputSchema: z.object({
+    categoryId: z.number().describe('The ID of the follow-up category to fetch')
+  })
+} as const;
+
+export const listFormsConfig = {
+  name: 'listForms',
+  description: 'List all forms available in Easylog.',
+  inputSchema: z.object({})
+} as const;
+
+export const showFormConfig = {
+  name: 'showForm',
+  description: 'Retrieve details for a specific form, including metadata.',
+  inputSchema: z.object({
+    formId: z.number().describe('The ID of the form to retrieve')
+  })
+} as const;
+
+export const createFormConfig = {
+  name: 'createForm',
+  description:
+    'Create a new form definition. The content should be a JSON schema string or object describing the form layout.',
+  inputSchema: z.object({
+    name: z.string().describe('The name of the form'),
+    description: z
+      .string()
+      .nullable()
+      .optional()
+      .describe('Optional description for the form'),
+    avatar: z
+      .string()
+      .nullable()
+      .optional()
+      .describe('Optional avatar/image identifier for the form'),
+    content: z
+      .union([z.string(), z.record(z.any())])
+      .describe(
+        'Form schema content as a JSON string or object that will be stringified'
+      ),
+    forceSchemaValidity: z
+      .boolean()
+      .nullable()
+      .optional()
+      .describe(
+        'Set to true to enforce schema validation even if issues are detected'
+      )
+  })
+} as const;
+
+export const updateFormConfig = {
+  name: 'updateForm',
+  description: 'Update an existing form definition.',
+  inputSchema: z.object({
+    formId: z.number().describe('The ID of the form to update'),
+    name: z.string().nullable().optional().describe('Updated name of the form'),
+    description: z
+      .string()
+      .nullable()
+      .optional()
+      .describe('Updated description for the form'),
+    avatar: z
+      .string()
+      .nullable()
+      .optional()
+      .describe('Updated avatar/image identifier for the form'),
+    content: z
+      .union([z.string(), z.record(z.any())])
+      .nullable()
+      .optional()
+      .describe(
+        'Updated form schema as a JSON string or object that will be stringified'
+      ),
+    forceSchemaValidity: z
+      .boolean()
+      .nullable()
+      .optional()
+      .describe(
+        'Set to true to enforce schema validation even if issues are detected'
+      )
+  })
+} as const;
+
+export const deleteFormConfig = {
+  name: 'deleteForm',
+  description: 'Delete an existing form.',
+  inputSchema: z.object({
+    formId: z.number().describe('The ID of the form to delete')
+  })
+} as const;
+
 // Submissions
 
 export const listSubmissionsConfig = {
@@ -362,25 +521,25 @@ export const listSubmissionsConfig = {
   inputSchema: z.object({
     projectFormId: z
       .number()
-      .optional()
+      .nullable()
       .describe('Optional filter by project form ID'),
     issuerId: z
       .number()
-      .optional()
+      .nullable()
       .describe(
         'Optional filter by issuer ID (requires ViewAllSubmissions permission)'
       ),
     from: z
       .string()
-      .optional()
+      .nullable()
       .describe('Optional filter for submissions from this date (YYYY-MM-DD)'),
     to: z
       .string()
-      .optional()
+      .nullable()
       .describe('Optional filter for submissions until this date (YYYY-MM-DD)'),
     with: z
       .string()
-      .optional()
+      .nullable()
       .describe(
         'Optional comma-separated list of relations to include (e.g. "form,issuer,media")'
       )
@@ -407,8 +566,7 @@ export const createSubmissionConfig = {
     formVersionId: z
       .number()
       .describe('The ID of the form version being submitted'),
-    data: z.record(z.any()).describe('The form data as a key-value object'),
-    checksum: z.string().optional().describe('Optional checksum for validation')
+    data: z.record(z.any()).describe('The form data as a key-value object')
   })
 } as const;
 
@@ -440,5 +598,46 @@ export const listSubmissionMediaConfig = {
     submissionId: z
       .number()
       .describe('The ID of the submission to get media for')
+  })
+} as const;
+
+export const prepareSubmissionConfig = {
+  name: 'prepareSubmission',
+  description:
+    'Prepare file uploads for a submission by generating pre-signed URLs. Call this before uploading files.',
+  inputSchema: z.object({
+    projectFormId: z
+      .number()
+      .describe('The ID of the project form that owns the submission'),
+    files: z
+      .array(
+        z.object({
+          name: z
+            .string()
+            .describe('File name (including extension) to be uploaded'),
+          mime: z.string().describe('MIME type of the file')
+        })
+      )
+      .describe('List of files that will be uploaded for this submission')
+  })
+} as const;
+
+export const uploadSubmissionMediaConfig = {
+  name: 'uploadSubmissionMedia',
+  description:
+    'Upload a single media file and attach it to an existing submission. Use prepareSubmission first when uploading large files.',
+  inputSchema: z.object({
+    submissionId: z
+      .number()
+      .describe('The ID of the submission to attach the media to'),
+    fileName: z.string().describe('Name of the file including extension'),
+    fileContentBase64: z
+      .string()
+      .describe('Base64-encoded contents of the file'),
+    mimeType: z
+      .string()
+      .nullable()
+      .optional()
+      .describe('Optional MIME type of the file')
   })
 } as const;
