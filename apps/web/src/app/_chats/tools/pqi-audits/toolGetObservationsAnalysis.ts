@@ -6,7 +6,7 @@ import easylogDb from '@/lib/easylog/db';
 import tryCatch from '@/utils/try-catch';
 
 import { getObservationsAnalysisConfig } from './config';
-import { AUDIT_TYPE_FILTERS, CLIENT_ID, MODALITY_FILTERS } from './constants';
+import { CLIENT_FIELD_HINTS, DEFAULT_FIELD_NAMES } from './constants';
 import type { ObservationAnalysis } from './types';
 
 const toolGetObservationsAnalysis = () => {
@@ -14,50 +14,43 @@ const toolGetObservationsAnalysis = () => {
     ...getObservationsAnalysisConfig,
     execute: async (params) => {
       try {
-        // Build form ID filters
-        let finalFormIds: number[] = [];
-
-        if (params.auditType && params.modality) {
-          // If both filters specified, get intersection
-          const auditIds = new Set<number>(
-            AUDIT_TYPE_FILTERS[params.auditType]
-          );
-          const modalityIds = new Set<number>(
-            MODALITY_FILTERS[params.modality]
-          );
-          finalFormIds = Array.from(auditIds).filter((id) =>
-            modalityIds.has(id)
-          );
-        } else if (params.auditType) {
-          finalFormIds = [...AUDIT_TYPE_FILTERS[params.auditType]];
-        } else if (params.modality) {
-          finalFormIds = [...MODALITY_FILTERS[params.modality]];
-        }
+        // Get field names for this client (fallback to defaults)
+        const hints = CLIENT_FIELD_HINTS[params.clientId];
+        const auditNumberField =
+          hints?.auditNumber || DEFAULT_FIELD_NAMES.auditNumber;
+        const observationsField =
+          hints?.observations || DEFAULT_FIELD_NAMES.observations;
+        const categoryField = hints?.category || DEFAULT_FIELD_NAMES.category;
 
         // Build dynamic WHERE clause
         const conditions = [
-          sql`s.client_id = ${CLIENT_ID}`,
+          sql`s.client_id = ${params.clientId}`,
           sql`s.data IS NOT NULL`
         ];
 
-        if (finalFormIds.length > 0) {
+        // Filter by form IDs if provided
+        if (params.formIds && params.formIds.length > 0) {
           conditions.push(
             sql`s.project_form_id IN (${sql.join(
-              finalFormIds.map((id) => sql`${id}`),
+              params.formIds.map((id) => sql`${id}`),
               sql`, `
             )})`
           );
         }
 
-        if (params.vehicleNumber) {
+        // Filter by audit number prefix (flexible field)
+        if (params.auditNumber) {
+          const auditPath = sql.raw(`'$.${auditNumberField}'`);
           conditions.push(
-            sql`JSON_UNQUOTE(JSON_EXTRACT(s.data, '$.auditnummer')) LIKE ${`${params.vehicleNumber}%`}`
+            sql`JSON_UNQUOTE(JSON_EXTRACT(s.data, ${auditPath})) LIKE ${`${params.auditNumber}%`}`
           );
         }
 
-        if (params.materialType) {
+        // Filter by category (flexible field)
+        if (params.category) {
+          const catPath = sql.raw(`'$.${categoryField}'`);
           conditions.push(
-            sql`JSON_UNQUOTE(JSON_EXTRACT(s.data, '$.typematerieel')) = ${params.materialType}`
+            sql`JSON_UNQUOTE(JSON_EXTRACT(s.data, ${catPath})) = ${params.category}`
           );
         }
 
@@ -65,15 +58,26 @@ const toolGetObservationsAnalysis = () => {
           conditions.push(sql`YEAR(s.created_at) = ${params.year}`);
         }
 
-        // Add score filter condition
+        // Add score filter condition - valid PQI scores only: 1, 5, 10, 20
         if (params.minScore != null) {
           conditions.push(
-            sql`CAST(JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[5]')) AS UNSIGNED) >= ${params.minScore}`
+            sql`(
+              (JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[4]')) IN ('1', '5', '10', '20')
+                AND CAST(JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[4]')) AS UNSIGNED) >= ${params.minScore})
+              OR (JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[5]')) IN ('1', '5', '10', '20')
+                AND CAST(JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[5]')) AS UNSIGNED) >= ${params.minScore})
+              OR (JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[6]')) IN ('1', '5', '10', '20')
+                AND CAST(JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[6]')) AS UNSIGNED) >= ${params.minScore})
+            )`
           );
         } else {
-          // Default: only numeric scores
+          // Default: only valid PQI scores (1, 5, 10, 20) from any position
           conditions.push(
-            sql`JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[5]')) REGEXP '^[0-9]+$'`
+            sql`(
+              JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[4]')) IN ('1', '5', '10', '20')
+              OR JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[5]')) IN ('1', '5', '10', '20')
+              OR JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[6]')) IN ('1', '5', '10', '20')
+            )`
           );
         }
 
@@ -85,22 +89,37 @@ const toolGetObservationsAnalysis = () => {
         // Use default limit if null
         const limit = params.limit ?? 20;
 
+        // Build SELECT with dynamic fields
+        const observationsPath = sql.raw(`'$.${observationsField}'`);
+        const categoryPath = sql.raw(`'$.${categoryField}'`);
+
         // Execute query
         const [result, error] = await tryCatch(
           easylogDb.execute<ObservationAnalysis>(sql`
             SELECT
-              JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[0]')) as category,
+              JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[0]')) as observation_category,
               JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[1]')) as aspect,
-              JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[5]')) as score,
+              CASE
+                -- Try position [4] first (DJZ structure) - valid PQI scores: 1, 5, 10, 20
+                WHEN JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[4]')) IN ('1', '5', '10', '20')
+                THEN JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[4]'))
+                -- Try position [5] (old RET structure) - valid PQI scores: 1, 5, 10, 20
+                WHEN JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[5]')) IN ('1', '5', '10', '20')
+                THEN JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[5]'))
+                -- Try position [6] (new RET structure) - valid PQI scores: 1, 5, 10, 20
+                WHEN JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[6]')) IN ('1', '5', '10', '20')
+                THEN JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[6]'))
+                ELSE NULL
+              END as score,
               COUNT(*) as frequency,
-              JSON_UNQUOTE(JSON_EXTRACT(s.data, '$.typematerieel')) as material_type
+              JSON_UNQUOTE(JSON_EXTRACT(s.data, ${categoryPath})) as audit_category
             FROM submissions s,
             JSON_TABLE(
-              JSON_EXTRACT(s.data, '$.waarnemingen'),
+              JSON_EXTRACT(s.data, ${observationsPath}),
               '$[*]' COLUMNS (waarneming JSON PATH '$')
             ) AS obs
             WHERE ${whereClause}
-            GROUP BY category, aspect, score, material_type
+            GROUP BY observation_category, aspect, score, audit_category
             ORDER BY frequency DESC
             LIMIT ${limit}
           `)

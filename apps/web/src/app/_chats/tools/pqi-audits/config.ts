@@ -3,19 +3,24 @@ import { z } from 'zod';
 export const getVehicleRankingConfig = {
   name: 'getVehicleRanking',
   description:
-    'Get PQI vehicle/material ranking by average audit score and audit count. Use this to identify which vehicles/products have the most issues.',
+    'Get PQI vehicle/material ranking by average audit score and audit count. Multi-client support.',
   inputSchema: z.object({
-    auditType: z
-      .enum(['IKZ', 'PQI', 'R&M'])
+    clientId: z
+      .number()
+      .default(16)
+      .describe('Client ID: 16 = RET, 21 = DJZ, etc.'),
+    formIds: z
+      .array(z.number())
       .nullable()
       .default(null)
-      .describe('Filter by audit type'),
-    modality: z
-      .enum(['Metro', 'Bus', 'Tram'])
+      .describe(
+        'Filter by specific form IDs (optional - query database to find available forms)'
+      ),
+    year: z
+      .number()
       .nullable()
       .default(null)
-      .describe('Filter by transport modality'),
-    year: z.number().nullable().default(null).describe('Filter by specific year'),
+      .describe('Filter by specific year'),
     limit: z
       .number()
       .nullable()
@@ -27,29 +32,34 @@ export const getVehicleRankingConfig = {
 export const getObservationsAnalysisConfig = {
   name: 'getObservationsAnalysis',
   description:
-    'Analyze PQI audit observations to find most common problems, grouped by category, aspect, and score. Use this to identify recurring issues.',
+    'Analyze PQI audit observations to find most common problems. Multi-client support.',
   inputSchema: z.object({
-    auditType: z
-      .enum(['IKZ', 'PQI', 'R&M'])
+    clientId: z
+      .number()
+      .default(16)
+      .describe('Client ID: 16 = RET, 21 = DJZ, etc.'),
+    formIds: z
+      .array(z.number())
       .nullable()
       .default(null)
-      .describe('Filter by audit type'),
-    modality: z
-      .enum(['Metro', 'Bus', 'Tram'])
-      .nullable()
-      .default(null)
-      .describe('Filter by transport modality'),
-    vehicleNumber: z
+      .describe(
+        'Filter by specific form IDs (optional - query database to find available forms)'
+      ),
+    auditNumber: z
       .string()
       .nullable()
       .default(null)
-      .describe('Filter by vehicle number (e.g., "5633" - matches audit_number prefix)'),
-    materialType: z
+      .describe('Filter by audit number prefix (e.g., "5633")'),
+    category: z
       .string()
       .nullable()
       .default(null)
-      .describe('Filter by material type (e.g., "RSG3", "MG2/1")'),
-    year: z.number().nullable().default(null).describe('Filter by specific year'),
+      .describe('Filter by category field from data JSON (varies per client)'),
+    year: z
+      .number()
+      .nullable()
+      .default(null)
+      .describe('Filter by specific year'),
     minScore: z
       .number()
       .nullable()
@@ -66,29 +76,34 @@ export const getObservationsAnalysisConfig = {
 export const getAuditTrendsConfig = {
   name: 'getAuditTrends',
   description:
-    'Get PQI audit trends over time (monthly or weekly aggregations). Use this to analyze audit patterns and score trends.',
+    'Get PQI audit trends over time (monthly or weekly). Multi-client support.',
   inputSchema: z.object({
-    auditType: z
-      .enum(['IKZ', 'PQI', 'R&M'])
+    clientId: z
+      .number()
+      .default(16)
+      .describe('Client ID: 16 = RET, 21 = DJZ, etc.'),
+    formIds: z
+      .array(z.number())
       .nullable()
       .default(null)
-      .describe('Filter by audit type'),
-    modality: z
-      .enum(['Metro', 'Bus', 'Tram'])
-      .nullable()
-      .default(null)
-      .describe('Filter by transport modality'),
-    vehicleNumber: z
+      .describe(
+        'Filter by specific form IDs (optional - query database to find available forms)'
+      ),
+    auditNumber: z
       .string()
       .nullable()
       .default(null)
-      .describe('Filter by vehicle number (e.g., "5633" - matches audit_number prefix)'),
-    materialType: z
+      .describe('Filter by audit number prefix (e.g., "5633")'),
+    category: z
       .string()
       .nullable()
       .default(null)
-      .describe('Filter by material type (e.g., "RSG3", "MG2/1")'),
-    year: z.number().nullable().default(null).describe('Filter by specific year'),
+      .describe('Filter by category field from data JSON (varies per client)'),
+    year: z
+      .number()
+      .nullable()
+      .default(null)
+      .describe('Filter by specific year'),
     groupBy: z
       .enum(['month', 'week'])
       .nullable()
@@ -100,29 +115,34 @@ export const getAuditTrendsConfig = {
 export const getAuditSubmissionsConfig = {
   name: 'getAuditSubmissions',
   description:
-    'Get PQI audit submissions with calculated scores. Use this to retrieve audit data filtered by type, modality, vehicle, or date range.',
+    'Get PQI audit submissions with calculated scores. Multi-client support.',
   inputSchema: z.object({
-    auditType: z
-      .enum(['IKZ', 'PQI', 'R&M'])
+    clientId: z
+      .number()
+      .default(16)
+      .describe('Client ID: 16 = RET, 21 = DJZ, etc.'),
+    formIds: z
+      .array(z.number())
       .nullable()
       .default(null)
-      .describe('Filter by audit type'),
-    modality: z
-      .enum(['Metro', 'Bus', 'Tram'])
-      .nullable()
-      .default(null)
-      .describe('Filter by transport modality'),
-    vehicleNumber: z
+      .describe(
+        'Filter by specific form IDs (optional - query database to find available forms)'
+      ),
+    auditNumber: z
       .string()
       .nullable()
       .default(null)
-      .describe('Filter by vehicle number (e.g., "5633" - matches audit_number prefix)'),
-    materialType: z
+      .describe('Filter by audit number prefix (e.g., "5633")'),
+    category: z
       .string()
       .nullable()
       .default(null)
-      .describe('Filter by material type (e.g., "RSG3", "MG2/1")'),
-    year: z.number().nullable().default(null).describe('Filter by specific year'),
+      .describe('Filter by category field from data JSON (varies per client)'),
+    year: z
+      .number()
+      .nullable()
+      .default(null)
+      .describe('Filter by specific year'),
     hasSafetyRisks: z
       .boolean()
       .nullable()

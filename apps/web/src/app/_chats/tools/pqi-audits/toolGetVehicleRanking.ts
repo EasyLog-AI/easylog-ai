@@ -6,7 +6,7 @@ import easylogDb from '@/lib/easylog/db';
 import tryCatch from '@/utils/try-catch';
 
 import { getVehicleRankingConfig } from './config';
-import { AUDIT_TYPE_FILTERS, CLIENT_ID, MODALITY_FILTERS } from './constants';
+import { CLIENT_FIELD_HINTS, DEFAULT_FIELD_NAMES } from './constants';
 import type { VehicleRanking } from './types';
 
 const toolGetVehicleRanking = () => {
@@ -14,36 +14,25 @@ const toolGetVehicleRanking = () => {
     ...getVehicleRankingConfig,
     execute: async (params) => {
       try {
-        // Build form ID filters
-        let finalFormIds: number[] = [];
-
-        if (params.auditType && params.modality) {
-          // If both filters specified, get intersection
-          const auditIds = new Set<number>(
-            AUDIT_TYPE_FILTERS[params.auditType]
-          );
-          const modalityIds = new Set<number>(
-            MODALITY_FILTERS[params.modality]
-          );
-          finalFormIds = Array.from(auditIds).filter((id) =>
-            modalityIds.has(id)
-          );
-        } else if (params.auditType) {
-          finalFormIds = [...AUDIT_TYPE_FILTERS[params.auditType]];
-        } else if (params.modality) {
-          finalFormIds = [...MODALITY_FILTERS[params.modality]];
-        }
+        // Get field names for this client (fallback to defaults)
+        const hints = CLIENT_FIELD_HINTS[params.clientId];
+        const observationsField =
+          hints?.observations || DEFAULT_FIELD_NAMES.observations;
+        const categoryField = hints?.category || DEFAULT_FIELD_NAMES.category;
+        const subcategoryField =
+          hints?.subcategory || DEFAULT_FIELD_NAMES.subcategory;
 
         // Build dynamic WHERE clause
         const conditions = [
-          sql`s.client_id = ${CLIENT_ID}`,
+          sql`s.client_id = ${params.clientId}`,
           sql`s.data IS NOT NULL`
         ];
 
-        if (finalFormIds.length > 0) {
+        // Filter by form IDs if provided
+        if (params.formIds && params.formIds.length > 0) {
           conditions.push(
             sql`s.project_form_id IN (${sql.join(
-              finalFormIds.map((id) => sql`${id}`),
+              params.formIds.map((id) => sql`${id}`),
               sql`, `
             )})`
           );
@@ -61,24 +50,36 @@ const toolGetVehicleRanking = () => {
         // Use default limit if null
         const limit = params.limit ?? 10;
 
+        // Build SELECT with dynamic fields
+        const observationsPath = sql.raw(`'$.${observationsField}'`);
+        const categoryPath = sql.raw(`'$.${categoryField}'`);
+        const subcategoryPath = sql.raw(`'$.${subcategoryField}'`);
+
         // Execute query
         const [result, error] = await tryCatch(
           easylogDb.execute<VehicleRanking>(sql`
             SELECT
-              JSON_UNQUOTE(JSON_EXTRACT(s.data, '$.typematerieel')) as material_type,
-              JSON_UNQUOTE(JSON_EXTRACT(s.data, '$.bu')) as business_unit,
+              JSON_UNQUOTE(JSON_EXTRACT(s.data, ${categoryPath})) as category,
+              JSON_UNQUOTE(JSON_EXTRACT(s.data, ${subcategoryPath})) as subcategory,
               COUNT(*) as total_audits,
               ROUND(AVG(
                 COALESCE(
                   (SELECT SUM(
                     CASE
-                      WHEN JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[5]')) REGEXP '^[0-9]+$'
+                      -- Try position [4] first (DJZ structure) - valid PQI scores: 1, 5, 10, 20
+                      WHEN JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[4]')) IN ('1', '5', '10', '20')
+                      THEN CAST(JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[4]')) AS UNSIGNED)
+                      -- Try position [5] (old RET structure) - valid PQI scores: 1, 5, 10, 20
+                      WHEN JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[5]')) IN ('1', '5', '10', '20')
                       THEN CAST(JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[5]')) AS UNSIGNED)
+                      -- Try position [6] (new RET structure) - valid PQI scores: 1, 5, 10, 20
+                      WHEN JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[6]')) IN ('1', '5', '10', '20')
+                      THEN CAST(JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[6]')) AS UNSIGNED)
                       ELSE 0
                     END
                   )
                   FROM JSON_TABLE(
-                    JSON_EXTRACT(s.data, '$.waarnemingen'),
+                    JSON_EXTRACT(s.data, ${observationsPath}),
                     '$[*]' COLUMNS (waarneming JSON PATH '$')
                   ) AS obs), 0
                 )
@@ -87,22 +88,61 @@ const toolGetVehicleRanking = () => {
                 COALESCE(
                   (SELECT SUM(
                     CASE
-                      WHEN JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[5]')) REGEXP '^[0-9]+$'
+                      -- Try position [4] first (DJZ structure) - valid PQI scores: 1, 5, 10, 20
+                      WHEN JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[4]')) IN ('1', '5', '10', '20')
+                      THEN CAST(JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[4]')) AS UNSIGNED)
+                      -- Try position [5] (old RET structure) - valid PQI scores: 1, 5, 10, 20
+                      WHEN JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[5]')) IN ('1', '5', '10', '20')
                       THEN CAST(JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[5]')) AS UNSIGNED)
+                      -- Try position [6] (new RET structure) - valid PQI scores: 1, 5, 10, 20
+                      WHEN JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[6]')) IN ('1', '5', '10', '20')
+                      THEN CAST(JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[6]')) AS UNSIGNED)
                       ELSE 0
                     END
                   )
                   FROM JSON_TABLE(
-                    JSON_EXTRACT(s.data, '$.waarnemingen'),
+                    JSON_EXTRACT(s.data, ${observationsPath}),
                     '$[*]' COLUMNS (waarneming JSON PATH '$')
                   ) AS obs), 0
                 )
               ) as total_score,
-              AVG(JSON_LENGTH(JSON_EXTRACT(s.data, '$.waarnemingen'))) as avg_observations
+              AVG(JSON_LENGTH(JSON_EXTRACT(s.data, ${observationsPath}))) as avg_observations,
+              
+              SUM(
+                COALESCE(
+                  (SELECT COUNT(*)
+                  FROM JSON_TABLE(
+                    JSON_EXTRACT(s.data, ${observationsPath}),
+                    '$[*]' COLUMNS (waarneming JSON PATH '$')
+                  ) AS obs
+                  WHERE (JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[4]')) = 'Anders' 
+                          AND JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[5]')) = 'Positief')
+                     OR (JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[5]')) = 'Anders' 
+                          AND JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[6]')) = 'Positief')
+                     OR (JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[6]')) = 'Anders' 
+                          AND JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[7]')) = 'Positief')), 0
+                )
+              ) as total_positives,
+              
+              SUM(
+                COALESCE(
+                  (SELECT COUNT(*)
+                  FROM JSON_TABLE(
+                    JSON_EXTRACT(s.data, ${observationsPath}),
+                    '$[*]' COLUMNS (waarneming JSON PATH '$')
+                  ) AS obs
+                  WHERE (JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[4]')) = 'Anders' 
+                          AND JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[5]')) = 'Opmerking')
+                     OR (JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[5]')) = 'Anders' 
+                          AND JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[6]')) = 'Opmerking')
+                     OR (JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[6]')) = 'Anders' 
+                          AND JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[7]')) = 'Opmerking')), 0
+                )
+              ) as total_remarks
 
             FROM submissions s
             WHERE ${whereClause}
-            GROUP BY material_type, business_unit
+            GROUP BY category, subcategory
             ORDER BY avg_score DESC
             LIMIT ${limit}
           `)

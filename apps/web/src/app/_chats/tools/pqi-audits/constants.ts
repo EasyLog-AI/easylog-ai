@@ -1,29 +1,71 @@
 /**
- * PQI Audit Constants (Product Quality Index)
- * Form ID mappings for audit types and modalities
+ * PQI Audit Constants (Product Quality Index) Fully generic multi-client
+ * support Supports completely different JSON structures per client
  */
-
-export const CLIENT_ID = 16;
 
 /**
- * Audit Type Form ID Mappings
- * Form IDs for different audit types (IKZ, PQI, R&M)
+ * Default JSON field names These are common field names that work for most
+ * clients Tools will try these fields if no client-specific hints exist
  */
-export const AUDIT_TYPE_FILTERS = {
-  IKZ: [145, 134, 137, 139, 136, 141, 131, 130, 132, 135, 129, 142],
-  PQI: [122, 125, 140, 127, 144, 126, 123, 128],
-  'R&M': [145, 140, 144, 141, 142]
+export const DEFAULT_FIELD_NAMES = {
+  auditNumber: 'auditnummer', // Audit identifier (can be: projectnummer, inspectienummer, etc.)
+  date: 'datum', // Audit date
+  observations: 'waarnemingen', // Observations array
+  category: 'typematerieel', // Primary category (can be: projectnaam, type, etc.)
+  subcategory: 'bu' // Secondary category (can be: locatie, kenmerk, etc.)
 } as const;
 
 /**
- * Modality Form ID Mappings
- * Filters by transport type (Metro, Bus, Tram)
+ * Optional client-specific field hints Add entries here if a client uses
+ * different field names Any field not specified will fall back to
+ * DEFAULT_FIELD_NAMES
+ *
+ * Examples of field variations:
+ *
+ * - AuditNumber: "auditnummer", "projectnummer", "inspectienummer",
+ *   "keuringnummer"
+ * - Date: "datum", "inspectiedatum", "keuringsdatum"
+ * - Observations: "waarnemingen", "bevindingen", "findings"
+ * - Category: "typematerieel", "projectnaam", "betreft", "type"
+ * - Subcategory: "bu", "locatie", "kenmerk", "contract"
  */
-export const MODALITY_FILTERS = {
-  Metro: [134, 137, 132, 135, 129, 122, 127],
-  Bus: [139, 131, 123, 128],
-  Tram: [136, 130, 125, 126]
-} as const;
-
-export type AuditType = keyof typeof AUDIT_TYPE_FILTERS;
-export type Modality = keyof typeof MODALITY_FILTERS;
+export const CLIENT_FIELD_HINTS: Record<
+  number,
+  {
+    name?: string;
+    auditNumber?: string;
+    date?: string;
+    observations?: string;
+    category?: string;
+    subcategory?: string;
+  }
+> = {
+  // RET (16) - Uses all default fields
+  16: {
+    name: 'RET'
+    // auditNumber: 'auditnummer' (default)
+    // date: 'datum' (default)
+    // observations: 'waarnemingen' (default)
+    // category: 'typematerieel' (default)
+    // subcategory: 'bu' (default)
+  },
+  // DJZ (21) - Uses different category fields
+  21: {
+    name: 'DJZ',
+    category: 'betreft', // Project name instead of typematerieel
+    subcategory: 'kenmerk' // Contract instead of bu
+    // auditNumber: 'auditnummer' (default)
+    // date: 'datum' (default)
+    // observations: 'waarnemingen' (default)
+  }
+  // Future clients: Add entries ONLY for fields that differ from defaults
+  // Example with ALL fields different:
+  // 99: {
+  //   name: 'CustomClient',
+  //   auditNumber: 'projectnummer',
+  //   date: 'inspectiedatum',
+  //   observations: 'bevindingen',
+  //   category: 'projecttype',
+  //   subcategory: 'locatie'
+  // }
+};
