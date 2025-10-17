@@ -274,8 +274,8 @@ class PlaybookBullet(BaseModel):
         return self.helpful_count - self.harmful_count
 
     def to_compact_format(self) -> str:
-        """Compact format for cost savings: [id:↑h↓h] content."""
-        return f"[{self.id}:↑{self.helpful_count}↓{self.harmful_count}] {self.content}"
+        """Compact format for cost savings: [ACE-id:↑h↓h] content."""
+        return f"[ACE-{self.id}:↑{self.helpful_count}↓{self.harmful_count}] {self.content}"
 
 
 class Playbook(BaseModel):
@@ -371,8 +371,8 @@ MUMC_PLAYBOOK_SECTIONS = {
     "factual_verification": "Data verification rules to prevent false claims",
 }
 
-ACE_CITATION_REGEX = re.compile(r"\[ACE:(?P<bullet>[a-zA-Z0-9_-]+)\]")
-ACE_USED_LINE_REGEX = re.compile(r"ACE_USED:\s*(?P<ids>[a-zA-Z0-9_,\-\s]+)", re.IGNORECASE)
+ACE_CITATION_REGEX = re.compile(r"ACE-(?P<bullet>[0-9]+)")
+ACE_USED_LINE_REGEX = re.compile(r"ACE-(?P<ids>[0-9]+(?:,\s*ACE-[0-9]+)*)", re.IGNORECASE)
 
 # Tools that pause ACE learning during questionnaire handling
 # ACE Paused Tools - Tools where ACE learning is disabled
@@ -1992,7 +1992,7 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
                     continue
 
                 # Generate unique ID
-                bullet_id = f"mumc-{len(playbook.bullets) + 1:03d}"
+                bullet_id = str(len(playbook.bullets) + 1)
 
                 # Create new bullet
                 bullet = PlaybookBullet(
@@ -4055,9 +4055,9 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
         if playbook.bullets:
             llm_content += (
                 "\n\n### ACE Instrumentation\n"
-                "- Cite playbook bullets inline using the format [ACE:<bullet_id>] whenever you apply them.\n"
-                "- When calling tools, include an `ace_used_bullets` field listing the bullet IDs (comma-separated) that informed the call.\n"
-                "- End each assistant response with a line 'ACE_USED: <bullet_id1>, <bullet_id2>' when any bullets guided your decisions."
+                "- When playbook bullets guided your response, end your message with ONLY: ACE-1 (if bullet 1) or ACE-1, ACE-2 (if bullets 1 and 2).\n"
+                "- No prefix like 'ACE_USED:' or 'ACE:' - just the bullet IDs.\n"
+                "- Example: 'Your response text here.\n\nACE-1, ACE-3'"
             )
         else:
             # Empty playbook: Do NOT instruct about ACE at all to prevent hallucination
