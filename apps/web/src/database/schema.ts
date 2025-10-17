@@ -175,7 +175,7 @@ export type AgentCapabilities = {
   core?: boolean;
   memories?: boolean;
   multipleChoice?: boolean;
-  retAudits?: boolean;
+  pqiAudits?: boolean;
   followUps?: boolean;
   submissions?: boolean;
 };
@@ -212,7 +212,7 @@ export const agents = pgTable('agents', {
       knowledgeBase: true,
       memories: true,
       multipleChoice: true,
-      retAudits: true
+      pqiAudits: true
     })
     .$type<AgentCapabilities>(),
   ...timestamps

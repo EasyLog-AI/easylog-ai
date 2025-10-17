@@ -6,7 +6,7 @@ import easylogDb from '@/lib/easylog/db';
 import tryCatch from '@/utils/try-catch';
 
 import { getAuditTrendsConfig } from './config';
-import { AUDIT_TYPE_FILTERS, CLIENT_ID, MODALITY_FILTERS } from './constants';
+import { CLIENT_FIELD_HINTS, DEFAULT_FIELD_NAMES } from './constants';
 import type { AuditTrend } from './types';
 
 const toolGetAuditTrends = () => {
@@ -14,50 +14,43 @@ const toolGetAuditTrends = () => {
     ...getAuditTrendsConfig,
     execute: async (params) => {
       try {
-        // Build form ID filters
-        let finalFormIds: number[] = [];
-
-        if (params.auditType && params.modality) {
-          // If both filters specified, get intersection
-          const auditIds = new Set<number>(
-            AUDIT_TYPE_FILTERS[params.auditType]
-          );
-          const modalityIds = new Set<number>(
-            MODALITY_FILTERS[params.modality]
-          );
-          finalFormIds = Array.from(auditIds).filter((id) =>
-            modalityIds.has(id)
-          );
-        } else if (params.auditType) {
-          finalFormIds = [...AUDIT_TYPE_FILTERS[params.auditType]];
-        } else if (params.modality) {
-          finalFormIds = [...MODALITY_FILTERS[params.modality]];
-        }
+        // Get field names for this client (fallback to defaults)
+        const hints = CLIENT_FIELD_HINTS[params.clientId];
+        const auditNumberField =
+          hints?.auditNumber || DEFAULT_FIELD_NAMES.auditNumber;
+        const observationsField =
+          hints?.observations || DEFAULT_FIELD_NAMES.observations;
+        const categoryField = hints?.category || DEFAULT_FIELD_NAMES.category;
 
         // Build dynamic WHERE clause
         const conditions = [
-          sql`s.client_id = ${CLIENT_ID}`,
+          sql`s.client_id = ${params.clientId}`,
           sql`s.data IS NOT NULL`
         ];
 
-        if (finalFormIds.length > 0) {
+        // Filter by form IDs if provided
+        if (params.formIds && params.formIds.length > 0) {
           conditions.push(
             sql`s.project_form_id IN (${sql.join(
-              finalFormIds.map((id) => sql`${id}`),
+              params.formIds.map((id) => sql`${id}`),
               sql`, `
             )})`
           );
         }
 
-        if (params.vehicleNumber) {
+        // Filter by audit number prefix (flexible field)
+        if (params.auditNumber) {
+          const auditPath = sql.raw(`'$.${auditNumberField}'`);
           conditions.push(
-            sql`JSON_UNQUOTE(JSON_EXTRACT(s.data, '$.auditnummer')) LIKE ${`${params.vehicleNumber}%`}`
+            sql`JSON_UNQUOTE(JSON_EXTRACT(s.data, ${auditPath})) LIKE ${`${params.auditNumber}%`}`
           );
         }
 
-        if (params.materialType) {
+        // Filter by category (flexible field)
+        if (params.category) {
+          const catPath = sql.raw(`'$.${categoryField}'`);
           conditions.push(
-            sql`JSON_UNQUOTE(JSON_EXTRACT(s.data, '$.typematerieel')) = ${params.materialType}`
+            sql`JSON_UNQUOTE(JSON_EXTRACT(s.data, ${catPath})) = ${params.category}`
           );
         }
 
@@ -73,6 +66,9 @@ const toolGetAuditTrends = () => {
         // Date format based on groupBy
         const dateFormat = params.groupBy === 'week' ? '%Y-%u' : '%Y-%m';
 
+        // Build SELECT with dynamic observations field
+        const observationsPath = sql.raw(`'$.${observationsField}'`);
+
         // Execute query
         const [result, error] = await tryCatch(
           easylogDb.execute<AuditTrend>(sql`
@@ -83,13 +79,20 @@ const toolGetAuditTrends = () => {
                 COALESCE(
                   (SELECT SUM(
                     CASE
-                      WHEN JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[5]')) REGEXP '^[0-9]+$'
+                      -- Try position [4] first (DJZ structure) - valid PQI scores: 1, 5, 10, 20
+                      WHEN JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[4]')) IN ('1', '5', '10', '20')
+                      THEN CAST(JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[4]')) AS UNSIGNED)
+                      -- Try position [5] (old RET structure) - valid PQI scores: 1, 5, 10, 20
+                      WHEN JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[5]')) IN ('1', '5', '10', '20')
                       THEN CAST(JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[5]')) AS UNSIGNED)
+                      -- Try position [6] (new RET structure) - valid PQI scores: 1, 5, 10, 20
+                      WHEN JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[6]')) IN ('1', '5', '10', '20')
+                      THEN CAST(JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[6]')) AS UNSIGNED)
                       ELSE 0
                     END
                   )
                   FROM JSON_TABLE(
-                    JSON_EXTRACT(s.data, '$.waarnemingen'),
+                    JSON_EXTRACT(s.data, ${observationsPath}),
                     '$[*]' COLUMNS (waarneming JSON PATH '$')
                   ) AS obs), 0
                 )
@@ -98,18 +101,25 @@ const toolGetAuditTrends = () => {
                 COALESCE(
                   (SELECT SUM(
                     CASE
-                      WHEN JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[5]')) REGEXP '^[0-9]+$'
+                      -- Try position [4] first (DJZ structure) - valid PQI scores: 1, 5, 10, 20
+                      WHEN JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[4]')) IN ('1', '5', '10', '20')
+                      THEN CAST(JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[4]')) AS UNSIGNED)
+                      -- Try position [5] (old RET structure) - valid PQI scores: 1, 5, 10, 20
+                      WHEN JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[5]')) IN ('1', '5', '10', '20')
                       THEN CAST(JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[5]')) AS UNSIGNED)
+                      -- Try position [6] (new RET structure) - valid PQI scores: 1, 5, 10, 20
+                      WHEN JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[6]')) IN ('1', '5', '10', '20')
+                      THEN CAST(JSON_UNQUOTE(JSON_EXTRACT(waarneming, '$[6]')) AS UNSIGNED)
                       ELSE 0
                     END
                   )
                   FROM JSON_TABLE(
-                    JSON_EXTRACT(s.data, '$.waarnemingen'),
+                    JSON_EXTRACT(s.data, ${observationsPath}),
                     '$[*]' COLUMNS (waarneming JSON PATH '$')
                   ) AS obs), 0
                 )
               ) as total_audit_score,
-              AVG(JSON_LENGTH(JSON_EXTRACT(s.data, '$.waarnemingen'))) as avg_observations
+              AVG(JSON_LENGTH(JSON_EXTRACT(s.data, ${observationsPath}))) as avg_observations
 
             FROM submissions s
             WHERE ${whereClause}
