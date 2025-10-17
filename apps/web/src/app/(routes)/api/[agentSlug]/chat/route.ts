@@ -74,10 +74,10 @@ import toolLoadDocument from '@/app/_chats/tools/knowledge-base/toolLoadDocument
 import toolSearchKnowledgeBase from '@/app/_chats/tools/knowledge-base/toolSearchKnowledgeBase';
 import toolAnswerMultipleChoice from '@/app/_chats/tools/multiple-choice/toolAnswerMultipleChoice';
 import toolCreateMultipleChoice from '@/app/_chats/tools/multiple-choice/toolCreateMultipleChoice';
-import toolGetAuditSubmissions from '@/app/_chats/tools/ret-audits/toolGetAuditSubmissions';
-import toolGetAuditTrends from '@/app/_chats/tools/ret-audits/toolGetAuditTrends';
-import toolGetObservationsAnalysis from '@/app/_chats/tools/ret-audits/toolGetObservationsAnalysis';
-import toolGetVehicleRanking from '@/app/_chats/tools/ret-audits/toolGetVehicleRanking';
+import toolGetAuditSubmissions from '@/app/_chats/tools/pqi-audits/toolGetAuditSubmissions';
+import toolGetAuditTrends from '@/app/_chats/tools/pqi-audits/toolGetAuditTrends';
+import toolGetObservationsAnalysis from '@/app/_chats/tools/pqi-audits/toolGetObservationsAnalysis';
+import toolGetVehicleRanking from '@/app/_chats/tools/pqi-audits/toolGetVehicleRanking';
 import { ChatMessage } from '@/app/_chats/types';
 import getToolNamesFromCapabilities from '@/app/_chats/utils/getToolNamesFromCapabilities';
 import db from '@/database/client';
