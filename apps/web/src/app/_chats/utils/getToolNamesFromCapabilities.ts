@@ -76,6 +76,43 @@ const getToolNamesFromCapabilities = (
     );
   }
 
+  // Follow-ups capability
+  if (capabilities.followUps) {
+    toolNames.push(
+      'listFollowUps',
+      'showFollowUp',
+      'createFollowUp',
+      'updateFollowUp',
+      'deleteFollowUp',
+      'listFollowUpEntries',
+      'showFollowUpEntry',
+      'createFollowUpEntry',
+      'updateFollowUpEntry',
+      'deleteFollowUpEntry',
+      'listFollowUpCategories',
+      'showFollowUpCategory',
+      'listForms',
+      'showForm',
+      'createForm',
+      'updateForm',
+      'deleteForm'
+    );
+  }
+
+  // Submissions capability
+  if (capabilities.submissions) {
+    toolNames.push(
+      'listSubmissions',
+      'showSubmission',
+      'createSubmission',
+      'updateSubmission',
+      'deleteSubmission',
+      'listSubmissionMedia',
+      'prepareSubmission',
+      'uploadSubmissionMedia'
+    );
+  }
+
   return toolNames;
 };
 

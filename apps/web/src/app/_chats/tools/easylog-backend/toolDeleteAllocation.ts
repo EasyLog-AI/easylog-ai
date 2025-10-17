@@ -13,14 +13,14 @@ const toolDeleteAllocation = (userId: string) => {
       const client = await getEasylogClient(userId);
 
       const [_, error] = await tryCatch(
-        client.allocations.v2DatasourcesAllocationsAllocationIdDelete({
-          allocationId
+        client.allocations.deleteAllocation({
+          allocation: allocationId
         })
       );
 
       if (error) {
         Sentry.captureException(error);
-        return `Error getting allocations: ${error.message}`;
+        return `Error deleting allocation: ${error.message}`;
       }
 
       console.log('allocation deleted');

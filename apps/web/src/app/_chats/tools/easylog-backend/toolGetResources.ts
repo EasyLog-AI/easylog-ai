@@ -13,7 +13,7 @@ const toolGetResources = (userId: string) => {
       const client = await getEasylogClient(userId);
 
       const [resources, error] = await tryCatch(
-        client.planningResources.v2DatasourcesResourcesGet()
+        client.datasources.listResources()
       );
 
       if (error) {

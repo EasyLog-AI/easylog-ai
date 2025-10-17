@@ -13,12 +13,10 @@ const toolGetResourceGroups = (userId: string) => {
       const client = await getEasylogClient(userId);
 
       const [resourceGroups, error] = await tryCatch(
-        client.planningResources.v2DatasourcesResourcesResourceIdResourceSlugGet(
-          {
-            resourceId,
-            resourceSlug
-          }
-        )
+        client.datasources.showResourceByGroup({
+          resource: resourceId,
+          slug: resourceSlug
+        })
       );
 
       if (error) {

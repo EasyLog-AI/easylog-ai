@@ -13,7 +13,7 @@ const toolGetDataSources = (userId: string) => {
       const client = await getEasylogClient(userId);
 
       const [datasources, error] = await tryCatch(
-        client.datasources.v2DatasourcesGet({
+        client.datasources.listDatasources({
           types
         })
       );

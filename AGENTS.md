@@ -113,20 +113,22 @@ Super agents are autonomous AI agents that run on scheduled intervals to perform
 
 This project has **two different super agent systems**:
 
-| Feature | Web Environment ✨ | Python Environment (Legacy) |
-|---------|-------------------|----------------------------|
-| **Status** | Current & Recommended | Legacy/Maintenance Only |
-| **Location** | `apps/web/src/jobs/super-agent/` | `apps/api/src/agents/base_agent.py` |
-| **Language** | TypeScript/Next.js | Python/FastAPI |
-| **Scheduling** | Trigger.dev (distributed) | APScheduler (local) |
-| **Configuration** | Database (`super_agents` table) | Code (`super_agent_config()`) |
-| **Management** | API/Database updates | Code changes + restart |
-| **Scalability** | High (distributed tasks) | Low (single server) |
-| **Observability** | Trigger.dev dashboard | Server logs |
-| **When to Use** | **All new super agents** | Maintaining existing only |
+| Feature           | Web Environment ✨               | Python Environment (Legacy)         |
+| ----------------- | -------------------------------- | ----------------------------------- |
+| **Status**        | Current & Recommended            | Legacy/Maintenance Only             |
+| **Location**      | `apps/web/src/jobs/super-agent/` | `apps/api/src/agents/base_agent.py` |
+| **Language**      | TypeScript/Next.js               | Python/FastAPI                      |
+| **Scheduling**    | Trigger.dev (distributed)        | APScheduler (local)                 |
+| **Configuration** | Database (`super_agents` table)  | Code (`super_agent_config()`)       |
+| **Management**    | API/Database updates             | Code changes + restart              |
+| **Scalability**   | High (distributed tasks)         | Low (single server)                 |
+| **Observability** | Trigger.dev dashboard            | Server logs                         |
+| **When to Use**   | **All new super agents**         | Maintaining existing only           |
 
 **Summary:**
+
 1. **Web Environment (TypeScript/Next.js)** - **✨ Current & Recommended**
+
    - Located in `apps/web/src/jobs/super-agent/`
    - Uses Trigger.dev for distributed scheduling
    - Database-driven configuration via `super_agents` table
@@ -162,6 +164,7 @@ The web environment super agent system uses a database-driven approach:
    - Can write messages back to the chat
 
 **Key Features:**
+
 - **Scratchpad**: Private notes that persist between runs for state tracking
 - **User Memories**: Access to user-specific memories for context
 - **Chat History**: Full access to conversation history
@@ -177,71 +180,79 @@ The web environment super agent system uses a database-driven approach:
 #### Step-by-Step Process
 
 **1. Confirm the Target Environment**
-   - Always ask the user which environment to use (dev/staging/production)
-   - For production, use the Neon project `still-wind-33703124`
+
+- Always ask the user which environment to use (dev/staging/production)
+- For production, use the Neon project `still-wind-33703124`
 
 **2. List Available Agents**
-   ```sql
-   SELECT id, name, slug FROM agents ORDER BY created_at DESC LIMIT 10
-   ```
-   - Ask the user which agent the super agent should be attached to
-   - Common options: Develop, MUMC, HG, etc.
+
+```sql
+SELECT id, name, slug FROM agents ORDER BY created_at DESC LIMIT 10
+```
+
+- Ask the user which agent the super agent should be attached to
+- Common options: Develop, MUMC, HG, etc.
 
 **3. Create the Super Agent Database Record**
-   ```sql
-   INSERT INTO super_agents (name, model, reasoning, reasoning_effort, agent_id, prompt)
-   VALUES (
-     'Your Super Agent Name',
-     'gpt-4o-mini',  -- or another model
-     false,          -- enable reasoning if needed
-     'low',          -- reasoning effort: low/medium/high
-     '<agent-id>',   -- from step 2
-     'Your detailed prompt explaining what the super agent should do'
-   )
-   RETURNING id, name, agent_id
-   ```
-   - Save the returned `id` - this is your `superAgentId`
+
+```sql
+INSERT INTO super_agents (name, model, reasoning, reasoning_effort, agent_id, prompt)
+VALUES (
+  'Your Super Agent Name',
+  'gpt-4o-mini',  -- or another model
+  false,          -- enable reasoning if needed
+  'low',          -- reasoning effort: low/medium/high
+  '<agent-id>',   -- from step 2
+  'Your detailed prompt explaining what the super agent should do'
+)
+RETURNING id, name, agent_id
+```
+
+- Save the returned `id` - this is your `superAgentId`
 
 **4. Create the Trigger.dev Schedule**
 
-   Use curl to create the schedule via the Trigger.dev API:
+Use curl to create the schedule via the Trigger.dev API:
 
-   ```bash
-   curl -X POST https://api.trigger.dev/api/v1/schedules \
-     -H "Authorization: Bearer <TRIGGER_SECRET_KEY>" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "task": "dispatch-super-agents",
-       "cron": "*/10 * * * *",  # Cron expression for interval
-       "timezone": "Europe/Amsterdam",  # Always use Amsterdam timezone
-       "externalId": "<superAgentId>",
-       "deduplicationKey": "superAgentId:<superAgentId>"
-     }'
-   ```
+```bash
+curl -X POST https://api.trigger.dev/api/v1/schedules \
+  -H "Authorization: Bearer <TRIGGER_SECRET_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "task": "dispatch-super-agents",
+    "cron": "*/10 * * * *",  # Cron expression for interval
+    "timezone": "Europe/Amsterdam",  # Always use Amsterdam timezone
+    "externalId": "<superAgentId>",
+    "deduplicationKey": "superAgentId:<superAgentId>"
+  }'
+```
 
-   - The response will include a `schedule.id` (starts with `sched_`)
-   - **IMPORTANT**: Always include `"timezone": "Europe/Amsterdam"` in the request body to schedule in Amsterdam timezone (IANA format)
-   - Common cron intervals:
-     - `*/10 * * * *` - Every 10 minutes
-     - `0 */2 * * *` - Every 2 hours
-     - `0 */3 * * *` - Every 3 hours
-     - `0 7 * * *` - Every day at 7:00 AM (Amsterdam time if timezone is set)
+- The response will include a `schedule.id` (starts with `sched_`)
+- **IMPORTANT**: Always include `"timezone": "Europe/Amsterdam"` in the request body to schedule in Amsterdam timezone (IANA format)
+- Common cron intervals:
+  - `*/10 * * * *` - Every 10 minutes
+  - `0 */2 * * *` - Every 2 hours
+  - `0 */3 * * *` - Every 3 hours
+  - `0 7 * * *` - Every day at 7:00 AM (Amsterdam time if timezone is set)
 
 **5. Update Super Agent with Schedule ID**
-   ```sql
-   UPDATE super_agents
-   SET schedule_id = '<schedule-id-from-step-4>'
-   WHERE id = '<superAgentId>'
-   RETURNING id, name, schedule_id
-   ```
+
+```sql
+UPDATE super_agents
+SET schedule_id = '<schedule-id-from-step-4>'
+WHERE id = '<superAgentId>'
+RETURNING id, name, schedule_id
+```
 
 #### Important Notes
 
 - **Environment Keys**: Make sure to use the correct Trigger.dev API key:
+
   - Dev: `tr_dev_...` (in `apps/web/.env`)
   - Production: `tr_prod_...` (in `apps/web/.env`, commented by default)
 
 - **Task Reference**: The schedule always uses `dispatch-super-agents` as the task ID (defined in `dispatch-super-agent-agent-job.ts`). This task:
+
   - Finds the super agent by `externalId` (the super agent database ID)
   - Gets all user chats for the associated agent
   - Dispatches individual `run-super-agent` jobs (from `run-super-agent-job.ts`) for each user's latest chat
@@ -283,17 +294,20 @@ When you need to change a super agent's schedule (cron expression, timezone, etc
 To completely remove a super agent, you must delete it from both Trigger.dev and the database:
 
 **1. List all super agents to find the schedule IDs:**
+
 ```sql
 SELECT id, name, schedule_id FROM super_agents
 ```
 
 **2. Delete schedules from Trigger.dev:**
+
 ```bash
 curl -X DELETE https://api.trigger.dev/api/v1/schedules/<schedule_id> \
   -H "Authorization: Bearer <TRIGGER_SECRET_KEY>"
 ```
 
 **3. Delete super agents from database:**
+
 ```sql
 -- Delete a specific super agent
 DELETE FROM super_agents WHERE id = '<superAgentId>' RETURNING id, name
@@ -318,28 +332,33 @@ DELETE FROM super_agents RETURNING id, name
 The Python FastAPI backend has a legacy super agent system built into the agent classes:
 
 **Architecture:**
+
 - Agents inherit from `BaseAgent[TConfig]` which provides super agent functionality
 - Each agent can implement `on_super_agent_call()` to define autonomous behavior
 - Agents return a `SuperAgentConfig` via `super_agent_config()` to enable scheduling
 - APScheduler handles the scheduling within the FastAPI application
 
 **Key Files:**
+
 - `apps/api/src/agents/base_agent.py` - Base agent class with super agent support
 - `apps/api/src/agents/tools/base_tools.py` - Contains `tool_call_super_agent()` tool
 
 **How It Works:**
+
 1. Agent defines `super_agent_config()` with cron expression
 2. APScheduler triggers the agent's `run_super_agent()` method
 3. Agent can use `tool_call_super_agent()` to trigger its own super agent behavior
 4. The `on_super_agent_call()` method handles the autonomous logic
 
 **Limitations:**
+
 - Runs only on the FastAPI server (no distributed execution)
 - Harder to configure and manage than web environment
 - Requires server restart to update schedules
 - Limited observability compared to Trigger.dev
 
 **When to Use:**
+
 - Only when maintaining existing Python agent super agent functionality
 - When the super agent logic is tightly coupled to Python-specific tools
 - For debugging or testing agent behavior locally
