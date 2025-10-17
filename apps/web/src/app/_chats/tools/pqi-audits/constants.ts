@@ -1,5 +1,5 @@
 /**
- * RET Rotterdam Audit Constants
+ * PQI Audit Constants (Product Quality Index)
  * Form ID mappings for audit types and modalities
  */
 
@@ -7,7 +7,7 @@ export const CLIENT_ID = 16;
 
 /**
  * Audit Type Form ID Mappings
- * Based on RET agent prompt specifications
+ * Form IDs for different audit types (IKZ, PQI, R&M)
  */
 export const AUDIT_TYPE_FILTERS = {
   IKZ: [145, 134, 137, 139, 136, 141, 131, 130, 132, 135, 129, 142],

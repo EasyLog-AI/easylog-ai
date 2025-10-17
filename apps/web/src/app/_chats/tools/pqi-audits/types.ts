@@ -1,5 +1,5 @@
 /**
- * TypeScript types for RET audit tool results
+ * TypeScript types for PQI audit tool results
  */
 
 export interface AuditSubmission {

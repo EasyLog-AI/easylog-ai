@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const getVehicleRankingConfig = {
   name: 'getVehicleRanking',
   description:
-    'Get RET vehicle/material ranking by average audit score and audit count. Use this to identify which vehicles have the most issues.',
+    'Get PQI vehicle/material ranking by average audit score and audit count. Use this to identify which vehicles/products have the most issues.',
   inputSchema: z.object({
     auditType: z
       .enum(['IKZ', 'PQI', 'R&M'])
@@ -27,7 +27,7 @@ export const getVehicleRankingConfig = {
 export const getObservationsAnalysisConfig = {
   name: 'getObservationsAnalysis',
   description:
-    'Analyze RET audit observations to find most common problems, grouped by category, aspect, and score. Use this to identify recurring issues.',
+    'Analyze PQI audit observations to find most common problems, grouped by category, aspect, and score. Use this to identify recurring issues.',
   inputSchema: z.object({
     auditType: z
       .enum(['IKZ', 'PQI', 'R&M'])
@@ -66,7 +66,7 @@ export const getObservationsAnalysisConfig = {
 export const getAuditTrendsConfig = {
   name: 'getAuditTrends',
   description:
-    'Get RET audit trends over time (monthly or weekly aggregations). Use this to analyze audit patterns and score trends.',
+    'Get PQI audit trends over time (monthly or weekly aggregations). Use this to analyze audit patterns and score trends.',
   inputSchema: z.object({
     auditType: z
       .enum(['IKZ', 'PQI', 'R&M'])
@@ -100,7 +100,7 @@ export const getAuditTrendsConfig = {
 export const getAuditSubmissionsConfig = {
   name: 'getAuditSubmissions',
   description:
-    'Get RET audit submissions with calculated scores. Use this to retrieve audit data filtered by type, modality, vehicle, or date range.',
+    'Get PQI audit submissions with calculated scores. Use this to retrieve audit data filtered by type, modality, vehicle, or date range.',
   inputSchema: z.object({
     auditType: z
       .enum(['IKZ', 'PQI', 'R&M'])
