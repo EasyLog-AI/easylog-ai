@@ -3,6 +3,7 @@
 This document describes the architecture, testing workflow, and tool management for AI agents in the EasyLog AI platform.
 
 ## Table of Contents
+
 - [Agent Architecture](#agent-architecture)
 - [Tool System](#tool-system)
 - [Testing Workflow](#testing-workflow)
@@ -14,6 +15,7 @@ This document describes the architecture, testing workflow, and tool management 
 ## Agent Architecture
 
 Agents are stored in the database (`agents` table) with the following key fields:
+
 - `id` - UUID identifier
 - `name` - Display name
 - `slug` - URL-friendly identifier
@@ -32,7 +34,7 @@ export type AgentCapabilities = {
   core?: boolean;
   memories?: boolean;
   multipleChoice?: boolean;
-  retAudits?: boolean;
+  pqiAudits?: boolean;
 };
 
 export const agents = pgTable('agents', {
@@ -55,6 +57,7 @@ The platform uses a capability-based access control system for agent tools. Inst
 ### Why Capabilities?
 
 **Before (allowed_tools):**
+
 ```json
 {
   "allowed_tools": [
@@ -71,10 +74,11 @@ The platform uses a capability-based access control system for agent tools. Inst
 ```
 
 **After (capabilities):**
+
 ```json
 {
   "capabilities": {
-    "retAudits": true,
+    "pqiAudits": true,
     "charts": true,
     "memories": true
   }
@@ -82,6 +86,7 @@ The platform uses a capability-based access control system for agent tools. Inst
 ```
 
 **Benefits:**
+
 - ✅ **Organized** - Related tools are grouped together
 - ✅ **Maintainable** - Adding tools to a group doesn't require updating agents
 - ✅ **Clear Intent** - Capabilities express what the agent can do, not implementation details
@@ -89,16 +94,16 @@ The platform uses a capability-based access control system for agent tools. Inst
 
 ### Capability Groups
 
-| Capability | Tools Included | Use Case |
-|-----------|---------------|----------|
-| `core` | clearChat, changeRole | Basic chat functionality (usually always enabled) |
-| `charts` | createBarChart, createLineChart, createPieChart, createStackedBarChart | Data visualization |
-| `planning` | getDatasources, getPlanningProjects, getPlanningPhases, getResources, createMultipleAllocations, etc. | EasyLog project planning features |
-| `sql` | executeSql | Direct database queries (use with caution) |
-| `knowledgeBase` | searchKnowledgeBase, loadDocument | Document search and RAG |
-| `memories` | createMemory, deleteMemory | User memory management |
-| `multipleChoice` | createMultipleChoice, answerMultipleChoice | Interactive choice widgets |
-| `retAudits` | getAuditSubmissions, getAuditTrends, getObservationsAnalysis, getVehicleRanking | RET-specific audit analysis |
+| Capability       | Tools Included                                                                                        | Use Case                                                                           |
+| ---------------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `core`           | clearChat, changeRole                                                                                 | Basic chat functionality (usually always enabled)                                  |
+| `charts`         | createBarChart, createLineChart, createPieChart, createStackedBarChart                                | Data visualization                                                                 |
+| `planning`       | getDatasources, getPlanningProjects, getPlanningPhases, getResources, createMultipleAllocations, etc. | EasyLog project planning features                                                  |
+| `sql`            | executeSql                                                                                            | Direct database queries (use with caution)                                         |
+| `knowledgeBase`  | searchKnowledgeBase, loadDocument                                                                     | Document search and RAG                                                            |
+| `memories`       | createMemory, deleteMemory                                                                            | User memory management                                                             |
+| `multipleChoice` | createMultipleChoice, answerMultipleChoice                                                            | Interactive choice widgets                                                         |
+| `pqiAudits`      | getAuditSubmissions, getAuditTrends, getObservationsAnalysis, getVehicleRanking                       | PQI audit analysis (Product Quality Index - productaudit voor kwaliteitsevaluatie) |
 
 ### Implementation
 
@@ -112,7 +117,7 @@ export const getToolNamesFromCapabilities = (
 
   const toolNames: string[] = [];
 
-  if (capabilities.retAudits) {
+  if (capabilities.pqiAudits) {
     toolNames.push(
       'getAuditSubmissions',
       'getAuditTrends',
@@ -143,7 +148,7 @@ tools/
 ├── execute-sql/         # General SQL query execution
 ├── knowledge-base/      # Document search and retrieval
 ├── multiple-choice/     # Interactive choice widgets
-└── ret-audits/          # RET-specific audit analysis tools ⭐ NEW
+└── pqi-audits/          # PQI audit analysis tools (Product Quality Index) ⭐ NEW
     ├── constants.ts
     ├── types.ts
     ├── config.ts
@@ -160,13 +165,13 @@ All tools are registered in `src/app/_chats/tools/tools.config.ts`:
 ```typescript
 import * as chartsTools from './charts/config';
 import * as coreTools from './core/config';
-import * as retAuditsTools from './ret-audits/config';
+import * as pqiAuditsTools from './pqi-audits/config';
 // ... other imports
 
 const toolsConfig = {
   ...chartsTools,
   ...coreTools,
-  ...retAuditsTools,
+  ...pqiAuditsTools
   // ... other tools
 } as const;
 ```
@@ -178,7 +183,7 @@ To prevent tool pollution and organize tool access, agents use capability-based 
 ```json
 {
   "capabilities": {
-    "retAudits": true,
+    "pqiAudits": true,
     "charts": true,
     "core": true
   }
@@ -186,6 +191,7 @@ To prevent tool pollution and organize tool access, agents use capability-based 
 ```
 
 **Available Capabilities:**
+
 - `core` - Basic tools (clearChat, changeRole)
 - `charts` - Visualization tools (createBarChart, createLineChart, createPieChart, createStackedBarChart)
 - `planning` - EasyLog planning tools (projects, phases, resources, allocations)
@@ -193,7 +199,7 @@ To prevent tool pollution and organize tool access, agents use capability-based 
 - `knowledgeBase` - Document search and retrieval (searchKnowledgeBase, loadDocument)
 - `memories` - User memory management (createMemory, deleteMemory)
 - `multipleChoice` - Interactive choice widgets (createMultipleChoice, answerMultipleChoice)
-- `retAudits` - RET audit analysis tools (getAuditSubmissions, getAuditTrends, getObservationsAnalysis, getVehicleRanking)
+- `pqiAudits` - PQI audit analysis tools (getAuditSubmissions, getAuditTrends, getObservationsAnalysis, getVehicleRanking) - Product Quality Index voor kwaliteitsevaluatie
 
 The chat route filters available tools based on these capabilities:
 
@@ -225,11 +231,12 @@ Use `src/scripts/testAgentPrompt.ts` to test agents locally:
 # Test a specific query
 bun run src/scripts/testAgentPrompt.ts <agent-slug> "<query>"
 
-# Example: Test RET agent
+# Example: Test agent with PQI audits
 bun run src/scripts/testAgentPrompt.ts ret "Wat zijn de meest voorkomende problemen?"
 ```
 
 **Script Features:**
+
 - ✅ Loads agent from database
 - ✅ Filters tools based on `allowed_tools`
 - ✅ Shows tool calls and results
@@ -278,6 +285,7 @@ bun run src/scripts/testAgentPrompt.ts ret "Voertuig 99999 prestaties"
 When tests fail or produce unexpected results:
 
 **Check Tool Calls:**
+
 ```typescript
 console.log('Tool Calls:', result.toolCalls);
 console.log('Tool Results:', result.toolResults);
@@ -285,6 +293,7 @@ console.log('Finish Reason:', result.finishReason);
 ```
 
 **Common Issues:**
+
 - ❌ **Empty response** - Check `maxSteps` or `stopWhen` configuration
 - ❌ **Wrong tool called** - Update prompt with clearer tool descriptions
 - ❌ **Tool error** - Check tool implementation and database connectivity
@@ -292,6 +301,7 @@ console.log('Finish Reason:', result.finishReason);
 - ❌ **Metadata pollution** - Ensure tools return clean JSON (not raw query results)
 
 **Fix Pattern (Data Cleaning):**
+
 ```typescript
 // ❌ BAD: Returns [data, metadata] tuple
 return JSON.stringify(result, null, 2);
@@ -302,6 +312,7 @@ return JSON.stringify(data, null, 2);
 ```
 
 **Fix Pattern (Multi-step):**
+
 ```typescript
 // ❌ BAD: Only one generation step
 const result = await generateText({ model, messages, tools });
@@ -346,7 +357,8 @@ const toolExample = () => {
         const result = await fetchData(params);
 
         // Clean data extraction (important!)
-        const data = Array.isArray(result) && result.length > 0 ? result[0] : result;
+        const data =
+          Array.isArray(result) && result.length > 0 ? result[0] : result;
 
         return JSON.stringify(data, null, 2);
       } catch (error) {
@@ -378,7 +390,7 @@ export { toolExample, getExampleConfig };
 import * as exampleTools from './[category]/config';
 
 const toolsConfig = {
-  ...exampleTools,
+  ...exampleTools
   // ... other tools
 } as const;
 ```
@@ -393,6 +405,7 @@ Add tool documentation to agent's prompt:
 **Use for**: Clear use case description
 
 **Parameters:**
+
 - `param1`: Description
 - `param2`: Description (optional)
 
@@ -401,6 +414,7 @@ getExample({ param1: "value" })
 getExample({ param1: "value", param2: 123 })
 
 **Workflow:**
+
 1. User asks X
 2. Call getExample
 3. Present results as Y
@@ -442,35 +456,40 @@ bun run src/scripts/testAgentPrompt.ts agent-slug "Test query that should use ge
 
 ## Agent-Specific Tools
 
-### RET Audits Tools (Example)
+### PQI Audits Tools (Example)
 
-The RET agent has 4 specialized tools for audit analysis:
+Product Quality Index tools - 4 specialized tools for productaudit analyses:
 
 **1. getAuditSubmissions** - Retrieve individual audits
+
 ```typescript
 Parameters: { auditType?, modality?, vehicleNumber?, year?, hasSafetyRisks?, limit? }
 Use for: Getting raw audit data with filters
 ```
 
 **2. getAuditTrends** - Analyze trends over time
+
 ```typescript
 Parameters: { auditType?, modality?, vehicleNumber?, year?, groupBy? }
 Use for: Monthly/weekly trend analysis
 ```
 
 **3. getObservationsAnalysis** - Find common problems
+
 ```typescript
 Parameters: { auditType?, modality?, vehicleNumber?, year?, minScore?, limit? }
 Use for: Top N problem identification
 ```
 
 **4. getVehicleRanking** - Rank vehicles by performance
+
 ```typescript
 Parameters: { auditType?, modality?, year?, limit? }
 Use for: Vehicle performance comparison
 ```
 
 **Tool Design Principles:**
+
 - ✅ **Type-safe** - Zod schemas with proper TypeScript types
 - ✅ **Parameterized** - Use `sql` template literals (never string concatenation)
 - ✅ **Filtered** - Dynamic WHERE clauses based on parameters
@@ -513,6 +532,7 @@ Use for: Vehicle performance comparison
 ## Troubleshooting
 
 ### Agent doesn't call any tools
+
 - ✅ Check `capabilities` includes necessary capability flags
 - ✅ Verify tool is mapped in `getToolNamesFromCapabilities.ts`
 - ✅ Verify tool descriptions are clear in prompt
@@ -520,17 +540,20 @@ Use for: Vehicle performance comparison
 - ✅ Check if `maxSteps` / `stopWhen` is configured
 
 ### Tool returns errors
+
 - ✅ Verify database connectivity
 - ✅ Check parameter validation
 - ✅ Review SQL query syntax
 - ✅ Test tool in isolation
 
 ### Response is empty
+
 - ✅ Ensure `maxSteps > 1` or use `stopWhen(stepCountIs(5))`
 - ✅ Check `finishReason` in debug output
 - ✅ Verify tool returns clean JSON (not metadata)
 
 ### Wrong tool parameters
+
 - ✅ Improve parameter descriptions
 - ✅ Add examples to prompt
 - ✅ Use Zod `.describe()` for guidance

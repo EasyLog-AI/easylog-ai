@@ -66,8 +66,8 @@ const getToolNamesFromCapabilities = (
     toolNames.push('createMultipleChoice', 'answerMultipleChoice');
   }
 
-  // RET audits capability
-  if (capabilities.retAudits) {
+  // PQI audits capability (Product Quality Index - productaudit voor kwaliteitsevaluatie)
+  if (capabilities.pqiAudits) {
     toolNames.push(
       'getAuditSubmissions',
       'getAuditTrends',

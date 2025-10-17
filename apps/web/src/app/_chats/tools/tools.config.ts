@@ -4,7 +4,7 @@ import * as easylogBackendTools from './easylog-backend/config';
 import * as executeSqlTools from './execute-sql/config';
 import * as knowledgeBaseTools from './knowledge-base/config';
 import * as multipleChoiceTools from './multiple-choice/config';
-import * as retAuditsTools from './ret-audits/config';
+import * as pqiAuditsTools from './pqi-audits/config';
 
 const toolsConfig = {
   ...chartsTools,
@@ -13,7 +13,7 @@ const toolsConfig = {
   ...executeSqlTools,
   ...knowledgeBaseTools,
   ...multipleChoiceTools,
-  ...retAuditsTools
+  ...pqiAuditsTools
 } as const;
 
 export default toolsConfig;
