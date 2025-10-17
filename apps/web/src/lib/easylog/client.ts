@@ -28,7 +28,7 @@ const createClient = ({
 }: ClientConfig) => {
   const config = new Configuration({
     basePath,
-    accessToken: apiKey
+    accessToken: `Bearer ${apiKey}`
   });
 
   return {
