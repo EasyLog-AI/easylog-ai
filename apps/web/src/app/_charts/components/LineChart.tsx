@@ -14,6 +14,8 @@ import ChartTooltip from '@/app/_ui/components/Chart/ChartTooltip';
 import ChartTooltipContent from '@/app/_ui/components/Chart/ChartTooltipContent';
 import { ChartConfig } from '@/app/_ui/components/Chart/utils/chartConfig';
 
+import { createDynamicTickFormatter } from '../utils/createDynamicTickFormatter';
+
 export interface LineChartProps {
   config: LineChartConfig;
 }
@@ -56,7 +58,7 @@ const LineChart = ({ config }: LineChartProps) => {
           tickLine={false}
           tickMargin={10}
           axisLine={false}
-          tickFormatter={(value) => value.slice(0, 3)}
+          tickFormatter={createDynamicTickFormatter(categories)}
         />
         <YAxis tickLine={false} axisLine={false} tickMargin={8} />
         <ChartTooltip content={<ChartTooltipContent hideLabel />} />

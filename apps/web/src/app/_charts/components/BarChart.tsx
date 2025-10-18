@@ -14,6 +14,8 @@ import ChartTooltip from '@/app/_ui/components/Chart/ChartTooltip';
 import ChartTooltipContent from '@/app/_ui/components/Chart/ChartTooltipContent';
 import { ChartConfig } from '@/app/_ui/components/Chart/utils/chartConfig';
 
+import { createDynamicTickFormatter } from '../utils/createDynamicTickFormatter';
+
 export interface BarChartProps {
   config: BarChartConfig;
 }
@@ -56,7 +58,7 @@ const BarChart = ({ config }: BarChartProps) => {
           tickLine={false}
           tickMargin={10}
           axisLine={false}
-          tickFormatter={(value) => String(value).slice(0, 10)}
+          tickFormatter={createDynamicTickFormatter(categories)}
           interval={0}
         />
         <YAxis tickLine={false} axisLine={false} tickMargin={8} />
