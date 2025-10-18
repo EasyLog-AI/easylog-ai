@@ -62,11 +62,84 @@ const createAnthropicProvider = (
           body: JSON.stringify(body)
         });
 
-        // Note: Cannot easily log usage metrics from streaming responses
-        // The response is a Server-Sent Events stream, not a JSON object
-        // Usage metrics are embedded in the stream events and would require
-        // stream parsing to extract, which would consume the response body.
-        // For now, we only log the request (which confirms context management is active)
+        // Stream usage logging (non-blocking):
+        // We tee() the SSE stream so we can parse one branch for usage metrics
+        // without consuming the original response stream returned to the caller.
+        try {
+          const originalBody = (
+            response as unknown as { body?: ReadableStream<Uint8Array> }
+          ).body;
+          if (originalBody && typeof (originalBody as any).tee === 'function') {
+            const [branchToClient, branchForLogging] = (
+              originalBody as any
+            ).tee();
+
+            // Return a new Response with the first branch so downstream streaming is preserved
+            const returned = new Response(branchToClient as any, {
+              status: response.status,
+              statusText: response.statusText,
+              headers: response.headers
+            });
+
+            // Parse SSE on the second branch in the background and log cache usage
+            void (async () => {
+              try {
+                const reader = (
+                  branchForLogging as ReadableStream<Uint8Array>
+                ).getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                for (;;) {
+                  const { value, done } = await reader.read();
+                  if (done) break;
+                  buffer += decoder.decode(value, { stream: true });
+                  let idx = buffer.indexOf('\n');
+                  while (idx >= 0) {
+                    const line = buffer.slice(0, idx).trim();
+                    buffer = buffer.slice(idx + 1);
+                    idx = buffer.indexOf('\n');
+
+                    // Anthropic SSE lines of interest are `data: {...}` JSON chunks
+                    if (line.startsWith('data:')) {
+                      const jsonText = line.slice(5).trim();
+                      if (jsonText && jsonText !== '[DONE]') {
+                        try {
+                          const evt = JSON.parse(jsonText);
+                          // usage may appear on evt.message.usage or evt.usage depending on event
+                          const usage = evt?.message?.usage ?? evt?.usage;
+                          const cacheCreation =
+                            usage?.cache_creation_tokens ?? 0;
+                          const cacheRead = usage?.cache_read_tokens ?? 0;
+                          if (cacheCreation > 0 || cacheRead > 0) {
+                            console.log(
+                              'ANTHROPIC USAGE:',
+                              JSON.stringify(
+                                {
+                                  cache_creation_tokens: cacheCreation,
+                                  cache_read_tokens: cacheRead
+                                },
+                                null,
+                                2
+                              )
+                            );
+                          }
+                        } catch {
+                          // ignore malformed chunk
+                        }
+                      }
+                    }
+                  }
+                }
+              } catch {
+                // ignore logging stream errors
+              }
+            })();
+
+            return returned as unknown as Response;
+          }
+        } catch {
+          // If tee/streaming is unavailable, fall back to returning the original response
+        }
 
         return response;
       } catch (error) {
