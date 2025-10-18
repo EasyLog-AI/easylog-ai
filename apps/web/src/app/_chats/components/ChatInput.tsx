@@ -1,9 +1,6 @@
 'use client';
 
 import {
-  IconFile,
-  IconFileDescription,
-  IconFileTypePdf,
   IconMicrophone,
   IconMicrophoneFilled,
   IconMicrophoneOff,
@@ -25,8 +22,8 @@ import Icon from '@/app/_ui/components/Icon/Icon';
 import IconSpinner from '@/app/_ui/components/Icon/IconSpinner';
 import useZodForm from '@/app/_ui/hooks/useZodForm';
 
-import useChatContext from '../hooks/useChatContext';
 import FileThumbnail from './FileThumbnail';
+import useChatContext from '../hooks/useChatContext';
 
 const schema = z
   .object({

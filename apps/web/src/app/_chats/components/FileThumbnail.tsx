@@ -1,13 +1,13 @@
-import { FileUIPart } from 'ai';
-import Image from 'next/image';
-import { useEffect, useMemo } from 'react';
-
-import Icon from '@/app/_ui/components/Icon/Icon';
 import {
   IconFile,
   IconFileDescription,
   IconFileTypePdf
 } from '@tabler/icons-react';
+import { FileUIPart } from 'ai';
+import Image from 'next/image';
+import { useEffect, useMemo } from 'react';
+
+import Icon from '@/app/_ui/components/Icon/Icon';
 
 type FileThumbnailProps = {
   file: File | FileUIPart;
