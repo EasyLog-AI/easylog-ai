@@ -312,7 +312,10 @@ export const POST = async (
       const result = streamText({
         ...createModel(provider, model, {
           reasoning,
-          cacheControl
+          cacheControl,
+          contextManagement: {
+            enabled: true
+          }
         }),
         system: promptWithContext,
         messages: convertToModelMessages(validatedMessages),
