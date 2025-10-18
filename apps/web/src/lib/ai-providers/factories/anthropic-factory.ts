@@ -66,16 +66,17 @@ const createAnthropicProvider = (
         // We tee() the SSE stream so we can parse one branch for usage metrics
         // without consuming the original response stream returned to the caller.
         try {
-          const originalBody = (
-            response as unknown as { body?: ReadableStream<Uint8Array> }
-          ).body;
-          if (originalBody && typeof (originalBody as any).tee === 'function') {
+          const originalBody = response.body;
+          if (
+            originalBody &&
+            typeof (originalBody as ReadableStream<Uint8Array>).tee === 'function'
+          ) {
             const [branchToClient, branchForLogging] = (
-              originalBody as any
+              originalBody as ReadableStream<Uint8Array>
             ).tee();
 
             // Return a new Response with the first branch so downstream streaming is preserved
-            const returned = new Response(branchToClient as any, {
+            const returned = new Response(branchToClient, {
               status: response.status,
               statusText: response.statusText,
               headers: response.headers
@@ -135,7 +136,7 @@ const createAnthropicProvider = (
               }
             })();
 
-            return returned as unknown as Response;
+            return returned;
           }
         } catch {
           // If tee/streaming is unavailable, fall back to returning the original response
