@@ -372,7 +372,9 @@ MUMC_PLAYBOOK_SECTIONS = {
 }
 
 ACE_CITATION_REGEX = re.compile(r"ACE-(?P<bullet>[0-9]+)")
+# Matches: "ACE-1" or "ACE-1, ACE-2, ACE-3" and captures all IDs
 ACE_USED_LINE_REGEX = re.compile(r"ACE-(?P<ids>[0-9]+(?:,\s*ACE-[0-9]+)*)", re.IGNORECASE)
+# Then extract all numbers via findall: re.findall(r'ACE-(\d+)', matched_string)
 
 # Tools that pause ACE learning during questionnaire handling
 # ACE Paused Tools - Tools where ACE learning is disabled
@@ -1030,7 +1032,9 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
         used_line_match = ACE_USED_LINE_REGEX.search(text)
         used_line_ids: list[str] = []
         if used_line_match:
-            used_line_ids = [part.strip() for part in used_line_match.group("ids").split(",")]
+            # Extract all ACE-N IDs from the matched line using findall
+            matched_text = used_line_match.group(0)
+            used_line_ids = re.findall(r'ACE-(\d+)', matched_text)
         return self._normalize_bullet_ids([*inline_matches, *used_line_ids])
 
     def _record_message_bullet_ids(self, text: str) -> None:
@@ -1524,15 +1528,15 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
 
             try:
                 playbook_data = self._playbook_file.read_text()
-                playbook = Playbook(**json.loads(playbook_data))
-                self.logger.info(
+            playbook = Playbook(**json.loads(playbook_data))
+            self.logger.info(
                     f"📚 ACE: Loaded agent-level playbook v{playbook.version} "
-                    f"with {len(playbook.bullets)} bullets "
-                    f"(~{playbook.total_tokens_estimate} tokens)"
-                )
-                return playbook
-            except Exception as e:
-                self.logger.error(f"❌ ACE: Error loading playbook: {e}")
+                f"with {len(playbook.bullets)} bullets "
+                f"(~{playbook.total_tokens_estimate} tokens)"
+            )
+            return playbook
+        except Exception as e:
+            self.logger.error(f"❌ ACE: Error loading playbook: {e}")
                 return Playbook(last_updated=self._get_amsterdam_timestamp())
 
     async def _save_playbook(self, playbook: Playbook) -> None:
@@ -1542,11 +1546,11 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
             playbook: Playbook to save
         """
         async with self._playbook_lock:
-            playbook.version += 1
+        playbook.version += 1
             playbook.last_updated = self._get_amsterdam_timestamp()
 
-            # Auto-prune if exceeding threshold
-            if len(playbook.bullets) > self.ace_config.prune_threshold:
+        # Auto-prune if exceeding threshold
+        if len(playbook.bullets) > self.ace_config.prune_threshold:
                 removed = playbook.prune_low_value_bullets(min_helpful_score=self.ace_config.min_helpful_score)
                 if removed > 0:
                     self.logger.info(
@@ -1559,11 +1563,11 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
             temp_file.write_text(playbook.model_dump_json(indent=2))
             temp_file.rename(self._playbook_file)
 
-            self.logger.info(
+        self.logger.info(
                 f"💾 ACE: Saved agent-level playbook v{playbook.version} "
-                f"with {len(playbook.bullets)} bullets "
-                f"(~{playbook.total_tokens_estimate} tokens)"
-            )
+            f"with {len(playbook.bullets)} bullets "
+            f"(~{playbook.total_tokens_estimate} tokens)"
+        )
 
     def _format_playbook_for_prompt(self, playbook: Playbook) -> str:
         """Format playbook as compact text for system prompt.

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "dev": "next dev --turbo",
+    "dev": "next dev --turbo --hostname localhost",
     "trigger:dev": "pnpm dlx trigger.dev@4.0.4 dev",
     "trigger:deploy": "pnpm dlx trigger.dev@4.0.4 deploy",
     "lint": "next lint",

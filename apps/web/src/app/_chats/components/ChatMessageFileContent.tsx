@@ -1,24 +1,29 @@
 import { FileUIPart } from 'ai';
-import Image from 'next/image';
+
+import FileThumbnail from './FileThumbnail';
 
 export interface ChatMessageFileContentProps {
   file: FileUIPart;
 }
 
 const ChatMessageFileContent = ({ file }: ChatMessageFileContentProps) => {
-  if (!file.mediaType.startsWith('image/')) {
-    return null;
+  if (file.mediaType.startsWith('image/')) {
+    return (
+      <div className="max-w-sm overflow-hidden rounded-xl">
+        <FileThumbnail file={file} className="h-auto w-full" />
+      </div>
+    );
   }
 
   return (
-    <div className="bg-surface-muted prose max-w-4xl overflow-hidden rounded-xl">
-      <Image
-        src={file.url}
-        alt={file.filename ?? 'File'}
-        width={500}
-        height={500}
-        className="h-auto"
+    <div className="flex max-w-fit items-center gap-3">
+      <FileThumbnail
+        file={file}
+        className="bg-surface-inverse-alpha-20% text-text-brand-on-fill"
       />
+      <span className="text-text-brand-on-fill max-w-[200px] truncate font-medium">
+        {file.filename}
+      </span>
     </div>
   );
 };
