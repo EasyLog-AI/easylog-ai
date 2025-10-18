@@ -62,18 +62,11 @@ const createAnthropicProvider = (
           body: JSON.stringify(body)
         });
 
-        // Clone the response to read its body for logging
-        const clonedResponse = response.clone();
-        const responseBody = await clonedResponse.json();
-
-        if (responseBody.usage) {
-          console.log('ANTHROPIC API USAGE:', {
-            input_tokens: responseBody.usage.input_tokens,
-            output_tokens: responseBody.usage.output_tokens,
-            cache_creation_tokens: responseBody.usage.cache_creation_tokens,
-            cache_read_tokens: responseBody.usage.cache_read_tokens
-          });
-        }
+        // Note: Cannot easily log usage metrics from streaming responses
+        // The response is a Server-Sent Events stream, not a JSON object
+        // Usage metrics are embedded in the stream events and would require
+        // stream parsing to extract, which would consume the response body.
+        // For now, we only log the request (which confirms context management is active)
 
         return response;
       } catch (error) {
