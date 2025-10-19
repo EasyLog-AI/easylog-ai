@@ -39,6 +39,7 @@ const createAnthropicProvider = (
           };
         }
 
+        // Log to console for monitoring
         console.log(
           'ANTHROPIC API REQUEST:',
           JSON.stringify(
