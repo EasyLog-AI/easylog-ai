@@ -22,7 +22,8 @@ const createAnthropicProvider = (
   return createAnthropic({
     apiKey: serverConfig.anthropicApiKey,
     headers: {
-      'anthropic-beta': 'context-management-2025-06-27'
+      'anthropic-beta':
+        'context-management-2025-06-27,prompt-caching-2024-07-31'
     },
     fetch: async (url, options) => {
       if (!options?.body) {
@@ -39,21 +40,36 @@ const createAnthropicProvider = (
           };
         }
 
-        // Log to console for monitoring
-        console.log(
-          'ANTHROPIC API REQUEST:',
-          JSON.stringify(
+        // Add cache_control to system message for prompt caching
+        if (body.system && typeof body.system === 'string') {
+          // Convert system string to cache-enabled format
+          body.system = [
             {
-              model: body.model,
-              messagesCount: body.messages.length,
-              system: body.system,
-              tools: body.tools?.length,
-              context_management: body.context_management
-            },
-            null,
-            2
-          )
-        );
+              type: 'text',
+              text: body.system,
+              cache_control: { type: 'ephemeral' }
+            }
+          ];
+        } else if (Array.isArray(body.system)) {
+          // Add cache_control to first system message block
+          if (body.system[0] && typeof body.system[0] === 'object') {
+            body.system[0].cache_control = { type: 'ephemeral' };
+          }
+        }
+
+        // Log to console for monitoring - show FULL details
+        const logData = {
+          model: body.model,
+          messagesCount: body.messages.length,
+          tools: body.tools?.length,
+          context_management: body.context_management,
+          systemHasCacheControl: Array.isArray(body.system)
+            ? body.system[0]?.cache_control !== undefined
+            : false
+        };
+
+        // Log as single line for better grep-ability
+        console.log('ANTHROPIC API REQUEST:', JSON.stringify(logData));
 
         const response = await fetch(url, {
           ...options,
@@ -70,7 +86,8 @@ const createAnthropicProvider = (
           const originalBody = response.body;
           if (
             originalBody &&
-            typeof (originalBody as ReadableStream<Uint8Array>).tee === 'function'
+            typeof (originalBody as ReadableStream<Uint8Array>).tee ===
+              'function'
           ) {
             const [branchToClient, branchForLogging] = (
               originalBody as ReadableStream<Uint8Array>
@@ -110,15 +127,23 @@ const createAnthropicProvider = (
                           // usage may appear on evt.message.usage or evt.usage depending on event
                           const usage = evt?.message?.usage ?? evt?.usage;
                           const cacheCreation =
-                            usage?.cache_creation_tokens ?? 0;
-                          const cacheRead = usage?.cache_read_tokens ?? 0;
-                          if (cacheCreation > 0 || cacheRead > 0) {
+                            usage?.cache_creation_input_tokens ?? 0;
+                          const cacheRead = usage?.cache_read_input_tokens ?? 0;
+
+                          // Log any usage data we find
+                          if (usage) {
                             console.log(
                               'ANTHROPIC USAGE:',
                               JSON.stringify(
                                 {
-                                  cache_creation_tokens: cacheCreation,
-                                  cache_read_tokens: cacheRead
+                                  cache_creation_input_tokens: cacheCreation,
+                                  cache_read_input_tokens: cacheRead,
+                                  cache_hit:
+                                    cacheRead > 0
+                                      ? '✅ CACHE HIT!'
+                                      : '❌ No cache hit',
+                                  input_tokens: usage.input_tokens,
+                                  output_tokens: usage.output_tokens
                                 },
                                 null,
                                 2
