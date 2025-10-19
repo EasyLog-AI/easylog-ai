@@ -57,6 +57,12 @@ const createAnthropicProvider = (
           }
         }
 
+        // Calculate context size
+        const contextSize = JSON.stringify(body).length;
+        const systemSize = JSON.stringify(body.system || '').length;
+        const messagesSize = JSON.stringify(body.messages || []).length;
+        const toolsSize = JSON.stringify(body.tools || []).length;
+        
         // Log to console for monitoring - show FULL details
         const logData = {
           model: body.model,
@@ -65,7 +71,14 @@ const createAnthropicProvider = (
           context_management: body.context_management,
           systemHasCacheControl: Array.isArray(body.system)
             ? body.system[0]?.cache_control !== undefined
-            : false
+            : false,
+          contextSizes: {
+            total: contextSize,
+            system: systemSize,
+            messages: messagesSize,
+            tools: toolsSize,
+            estimatedTokens: Math.round(contextSize / 4) // Rough estimate: 4 chars = 1 token
+          }
         };
 
         // Log as single line for better grep-ability
