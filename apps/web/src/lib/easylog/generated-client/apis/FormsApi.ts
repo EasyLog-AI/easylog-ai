@@ -15,6 +15,7 @@ import type {
   CategoryCollection,
   FormCollection,
   FormResource,
+  ProjectFormCollection,
   StoreFormInput,
   UpdateFormInput
 } from '../models/index';
@@ -25,6 +26,8 @@ import {
   FormCollectionToJSON,
   FormResourceFromJSON,
   FormResourceToJSON,
+  ProjectFormCollectionFromJSON,
+  ProjectFormCollectionToJSON,
   StoreFormInputFromJSON,
   StoreFormInputToJSON,
   UpdateFormInputFromJSON,
@@ -44,6 +47,10 @@ export interface GetFormSchemaRequest {
 }
 
 export interface ListFormCategoriesRequest {
+  form: number;
+}
+
+export interface ListFormProjectFormsRequest {
   form: number;
 }
 
@@ -267,6 +274,71 @@ export class FormsApi extends runtime.BaseAPI {
     initOverrides?: RequestInit | runtime.InitOverrideFunction
   ): Promise<CategoryCollection> {
     const response = await this.listFormCategoriesRaw(
+      requestParameters,
+      initOverrides
+    );
+    return await response.value();
+  }
+
+  /**
+   * Get all ProjectForms (form-to-project associations) for a specific form.
+   * This helps map from a form ID to project form IDs which are needed for
+   * submissions. List project forms for this form
+   */
+  async listFormProjectFormsRaw(
+    requestParameters: ListFormProjectFormsRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction
+  ): Promise<runtime.ApiResponse<ProjectFormCollection>> {
+    if (requestParameters['form'] == null) {
+      throw new runtime.RequiredError(
+        'form',
+        'Required parameter "form" was null or undefined when calling listFormProjectForms().'
+      );
+    }
+
+    const queryParameters: any = {};
+
+    const headerParameters: runtime.HTTPHeaders = {};
+
+    if (this.configuration && this.configuration.accessToken) {
+      // oauth required
+      headerParameters['Authorization'] = await this.configuration.accessToken(
+        'passport',
+        []
+      );
+    }
+
+    let urlPath = `/v2/forms/{form}/project-forms`;
+    urlPath = urlPath.replace(
+      `{${'form'}}`,
+      encodeURIComponent(String(requestParameters['form']))
+    );
+
+    const response = await this.request(
+      {
+        path: urlPath,
+        method: 'GET',
+        headers: headerParameters,
+        query: queryParameters
+      },
+      initOverrides
+    );
+
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
+      ProjectFormCollectionFromJSON(jsonValue)
+    );
+  }
+
+  /**
+   * Get all ProjectForms (form-to-project associations) for a specific form.
+   * This helps map from a form ID to project form IDs which are needed for
+   * submissions. List project forms for this form
+   */
+  async listFormProjectForms(
+    requestParameters: ListFormProjectFormsRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction
+  ): Promise<ProjectFormCollection> {
+    const response = await this.listFormProjectFormsRaw(
       requestParameters,
       initOverrides
     );

@@ -93,6 +93,7 @@ const getToolNamesFromCapabilities = (
       'showFollowUpCategory',
       'listForms',
       'showForm',
+      'listProjectForms',
       'createForm',
       'updateForm',
       'deleteForm'

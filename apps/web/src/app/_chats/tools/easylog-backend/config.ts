@@ -440,6 +440,15 @@ export const showFormConfig = {
   })
 } as const;
 
+export const listProjectFormsConfig = {
+  name: 'listProjectForms',
+  description:
+    'List all ProjectForms (form-to-project associations) for a specific form. This helps map from a form ID to project form IDs which are needed for submissions. Each ProjectForm represents an instance of a form attached to a specific project.',
+  inputSchema: z.object({
+    formId: z.number().describe('The ID of the form to get project forms for')
+  })
+} as const;
+
 export const createFormConfig = {
   name: 'createForm',
   description:

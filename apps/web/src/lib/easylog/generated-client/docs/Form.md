@@ -9,6 +9,7 @@
 | `description` | string  |
 | `avatar`      | string  |
 | `clientId`    | number  |
+| `content`     | string  |
 | `hasActions`  | boolean |
 | `createdAt`   | Date    |
 | `updatedAt`   | Date    |
@@ -26,6 +27,7 @@ const example = {
   description: null,
   avatar: null,
   clientId: null,
+  content: null,
   hasActions: null,
   createdAt: null,
   updatedAt: null,

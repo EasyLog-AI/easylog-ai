@@ -42,6 +42,13 @@ export interface Form {
    */
   clientId?: number;
   /**
+   * JSON string containing form schema, widgets, and configuration
+   *
+   * @memberof Form
+   * @type {string}
+   */
+  content?: string;
+  /**
    * @memberof Form
    * @type {boolean}
    */
@@ -85,6 +92,7 @@ export function FormFromJSONTyped(
     description: json['description'] == null ? undefined : json['description'],
     avatar: json['avatar'] == null ? undefined : json['avatar'],
     clientId: json['client_id'] == null ? undefined : json['client_id'],
+    content: json['content'] == null ? undefined : json['content'],
     hasActions: json['has_actions'] == null ? undefined : json['has_actions'],
     createdAt:
       json['created_at'] == null ? undefined : new Date(json['created_at']),
@@ -113,6 +121,7 @@ export function FormToJSONTyped(
     description: value['description'],
     avatar: value['avatar'],
     client_id: value['clientId'],
+    content: value['content'],
     has_actions: value['hasActions'],
     created_at:
       value['createdAt'] == null
