@@ -22,6 +22,7 @@ import Icon from '@/app/_ui/components/Icon/Icon';
 import IconSpinner from '@/app/_ui/components/Icon/IconSpinner';
 import useZodForm from '@/app/_ui/hooks/useZodForm';
 
+import FileThumbnail from './FileThumbnail';
 import useChatContext from '../hooks/useChatContext';
 
 const schema = z
@@ -84,7 +85,7 @@ const ChatInput = () => {
 
   const watchedFiles = watch('files');
 
-  const submitHandler: SubmitHandler<z.infer<typeof schema>> = async (data) => {
+  const submitHandler: SubmitHandler<z.infer<typeof schema>> = (data) => {
     if (connectionState === 'connected' && session) {
       session.sendMessage({
         type: 'message',
@@ -92,7 +93,7 @@ const ChatInput = () => {
         content: [{ type: 'input_text', text: data.content ?? '' }]
       });
     } else {
-      await sendMessage({
+      void sendMessage({
         text: data.content ?? '',
         files: data.files
       });
@@ -125,6 +126,8 @@ const ChatInput = () => {
   const isLoading =
     isSubmitting || status === 'submitted' || status === 'streaming';
 
+  const isInputDisabled = isSubmitting || status === 'submitted';
+
   const isStreaming = status === 'streaming';
 
   return (
@@ -147,48 +150,57 @@ const ChatInput = () => {
         <div className="space-y-5 px-5 pt-5">
           {watchedFiles && watchedFiles.length > 0 && (
             <div className="flex flex-wrap gap-2">
-              {Array.from(watchedFiles).map((file, index) => (
-                <div
-                  key={index}
-                  className="bg-fill-muted flex items-center gap-0.5 rounded-full py-1 pl-2.5 pr-1 text-sm"
-                >
-                  <span className="max-w-[200px] truncate">{file.name}</span>
-                  <Button
-                    type="button"
-                    size="xs"
-                    variant="ghost"
-                    shape="circle"
-                    onClick={() => {
-                      const dt = new DataTransfer();
-
-                      Array.from(watchedFiles).forEach((f, i) => {
-                        if (i !== index) dt.items.add(f);
-                      });
-
-                      setValue(
-                        'files',
-                        dt.files.length > 0 ? dt.files : undefined
-                      );
-                    }}
+              {Array.from(watchedFiles).map((file, index) => {
+                return (
+                  <div
+                    key={index}
+                    className="bg-fill-muted relative flex items-center gap-1.5 rounded-lg p-1 text-sm"
                   >
-                    <ButtonContent>
-                      <Icon icon={IconX} size="sm" />
-                    </ButtonContent>
-                  </Button>
-                </div>
-              ))}
+                    <FileThumbnail
+                      file={file}
+                      size="sm"
+                      className="bg-fill-brand text-text-brand-on-fill"
+                      iconClassName="!size-5"
+                    />
+                    <span className="max-w-[200px] truncate">{file.name}</span>
+                    <Button
+                      type="button"
+                      size="xs"
+                      variant="ghost"
+                      shape="circle"
+                      className="!bg-background-static-alpha-80% !absolute -right-1.5 -top-1.5 backdrop-blur-sm"
+                      onClick={() => {
+                        const dt = new DataTransfer();
+
+                        Array.from(watchedFiles).forEach((f, i) => {
+                          if (i !== index) dt.items.add(f);
+                        });
+
+                        setValue(
+                          'files',
+                          dt.files.length > 0 ? dt.files : undefined
+                        );
+                      }}
+                    >
+                      <ButtonContent>
+                        <Icon icon={IconX} size="sm" />
+                      </ButtonContent>
+                    </Button>
+                  </div>
+                );
+              })}
             </div>
           )}
 
           <div
             className="cursor-text data-[disabled=true]:cursor-not-allowed data-[disabled=true]:opacity-50"
-            data-disabled={isLoading}
+            data-disabled={isInputDisabled}
             onClick={() => {
               textareaRef.current?.focus();
             }}
           >
             <TextareaAutosize
-              disabled={isLoading}
+              disabled={isInputDisabled}
               autoFocus
               className="decoration-none placeholder:text-text-muted text-text-primary w-full resize-none focus:outline-none"
               ref={(e) => {
@@ -196,7 +208,7 @@ const ChatInput = () => {
                 textareaRef.current = e;
               }}
               onKeyDown={(e) => {
-                if (!e.shiftKey && e.key === 'Enter') {
+                if (!isStreaming && !e.shiftKey && e.key === 'Enter') {
                   e.preventDefault();
                   void handleSubmit(submitHandler)();
                 }
@@ -228,7 +240,7 @@ const ChatInput = () => {
               size="lg"
               type="button"
               colorRole="brand"
-              isDisabled={isLoading}
+              isDisabled={isInputDisabled}
               onClick={() => fileInputRef.current?.click()}
             >
               <ButtonContent>

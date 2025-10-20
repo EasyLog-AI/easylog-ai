@@ -170,4 +170,6 @@ node_modules
 .env*
 
 llm_cache
+# pnpm local store (never commit)
+.pnpm-store/
 .vercel

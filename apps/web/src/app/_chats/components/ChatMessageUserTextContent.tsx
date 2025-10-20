@@ -13,7 +13,7 @@ const ChatMessageUserTextContent = ({
 
   return (
     <div className="flex w-full justify-end">
-      <div className="from-fill-brand to-fill-brand-2 shadow-fill-brand/20 inline-flex max-w-2xl rounded-2xl bg-gradient-to-tr px-4 py-3 shadow-md">
+      <div className="inline-flex max-w-2xl">
         <Typography
           variant="bodyMd"
           asChild

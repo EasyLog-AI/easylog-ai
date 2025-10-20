@@ -1,9 +1,9 @@
 import { generateText, stepCountIs } from 'ai';
 
-import toolGetAuditSubmissions from '@/app/_chats/tools/ret-audits/toolGetAuditSubmissions';
-import toolGetAuditTrends from '@/app/_chats/tools/ret-audits/toolGetAuditTrends';
-import toolGetObservationsAnalysis from '@/app/_chats/tools/ret-audits/toolGetObservationsAnalysis';
-import toolGetVehicleRanking from '@/app/_chats/tools/ret-audits/toolGetVehicleRanking';
+import toolGetAuditSubmissions from '@/app/_chats/tools/pqi-audits/toolGetAuditSubmissions';
+import toolGetAuditTrends from '@/app/_chats/tools/pqi-audits/toolGetAuditTrends';
+import toolGetObservationsAnalysis from '@/app/_chats/tools/pqi-audits/toolGetObservationsAnalysis';
+import toolGetVehicleRanking from '@/app/_chats/tools/pqi-audits/toolGetVehicleRanking';
 import getToolNamesFromCapabilities from '@/app/_chats/utils/getToolNamesFromCapabilities';
 import db from '@/database/client';
 import createModel from '@/lib/ai-providers/create-model';
