@@ -33,8 +33,29 @@ const createAnthropicProvider = (
       try {
         const body = JSON.parse(options.body as string);
 
-        // Only add context_management if it's not already present
-        if (!body.context_management) {
+        // Disable context_management when any non-text content is present (e.g., images, PDFs, documents)
+        const hasNonTextContent = Array.isArray(body.messages)
+          ? body.messages.some((msg: { content?: unknown }) => {
+              const content = (msg as any).content;
+              if (Array.isArray(content)) {
+                return content.some(
+                  (part: { type?: string }) =>
+                    part &&
+                    typeof part === 'object' &&
+                    // Allow known safe text/tool blocks
+                    part.type !== 'text' &&
+                    part.type !== 'input_text' &&
+                    part.type !== 'tool_use' &&
+                    part.type !== 'tool_result'
+                );
+              }
+              // Strings are safe text; objects/others assume non-text
+              return content && typeof content !== 'string';
+            })
+          : false;
+
+        // Only add context_management if it's not already present AND there is no non-text content
+        if (!body.context_management && !hasNonTextContent) {
           body.context_management = {
             edits
           };
@@ -62,12 +83,43 @@ const createAnthropicProvider = (
         const systemSize = JSON.stringify(body.system || '').length;
         const messagesSize = JSON.stringify(body.messages || []).length;
         const toolsSize = JSON.stringify(body.tools || []).length;
-        
+
+        // Extract conversation details for logging
+        const messages = body.messages || [];
+        const recentMessages = messages.slice(-3); // Last 3 messages for context
+
+        // Extract tool uses from recent conversation
+        const toolUses: Array<{ name: string; id: string; input?: unknown }> =
+          [];
+        const toolResults: Array<{ tool_use_id: string; success?: boolean }> =
+          [];
+
+        for (const msg of messages) {
+          if (Array.isArray(msg.content)) {
+            for (const block of msg.content) {
+              if (block.type === 'tool_use') {
+                toolUses.push({
+                  name: block.name,
+                  id: block.id,
+                  input: block.input
+                });
+              } else if (block.type === 'tool_result') {
+                toolResults.push({
+                  tool_use_id: block.tool_use_id,
+                  success: !block.is_error
+                });
+              }
+            }
+          }
+        }
+
         // Log to console for monitoring - show FULL details
         const logData = {
           model: body.model,
           messagesCount: body.messages.length,
           tools: body.tools?.length,
+          toolsAvailable:
+            body.tools?.map((t: { name: string }) => t.name) || [],
           context_management: body.context_management,
           systemHasCacheControl: Array.isArray(body.system)
             ? body.system[0]?.cache_control !== undefined
@@ -78,6 +130,33 @@ const createAnthropicProvider = (
             messages: messagesSize,
             tools: toolsSize,
             estimatedTokens: Math.round(contextSize / 4) // Rough estimate: 4 chars = 1 token
+          },
+          conversation: {
+            recentMessages: recentMessages.map((msg) => ({
+              role: msg.role,
+              contentPreview: Array.isArray(msg.content)
+                ? msg.content.map((c) => c.type).join(', ')
+                : typeof msg.content === 'string'
+                  ? msg.content.substring(0, 100) +
+                    (msg.content.length > 100 ? '...' : '')
+                  : 'unknown',
+              hasToolUse:
+                Array.isArray(msg.content) &&
+                msg.content.some(
+                  (c: { type: string }) => c.type === 'tool_use'
+                ),
+              hasToolResult:
+                Array.isArray(msg.content) &&
+                msg.content.some(
+                  (c: { type: string }) => c.type === 'tool_result'
+                )
+            })),
+            toolUsesInConversation: toolUses.length,
+            toolResultsInConversation: toolResults.length,
+            recentToolUses: toolUses.slice(-5).map((t) => ({
+              name: t.name,
+              id: t.id
+            }))
           }
         };
 
@@ -113,7 +192,7 @@ const createAnthropicProvider = (
               headers: response.headers
             });
 
-            // Parse SSE on the second branch in the background and log cache usage
+            // Parse SSE on the second branch in the background and log cache usage & tool uses
             void (async () => {
               try {
                 const reader = (
@@ -121,6 +200,13 @@ const createAnthropicProvider = (
                 ).getReader();
                 const decoder = new TextDecoder();
                 let buffer = '';
+                const toolUsesInResponse: Array<{
+                  name: string;
+                  id: string;
+                  input: unknown;
+                }> = [];
+                let responseText = '';
+
                 for (;;) {
                   const { value, done } = await reader.read();
                   if (done) break;
@@ -137,6 +223,35 @@ const createAnthropicProvider = (
                       if (jsonText && jsonText !== '[DONE]') {
                         try {
                           const evt = JSON.parse(jsonText);
+
+                          // Track tool uses in the response
+                          if (
+                            evt.type === 'content_block_start' &&
+                            evt.content_block?.type === 'tool_use'
+                          ) {
+                            toolUsesInResponse.push({
+                              name: evt.content_block.name,
+                              id: evt.content_block.id,
+                              input: evt.content_block.input
+                            });
+                            console.log(
+                              'ANTHROPIC TOOL USE:',
+                              JSON.stringify({
+                                tool: evt.content_block.name,
+                                id: evt.content_block.id,
+                                input: evt.content_block.input
+                              })
+                            );
+                          }
+
+                          // Track text deltas for response preview
+                          if (
+                            evt.type === 'content_block_delta' &&
+                            evt.delta?.type === 'text_delta'
+                          ) {
+                            responseText += evt.delta.text;
+                          }
+
                           // usage may appear on evt.message.usage or evt.usage depending on event
                           const usage = evt?.message?.usage ?? evt?.usage;
                           const cacheCreation =
@@ -161,6 +276,21 @@ const createAnthropicProvider = (
                                 null,
                                 2
                               )
+                            );
+                          }
+
+                          // Log complete response summary at the end
+                          if (evt.type === 'message_stop') {
+                            console.log(
+                              'ANTHROPIC RESPONSE:',
+                              JSON.stringify({
+                                toolsUsed: toolUsesInResponse.length,
+                                tools: toolUsesInResponse.map((t) => t.name),
+                                responsePreview:
+                                  responseText.substring(0, 200) +
+                                  (responseText.length > 200 ? '...' : ''),
+                                responseLength: responseText.length
+                              })
                             );
                           }
                         } catch {
