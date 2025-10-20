@@ -372,9 +372,9 @@ MUMC_PLAYBOOK_SECTIONS = {
 }
 
 ACE_CITATION_REGEX = re.compile(r"ACE-(?P<bullet>[0-9]+)")
-# Matches: "ACE-1" or "ACE-1, ACE-2, ACE-3" and captures all IDs
-ACE_USED_LINE_REGEX = re.compile(r"ACE-(?P<ids>[0-9]+(?:,\s*ACE-[0-9]+)*)", re.IGNORECASE)
-# Then extract all numbers via findall: re.findall(r'ACE-(\d+)', matched_string)
+# Matches full pattern: "ACE-1" or "ACE-1, ACE-2, ACE-3"
+# Extract all IDs using: re.findall(r'ACE-(\d+)', match.group(0))
+ACE_USED_LINE_REGEX = re.compile(r"ACE-[0-9]+(?:,\s*ACE-[0-9]+)*", re.IGNORECASE)
 
 # Tools that pause ACE learning during questionnaire handling
 # ACE Paused Tools - Tools where ACE learning is disabled
