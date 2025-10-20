@@ -1528,15 +1528,15 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
 
             try:
                 playbook_data = self._playbook_file.read_text()
-            playbook = Playbook(**json.loads(playbook_data))
-            self.logger.info(
+                playbook = Playbook(**json.loads(playbook_data))
+                self.logger.info(
                     f"📚 ACE: Loaded agent-level playbook v{playbook.version} "
-                f"with {len(playbook.bullets)} bullets "
-                f"(~{playbook.total_tokens_estimate} tokens)"
-            )
-            return playbook
-        except Exception as e:
-            self.logger.error(f"❌ ACE: Error loading playbook: {e}")
+                    f"with {len(playbook.bullets)} bullets "
+                    f"(~{playbook.total_tokens_estimate} tokens)"
+                )
+                return playbook
+            except Exception as e:
+                self.logger.error(f"❌ ACE: Error loading playbook: {e}")
                 return Playbook(last_updated=self._get_amsterdam_timestamp())
 
     async def _save_playbook(self, playbook: Playbook) -> None:
@@ -1546,11 +1546,11 @@ class MUMCAgentACETest(BaseAgent[MUMCAgentACETestConfig]):
             playbook: Playbook to save
         """
         async with self._playbook_lock:
-        playbook.version += 1
+            playbook.version += 1
             playbook.last_updated = self._get_amsterdam_timestamp()
 
-        # Auto-prune if exceeding threshold
-        if len(playbook.bullets) > self.ace_config.prune_threshold:
+            # Auto-prune if exceeding threshold
+            if len(playbook.bullets) > self.ace_config.prune_threshold:
                 removed = playbook.prune_low_value_bullets(min_helpful_score=self.ace_config.min_helpful_score)
                 if removed > 0:
                     self.logger.info(
