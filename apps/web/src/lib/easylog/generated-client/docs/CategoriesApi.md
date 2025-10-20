@@ -1,17 +1,15 @@
 # CategoriesApi
 
-All URIs are relative to */api*
+All URIs are relative to _/api_
 
-| Method | HTTP request | Description |
-|------------- | ------------- | -------------|
-| [**createCategory**](CategoriesApi.md#createcategory) | **POST** /v2/categories | Create category |
-| [**deleteCategory**](CategoriesApi.md#deletecategory) | **DELETE** /v2/categories/{category} | Delete category |
-| [**listCategories**](CategoriesApi.md#listcategories) | **GET** /v2/categories | List categories |
+| Method                                                      | HTTP request                            | Description              |
+| ----------------------------------------------------------- | --------------------------------------- | ------------------------ |
+| [**createCategory**](CategoriesApi.md#createcategory)       | **POST** /v2/categories                 | Create category          |
+| [**deleteCategory**](CategoriesApi.md#deletecategory)       | **DELETE** /v2/categories/{category}    | Delete category          |
+| [**listCategories**](CategoriesApi.md#listcategories)       | **GET** /v2/categories                  | List categories          |
 | [**listCategoryForms**](CategoriesApi.md#listcategoryforms) | **GET** /v2/categories/{category}/forms | List forms in a category |
-| [**showCategory**](CategoriesApi.md#showcategory) | **GET** /v2/categories/{category} | Show category |
-| [**updateCategory**](CategoriesApi.md#updatecategory) | **PATCH** /v2/categories/{category} | Update category |
-
-
+| [**showCategory**](CategoriesApi.md#showcategory)           | **GET** /v2/categories/{category}       | Show category            |
+| [**updateCategory**](CategoriesApi.md#updatecategory)       | **PATCH** /v2/categories/{category}     | Update category          |
 
 ## createCategory
 
@@ -32,7 +30,7 @@ import type { CreateCategoryRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
+  const config = new Configuration({
     // To configure OAuth2 access token for authorization: passport password
     accessToken: "YOUR ACCESS TOKEN",
   });
@@ -57,10 +55,9 @@ example().catch(console.error);
 
 ### Parameters
 
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **storeCategoryInput** | [StoreCategoryInput](StoreCategoryInput.md) |  | |
+| Name                   | Type                                        | Description | Notes |
+| ---------------------- | ------------------------------------------- | ----------- | ----- |
+| **storeCategoryInput** | [StoreCategoryInput](StoreCategoryInput.md) |             |       |
 
 ### Return type
 
@@ -75,15 +72,14 @@ example().catch(console.error);
 - **Content-Type**: `application/json`
 - **Accept**: `application/json`
 
-
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **201** | Created category |  -  |
-| **422** | Validation error |  -  |
+
+| Status code | Description      | Response headers |
+| ----------- | ---------------- | ---------------- |
+| **201**     | Created category | -                |
+| **422**     | Validation error | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
 
 ## deleteCategory
 
@@ -96,23 +92,20 @@ Remove the specified resource from storage.
 ### Example
 
 ```ts
-import {
-  Configuration,
-  CategoriesApi,
-} from '';
+import { Configuration, CategoriesApi } from '';
 import type { DeleteCategoryRequest } from '';
 
 async function example() {
-  console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
+  console.log('🚀 Testing  SDK...');
+  const config = new Configuration({
     // To configure OAuth2 access token for authorization: passport password
-    accessToken: "YOUR ACCESS TOKEN",
+    accessToken: 'YOUR ACCESS TOKEN'
   });
   const api = new CategoriesApi(config);
 
   const body = {
     // number
-    category: 56,
+    category: 56
   } satisfies DeleteCategoryRequest;
 
   try {
@@ -129,10 +122,9 @@ example().catch(console.error);
 
 ### Parameters
 
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **category** | `number` |  | [Defaults to `undefined`] |
+| Name         | Type     | Description | Notes                     |
+| ------------ | -------- | ----------- | ------------------------- |
+| **category** | `number` |             | [Defaults to `undefined`] |
 
 ### Return type
 
@@ -147,15 +139,14 @@ example().catch(console.error);
 - **Content-Type**: Not defined
 - **Accept**: Not defined
 
-
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **204** | Category deleted |  -  |
-| **404** | Category not found |  -  |
+
+| Status code | Description        | Response headers |
+| ----------- | ------------------ | ---------------- |
+| **204**     | Category deleted   | -                |
+| **404**     | Category not found | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
 
 ## listCategories
 
@@ -168,17 +159,14 @@ Display a listing of the resource.
 ### Example
 
 ```ts
-import {
-  Configuration,
-  CategoriesApi,
-} from '';
+import { Configuration, CategoriesApi } from '';
 import type { ListCategoriesRequest } from '';
 
 async function example() {
-  console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
+  console.log('🚀 Testing  SDK...');
+  const config = new Configuration({
     // To configure OAuth2 access token for authorization: passport password
-    accessToken: "YOUR ACCESS TOKEN",
+    accessToken: 'YOUR ACCESS TOKEN'
   });
   const api = new CategoriesApi(config);
 
@@ -211,14 +199,13 @@ This endpoint does not need any parameter.
 - **Content-Type**: Not defined
 - **Accept**: `application/json`
 
-
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Categories collection |  -  |
+
+| Status code | Description           | Response headers |
+| ----------- | --------------------- | ---------------- |
+| **200**     | Categories collection | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
 
 ## listCategoryForms
 
@@ -231,23 +218,20 @@ List forms in a category.
 ### Example
 
 ```ts
-import {
-  Configuration,
-  CategoriesApi,
-} from '';
+import { Configuration, CategoriesApi } from '';
 import type { ListCategoryFormsRequest } from '';
 
 async function example() {
-  console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
+  console.log('🚀 Testing  SDK...');
+  const config = new Configuration({
     // To configure OAuth2 access token for authorization: passport password
-    accessToken: "YOUR ACCESS TOKEN",
+    accessToken: 'YOUR ACCESS TOKEN'
   });
   const api = new CategoriesApi(config);
 
   const body = {
     // number
-    category: 56,
+    category: 56
   } satisfies ListCategoryFormsRequest;
 
   try {
@@ -264,10 +248,9 @@ example().catch(console.error);
 
 ### Parameters
 
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **category** | `number` |  | [Defaults to `undefined`] |
+| Name         | Type     | Description | Notes                     |
+| ------------ | -------- | ----------- | ------------------------- |
+| **category** | `number` |             | [Defaults to `undefined`] |
 
 ### Return type
 
@@ -282,15 +265,14 @@ example().catch(console.error);
 - **Content-Type**: Not defined
 - **Accept**: `application/json`
 
-
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Forms |  -  |
-| **404** | Category not found |  -  |
+
+| Status code | Description        | Response headers |
+| ----------- | ------------------ | ---------------- |
+| **200**     | Forms              | -                |
+| **404**     | Category not found | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
 
 ## showCategory
 
@@ -303,23 +285,20 @@ Display the specified resource.
 ### Example
 
 ```ts
-import {
-  Configuration,
-  CategoriesApi,
-} from '';
+import { Configuration, CategoriesApi } from '';
 import type { ShowCategoryRequest } from '';
 
 async function example() {
-  console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
+  console.log('🚀 Testing  SDK...');
+  const config = new Configuration({
     // To configure OAuth2 access token for authorization: passport password
-    accessToken: "YOUR ACCESS TOKEN",
+    accessToken: 'YOUR ACCESS TOKEN'
   });
   const api = new CategoriesApi(config);
 
   const body = {
     // number
-    category: 56,
+    category: 56
   } satisfies ShowCategoryRequest;
 
   try {
@@ -336,10 +315,9 @@ example().catch(console.error);
 
 ### Parameters
 
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **category** | `number` |  | [Defaults to `undefined`] |
+| Name         | Type     | Description | Notes                     |
+| ------------ | -------- | ----------- | ------------------------- |
+| **category** | `number` |             | [Defaults to `undefined`] |
 
 ### Return type
 
@@ -354,15 +332,14 @@ example().catch(console.error);
 - **Content-Type**: Not defined
 - **Accept**: `application/json`
 
-
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Category |  -  |
-| **404** | Category not found |  -  |
+
+| Status code | Description        | Response headers |
+| ----------- | ------------------ | ---------------- |
+| **200**     | Category           | -                |
+| **404**     | Category not found | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
 
 ## updateCategory
 
@@ -383,7 +360,7 @@ import type { UpdateCategoryRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
+  const config = new Configuration({
     // To configure OAuth2 access token for authorization: passport password
     accessToken: "YOUR ACCESS TOKEN",
   });
@@ -410,11 +387,10 @@ example().catch(console.error);
 
 ### Parameters
 
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **category** | `number` |  | [Defaults to `undefined`] |
-| **updateCategoryInput** | [UpdateCategoryInput](UpdateCategoryInput.md) |  | |
+| Name                    | Type                                          | Description | Notes                     |
+| ----------------------- | --------------------------------------------- | ----------- | ------------------------- |
+| **category**            | `number`                                      |             | [Defaults to `undefined`] |
+| **updateCategoryInput** | [UpdateCategoryInput](UpdateCategoryInput.md) |             |                           |
 
 ### Return type
 
@@ -429,13 +405,12 @@ example().catch(console.error);
 - **Content-Type**: `application/json`
 - **Accept**: `application/json`
 
-
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Updated category |  -  |
-| **404** | Category not found |  -  |
-| **422** | Validation error |  -  |
+
+| Status code | Description        | Response headers |
+| ----------- | ------------------ | ---------------- |
+| **200**     | Updated category   | -                |
+| **404**     | Category not found | -                |
+| **422**     | Validation error   | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-

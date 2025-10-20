@@ -1,16 +1,14 @@
 # FollowUpEntriesApi
 
-All URIs are relative to */api*
+All URIs are relative to _/api_
 
-| Method | HTTP request | Description |
-|------------- | ------------- | -------------|
+| Method                                                               | HTTP request                               | Description            |
+| -------------------------------------------------------------------- | ------------------------------------------ | ---------------------- |
 | [**createFollowUpEntry**](FollowUpEntriesApi.md#createfollowupentry) | **POST** /v2/follow-ups/{followUp}/entries | Create follow-up entry |
-| [**deleteFollowUpEntry**](FollowUpEntriesApi.md#deletefollowupentry) | **DELETE** /v2/entries/{entry} | Delete follow-up entry |
-| [**listFollowUpEntries**](FollowUpEntriesApi.md#listfollowupentries) | **GET** /v2/follow-ups/{followUp}/entries | List follow-up entries |
-| [**showFollowUpEntry**](FollowUpEntriesApi.md#showfollowupentry) | **GET** /v2/entries/{entry} | Show follow-up entry |
-| [**updateFollowUpEntry**](FollowUpEntriesApi.md#updatefollowupentry) | **PATCH** /v2/entries/{entry} | Update follow-up entry |
-
-
+| [**deleteFollowUpEntry**](FollowUpEntriesApi.md#deletefollowupentry) | **DELETE** /v2/entries/{entry}             | Delete follow-up entry |
+| [**listFollowUpEntries**](FollowUpEntriesApi.md#listfollowupentries) | **GET** /v2/follow-ups/{followUp}/entries  | List follow-up entries |
+| [**showFollowUpEntry**](FollowUpEntriesApi.md#showfollowupentry)     | **GET** /v2/entries/{entry}                | Show follow-up entry   |
+| [**updateFollowUpEntry**](FollowUpEntriesApi.md#updatefollowupentry) | **PATCH** /v2/entries/{entry}              | Update follow-up entry |
 
 ## createFollowUpEntry
 
@@ -31,7 +29,7 @@ import type { CreateFollowUpEntryRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
+  const config = new Configuration({
     // To configure OAuth2 access token for authorization: passport password
     accessToken: "YOUR ACCESS TOKEN",
   });
@@ -58,11 +56,10 @@ example().catch(console.error);
 
 ### Parameters
 
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **followUp** | `number` | Follow-up ID | [Defaults to `undefined`] |
-| **followUpEntryInput** | [FollowUpEntryInput](FollowUpEntryInput.md) |  | |
+| Name                   | Type                                        | Description  | Notes                     |
+| ---------------------- | ------------------------------------------- | ------------ | ------------------------- |
+| **followUp**           | `number`                                    | Follow-up ID | [Defaults to `undefined`] |
+| **followUpEntryInput** | [FollowUpEntryInput](FollowUpEntryInput.md) |              |                           |
 
 ### Return type
 
@@ -77,16 +74,15 @@ example().catch(console.error);
 - **Content-Type**: `application/json`
 - **Accept**: `application/json`
 
-
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Created follow-up entry |  -  |
-| **404** | Follow-up not found |  -  |
-| **422** | Validation error |  -  |
+
+| Status code | Description             | Response headers |
+| ----------- | ----------------------- | ---------------- |
+| **200**     | Created follow-up entry | -                |
+| **404**     | Follow-up not found     | -                |
+| **422**     | Validation error        | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
 
 ## deleteFollowUpEntry
 
@@ -99,23 +95,20 @@ Remove the specified resource from storage.
 ### Example
 
 ```ts
-import {
-  Configuration,
-  FollowUpEntriesApi,
-} from '';
+import { Configuration, FollowUpEntriesApi } from '';
 import type { DeleteFollowUpEntryRequest } from '';
 
 async function example() {
-  console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
+  console.log('🚀 Testing  SDK...');
+  const config = new Configuration({
     // To configure OAuth2 access token for authorization: passport password
-    accessToken: "YOUR ACCESS TOKEN",
+    accessToken: 'YOUR ACCESS TOKEN'
   });
   const api = new FollowUpEntriesApi(config);
 
   const body = {
     // number | Follow-up entry ID
-    entry: 789,
+    entry: 789
   } satisfies DeleteFollowUpEntryRequest;
 
   try {
@@ -132,9 +125,8 @@ example().catch(console.error);
 
 ### Parameters
 
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
+| Name      | Type     | Description        | Notes                     |
+| --------- | -------- | ------------------ | ------------------------- |
 | **entry** | `number` | Follow-up entry ID | [Defaults to `undefined`] |
 
 ### Return type
@@ -150,15 +142,14 @@ example().catch(console.error);
 - **Content-Type**: Not defined
 - **Accept**: Not defined
 
-
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **204** | Follow-up entry deleted |  -  |
-| **404** | Entry not found |  -  |
+
+| Status code | Description             | Response headers |
+| ----------- | ----------------------- | ---------------- |
+| **204**     | Follow-up entry deleted | -                |
+| **404**     | Entry not found         | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
 
 ## listFollowUpEntries
 
@@ -171,23 +162,20 @@ Display a listing of the resource.
 ### Example
 
 ```ts
-import {
-  Configuration,
-  FollowUpEntriesApi,
-} from '';
+import { Configuration, FollowUpEntriesApi } from '';
 import type { ListFollowUpEntriesRequest } from '';
 
 async function example() {
-  console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
+  console.log('🚀 Testing  SDK...');
+  const config = new Configuration({
     // To configure OAuth2 access token for authorization: passport password
-    accessToken: "YOUR ACCESS TOKEN",
+    accessToken: 'YOUR ACCESS TOKEN'
   });
   const api = new FollowUpEntriesApi(config);
 
   const body = {
     // number | Follow-up ID
-    followUp: 789,
+    followUp: 789
   } satisfies ListFollowUpEntriesRequest;
 
   try {
@@ -204,9 +192,8 @@ example().catch(console.error);
 
 ### Parameters
 
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
+| Name         | Type     | Description  | Notes                     |
+| ------------ | -------- | ------------ | ------------------------- |
 | **followUp** | `number` | Follow-up ID | [Defaults to `undefined`] |
 
 ### Return type
@@ -222,15 +209,14 @@ example().catch(console.error);
 - **Content-Type**: Not defined
 - **Accept**: `application/json`
 
-
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Follow-up entries |  -  |
-| **404** | Follow-up not found |  -  |
+
+| Status code | Description         | Response headers |
+| ----------- | ------------------- | ---------------- |
+| **200**     | Follow-up entries   | -                |
+| **404**     | Follow-up not found | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
 
 ## showFollowUpEntry
 
@@ -243,23 +229,20 @@ Display the specified resource.
 ### Example
 
 ```ts
-import {
-  Configuration,
-  FollowUpEntriesApi,
-} from '';
+import { Configuration, FollowUpEntriesApi } from '';
 import type { ShowFollowUpEntryRequest } from '';
 
 async function example() {
-  console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
+  console.log('🚀 Testing  SDK...');
+  const config = new Configuration({
     // To configure OAuth2 access token for authorization: passport password
-    accessToken: "YOUR ACCESS TOKEN",
+    accessToken: 'YOUR ACCESS TOKEN'
   });
   const api = new FollowUpEntriesApi(config);
 
   const body = {
     // number | Follow-up entry ID
-    entry: 789,
+    entry: 789
   } satisfies ShowFollowUpEntryRequest;
 
   try {
@@ -276,9 +259,8 @@ example().catch(console.error);
 
 ### Parameters
 
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
+| Name      | Type     | Description        | Notes                     |
+| --------- | -------- | ------------------ | ------------------------- |
 | **entry** | `number` | Follow-up entry ID | [Defaults to `undefined`] |
 
 ### Return type
@@ -294,15 +276,14 @@ example().catch(console.error);
 - **Content-Type**: Not defined
 - **Accept**: `application/json`
 
-
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Follow-up entry |  -  |
-| **404** | Entry not found |  -  |
+
+| Status code | Description     | Response headers |
+| ----------- | --------------- | ---------------- |
+| **200**     | Follow-up entry | -                |
+| **404**     | Entry not found | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
 
 ## updateFollowUpEntry
 
@@ -323,7 +304,7 @@ import type { UpdateFollowUpEntryRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
+  const config = new Configuration({
     // To configure OAuth2 access token for authorization: passport password
     accessToken: "YOUR ACCESS TOKEN",
   });
@@ -350,11 +331,10 @@ example().catch(console.error);
 
 ### Parameters
 
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **entry** | `number` | Follow-up entry ID | [Defaults to `undefined`] |
-| **followUpEntryInput** | [FollowUpEntryInput](FollowUpEntryInput.md) |  | |
+| Name                   | Type                                        | Description        | Notes                     |
+| ---------------------- | ------------------------------------------- | ------------------ | ------------------------- |
+| **entry**              | `number`                                    | Follow-up entry ID | [Defaults to `undefined`] |
+| **followUpEntryInput** | [FollowUpEntryInput](FollowUpEntryInput.md) |                    |                           |
 
 ### Return type
 
@@ -369,13 +349,12 @@ example().catch(console.error);
 - **Content-Type**: `application/json`
 - **Accept**: `application/json`
 
-
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Updated follow-up entry |  -  |
-| **404** | Entry not found |  -  |
-| **422** | Validation error |  -  |
+
+| Status code | Description             | Response headers |
+| ----------- | ----------------------- | ---------------- |
+| **200**     | Updated follow-up entry | -                |
+| **404**     | Entry not found         | -                |
+| **422**     | Validation error        | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-

@@ -1,19 +1,17 @@
-
 # PaginationMeta
-
 
 ## Properties
 
-Name | Type
------------- | -------------
-`currentPage` | number
-`from` | number
-`lastPage` | number
-`links` | [Array&lt;PaginationLink&gt;](PaginationLink.md)
-`path` | string
-`perPage` | number
-`to` | number
-`total` | number
+| Name          | Type                                             |
+| ------------- | ------------------------------------------------ |
+| `currentPage` | number                                           |
+| `from`        | number                                           |
+| `lastPage`    | number                                           |
+| `links`       | [Array&lt;PaginationLink&gt;](PaginationLink.md) |
+| `path`        | string                                           |
+| `perPage`     | number                                           |
+| `to`          | number                                           |
+| `total`       | number                                           |
 
 ## Example
 
@@ -44,5 +42,3 @@ console.log(exampleParsed)
 ```
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
-

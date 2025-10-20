@@ -1,16 +1,14 @@
 # PlanningPhasesApi
 
-All URIs are relative to */api*
+All URIs are relative to _/api_
 
-| Method | HTTP request | Description |
-|------------- | ------------- | -------------|
+| Method                                                            | HTTP request                                      | Description          |
+| ----------------------------------------------------------------- | ------------------------------------------------- | -------------------- |
 | [**createProjectPhase**](PlanningPhasesApi.md#createprojectphase) | **POST** /v2/datasources/project/{project}/phases | Create project phase |
-| [**deleteProjectPhase**](PlanningPhasesApi.md#deleteprojectphase) | **DELETE** /v2/datasources/phases/{phase} | Delete phase |
-| [**listProjectPhases**](PlanningPhasesApi.md#listprojectphases) | **GET** /v2/datasources/project/{project}/phases | List project phases |
-| [**showProjectPhase**](PlanningPhasesApi.md#showprojectphase) | **GET** /v2/datasources/phases/{phase} | Show phase |
-| [**updateProjectPhase**](PlanningPhasesApi.md#updateprojectphase) | **PATCH** /v2/datasources/phases/{phase} | Update phase |
-
-
+| [**deleteProjectPhase**](PlanningPhasesApi.md#deleteprojectphase) | **DELETE** /v2/datasources/phases/{phase}         | Delete phase         |
+| [**listProjectPhases**](PlanningPhasesApi.md#listprojectphases)   | **GET** /v2/datasources/project/{project}/phases  | List project phases  |
+| [**showProjectPhase**](PlanningPhasesApi.md#showprojectphase)     | **GET** /v2/datasources/phases/{phase}            | Show phase           |
+| [**updateProjectPhase**](PlanningPhasesApi.md#updateprojectphase) | **PATCH** /v2/datasources/phases/{phase}          | Update phase         |
 
 ## createProjectPhase
 
@@ -52,11 +50,10 @@ example().catch(console.error);
 
 ### Parameters
 
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **project** | `number` | Project identifier | [Defaults to `undefined`] |
-| **phaseCreatePayload** | [PhaseCreatePayload](PhaseCreatePayload.md) |  | |
+| Name                   | Type                                        | Description        | Notes                     |
+| ---------------------- | ------------------------------------------- | ------------------ | ------------------------- |
+| **project**            | `number`                                    | Project identifier | [Defaults to `undefined`] |
+| **phaseCreatePayload** | [PhaseCreatePayload](PhaseCreatePayload.md) |                    |                           |
 
 ### Return type
 
@@ -71,15 +68,14 @@ No authorization required
 - **Content-Type**: `application/json`
 - **Accept**: `application/json`
 
-
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Phase |  -  |
-| **500** | Failed to create phase |  -  |
+
+| Status code | Description            | Response headers |
+| ----------- | ---------------------- | ---------------- |
+| **200**     | Phase                  | -                |
+| **500**     | Failed to create phase | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
 
 ## deleteProjectPhase
 
@@ -90,19 +86,16 @@ Delete phase
 ### Example
 
 ```ts
-import {
-  Configuration,
-  PlanningPhasesApi,
-} from '';
+import { Configuration, PlanningPhasesApi } from '';
 import type { DeleteProjectPhaseRequest } from '';
 
 async function example() {
-  console.log("🚀 Testing  SDK...");
+  console.log('🚀 Testing  SDK...');
   const api = new PlanningPhasesApi();
 
   const body = {
     // number
-    phase: 789,
+    phase: 789
   } satisfies DeleteProjectPhaseRequest;
 
   try {
@@ -119,10 +112,9 @@ example().catch(console.error);
 
 ### Parameters
 
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **phase** | `number` |  | [Defaults to `undefined`] |
+| Name      | Type     | Description | Notes                     |
+| --------- | -------- | ----------- | ------------------------- |
+| **phase** | `number` |             | [Defaults to `undefined`] |
 
 ### Return type
 
@@ -137,15 +129,14 @@ No authorization required
 - **Content-Type**: Not defined
 - **Accept**: Not defined
 
-
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **204** | Phase deleted |  -  |
-| **500** | Could not delete allocation type allocation. |  -  |
+
+| Status code | Description                                  | Response headers |
+| ----------- | -------------------------------------------- | ---------------- |
+| **204**     | Phase deleted                                | -                |
+| **500**     | Could not delete allocation type allocation. | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
 
 ## listProjectPhases
 
@@ -156,19 +147,16 @@ List project phases
 ### Example
 
 ```ts
-import {
-  Configuration,
-  PlanningPhasesApi,
-} from '';
+import { Configuration, PlanningPhasesApi } from '';
 import type { ListProjectPhasesRequest } from '';
 
 async function example() {
-  console.log("🚀 Testing  SDK...");
+  console.log('🚀 Testing  SDK...');
   const api = new PlanningPhasesApi();
 
   const body = {
     // number | Project identifier
-    project: 789,
+    project: 789
   } satisfies ListProjectPhasesRequest;
 
   try {
@@ -185,9 +173,8 @@ example().catch(console.error);
 
 ### Parameters
 
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
+| Name        | Type     | Description        | Notes                     |
+| ----------- | -------- | ------------------ | ------------------------- |
 | **project** | `number` | Project identifier | [Defaults to `undefined`] |
 
 ### Return type
@@ -203,15 +190,14 @@ No authorization required
 - **Content-Type**: Not defined
 - **Accept**: `application/json`
 
-
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Phases |  -  |
-| **500** | The entity is not a project. |  -  |
+
+| Status code | Description                  | Response headers |
+| ----------- | ---------------------------- | ---------------- |
+| **200**     | Phases                       | -                |
+| **500**     | The entity is not a project. | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
 
 ## showProjectPhase
 
@@ -222,19 +208,16 @@ Show phase
 ### Example
 
 ```ts
-import {
-  Configuration,
-  PlanningPhasesApi,
-} from '';
+import { Configuration, PlanningPhasesApi } from '';
 import type { ShowProjectPhaseRequest } from '';
 
 async function example() {
-  console.log("🚀 Testing  SDK...");
+  console.log('🚀 Testing  SDK...');
   const api = new PlanningPhasesApi();
 
   const body = {
     // number
-    phase: 789,
+    phase: 789
   } satisfies ShowProjectPhaseRequest;
 
   try {
@@ -251,10 +234,9 @@ example().catch(console.error);
 
 ### Parameters
 
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **phase** | `number` |  | [Defaults to `undefined`] |
+| Name      | Type     | Description | Notes                     |
+| --------- | -------- | ----------- | ------------------------- |
+| **phase** | `number` |             | [Defaults to `undefined`] |
 
 ### Return type
 
@@ -269,14 +251,13 @@ No authorization required
 - **Content-Type**: Not defined
 - **Accept**: `application/json`
 
-
 ### HTTP response details
+
 | Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Phase |  -  |
+| ----------- | ----------- | ---------------- |
+| **200**     | Phase       | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
 
 ## updateProjectPhase
 
@@ -318,11 +299,10 @@ example().catch(console.error);
 
 ### Parameters
 
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **phase** | `number` |  | [Defaults to `undefined`] |
-| **phaseUpdatePayload** | [PhaseUpdatePayload](PhaseUpdatePayload.md) |  | |
+| Name                   | Type                                        | Description | Notes                     |
+| ---------------------- | ------------------------------------------- | ----------- | ------------------------- |
+| **phase**              | `number`                                    |             | [Defaults to `undefined`] |
+| **phaseUpdatePayload** | [PhaseUpdatePayload](PhaseUpdatePayload.md) |             |                           |
 
 ### Return type
 
@@ -337,12 +317,11 @@ No authorization required
 - **Content-Type**: `application/json`
 - **Accept**: `application/json`
 
-
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Phase |  -  |
-| **500** | Failed to update phase |  -  |
+
+| Status code | Description            | Response headers |
+| ----------- | ---------------------- | ---------------- |
+| **200**     | Phase                  | -                |
+| **500**     | Failed to update phase | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-

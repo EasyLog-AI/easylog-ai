@@ -1,18 +1,16 @@
 # PlanningApi
 
-All URIs are relative to */api*
+All URIs are relative to _/api_
 
-| Method | HTTP request | Description |
-|------------- | ------------- | -------------|
-| [**createProject**](PlanningApi.md#createproject) | **POST** /v2/datasources/projects | Create project |
-| [**createProjectInDatasource**](PlanningApi.md#createprojectindatasource) | **POST** /v2/datasources/{entity}/project | Create project in specific datasource |
-| [**deleteProject**](PlanningApi.md#deleteproject) | **DELETE** /v2/datasources/projects/{project} | Delete project |
-| [**listProjects**](PlanningApi.md#listprojects) | **GET** /v2/datasources/projects | List projects |
-| [**listProjectsForResource**](PlanningApi.md#listprojectsforresource) | **GET** /v2/datasources/resources/{resource}/projects/{slug} | List projects for a resource group |
-| [**showProject**](PlanningApi.md#showproject) | **GET** /v2/datasources/projects/{project} | Show project |
-| [**updateProject**](PlanningApi.md#updateproject) | **PATCH** /v2/datasources/projects/{project} | Update project |
-
-
+| Method                                                                    | HTTP request                                                 | Description                           |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------- |
+| [**createProject**](PlanningApi.md#createproject)                         | **POST** /v2/datasources/projects                            | Create project                        |
+| [**createProjectInDatasource**](PlanningApi.md#createprojectindatasource) | **POST** /v2/datasources/{entity}/project                    | Create project in specific datasource |
+| [**deleteProject**](PlanningApi.md#deleteproject)                         | **DELETE** /v2/datasources/projects/{project}                | Delete project                        |
+| [**listProjects**](PlanningApi.md#listprojects)                           | **GET** /v2/datasources/projects                             | List projects                         |
+| [**listProjectsForResource**](PlanningApi.md#listprojectsforresource)     | **GET** /v2/datasources/resources/{resource}/projects/{slug} | List projects for a resource group    |
+| [**showProject**](PlanningApi.md#showproject)                             | **GET** /v2/datasources/projects/{project}                   | Show project                          |
+| [**updateProject**](PlanningApi.md#updateproject)                         | **PATCH** /v2/datasources/projects/{project}                 | Update project                        |
 
 ## createProject
 
@@ -52,10 +50,9 @@ example().catch(console.error);
 
 ### Parameters
 
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **projectPayload** | [ProjectPayload](ProjectPayload.md) |  | |
+| Name               | Type                                | Description | Notes |
+| ------------------ | ----------------------------------- | ----------- | ----- |
+| **projectPayload** | [ProjectPayload](ProjectPayload.md) |             |       |
 
 ### Return type
 
@@ -70,17 +67,16 @@ No authorization required
 - **Content-Type**: `application/json`
 - **Accept**: `application/json`
 
-
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Project |  -  |
-| **400** | Could not store project, client id invalid. |  -  |
-| **403** | Forbidden |  -  |
-| **500** | Could not store project. |  -  |
+
+| Status code | Description                                 | Response headers |
+| ----------- | ------------------------------------------- | ---------------- |
+| **200**     | Project                                     | -                |
+| **400**     | Could not store project, client id invalid. | -                |
+| **403**     | Forbidden                                   | -                |
+| **500**     | Could not store project.                    | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
 
 ## createProjectInDatasource
 
@@ -122,11 +118,10 @@ example().catch(console.error);
 
 ### Parameters
 
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **entity** | `string` | Datasource/Entity identifier (ID or slug) | [Defaults to `undefined`] |
-| **projectPayload** | [ProjectPayload](ProjectPayload.md) |  | |
+| Name               | Type                                | Description                               | Notes                     |
+| ------------------ | ----------------------------------- | ----------------------------------------- | ------------------------- |
+| **entity**         | `string`                            | Datasource/Entity identifier (ID or slug) | [Defaults to `undefined`] |
+| **projectPayload** | [ProjectPayload](ProjectPayload.md) |                                           |                           |
 
 ### Return type
 
@@ -141,17 +136,16 @@ No authorization required
 - **Content-Type**: `application/json`
 - **Accept**: `application/json`
 
-
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Project |  -  |
-| **400** | Could not store project, client id invalid. |  -  |
-| **403** | Forbidden |  -  |
-| **500** | Could not store project. |  -  |
+
+| Status code | Description                                 | Response headers |
+| ----------- | ------------------------------------------- | ---------------- |
+| **200**     | Project                                     | -                |
+| **400**     | Could not store project, client id invalid. | -                |
+| **403**     | Forbidden                                   | -                |
+| **500**     | Could not store project.                    | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
 
 ## deleteProject
 
@@ -162,19 +156,16 @@ Delete project
 ### Example
 
 ```ts
-import {
-  Configuration,
-  PlanningApi,
-} from '';
+import { Configuration, PlanningApi } from '';
 import type { DeleteProjectRequest } from '';
 
 async function example() {
-  console.log("🚀 Testing  SDK...");
+  console.log('🚀 Testing  SDK...');
   const api = new PlanningApi();
 
   const body = {
     // number
-    project: 789,
+    project: 789
   } satisfies DeleteProjectRequest;
 
   try {
@@ -191,10 +182,9 @@ example().catch(console.error);
 
 ### Parameters
 
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **project** | `number` |  | [Defaults to `undefined`] |
+| Name        | Type     | Description | Notes                     |
+| ----------- | -------- | ----------- | ------------------------- |
+| **project** | `number` |             | [Defaults to `undefined`] |
 
 ### Return type
 
@@ -209,15 +199,14 @@ No authorization required
 - **Content-Type**: Not defined
 - **Accept**: Not defined
 
-
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **204** | Project deleted |  -  |
-| **500** | Could not delete project. |  -  |
+
+| Status code | Description               | Response headers |
+| ----------- | ------------------------- | ---------------- |
+| **204**     | Project deleted           | -                |
+| **500**     | Could not delete project. | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
 
 ## listProjects
 
@@ -261,12 +250,11 @@ example().catch(console.error);
 
 ### Parameters
 
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **types** | `Array<string>` | Filter projects by datasource slug | [Optional] |
-| **startDate** | `Date` | Return projects starting on or after this date | [Optional] [Defaults to `undefined`] |
-| **endDate** | `Date` | Return projects ending on or before this date | [Optional] [Defaults to `undefined`] |
+| Name          | Type            | Description                                    | Notes                                |
+| ------------- | --------------- | ---------------------------------------------- | ------------------------------------ |
+| **types**     | `Array<string>` | Filter projects by datasource slug             | [Optional]                           |
+| **startDate** | `Date`          | Return projects starting on or after this date | [Optional] [Defaults to `undefined`] |
+| **endDate**   | `Date`          | Return projects ending on or before this date  | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 
@@ -281,14 +269,13 @@ No authorization required
 - **Content-Type**: Not defined
 - **Accept**: `application/json`
 
-
 ### HTTP response details
+
 | Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Projects |  -  |
+| ----------- | ----------- | ---------------- |
+| **200**     | Projects    | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
 
 ## listProjectsForResource
 
@@ -299,14 +286,11 @@ List projects for a resource group
 ### Example
 
 ```ts
-import {
-  Configuration,
-  PlanningApi,
-} from '';
+import { Configuration, PlanningApi } from '';
 import type { ListProjectsForResourceRequest } from '';
 
 async function example() {
-  console.log("🚀 Testing  SDK...");
+  console.log('🚀 Testing  SDK...');
   const api = new PlanningApi();
 
   const body = {
@@ -315,9 +299,9 @@ async function example() {
     // string | Resource group slug
     slug: slug_example,
     // Date | Filter allocations starting on or after this date (optional)
-    startDate: 2013-10-20,
+    startDate: 2013 - 10 - 20,
     // Date | Filter allocations ending on or before this date (optional)
-    endDate: 2013-10-20,
+    endDate: 2013 - 10 - 20
   } satisfies ListProjectsForResourceRequest;
 
   try {
@@ -334,13 +318,12 @@ example().catch(console.error);
 
 ### Parameters
 
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **resource** | `number` | Resource identifier | [Defaults to `undefined`] |
-| **slug** | `string` | Resource group slug | [Defaults to `undefined`] |
-| **startDate** | `Date` | Filter allocations starting on or after this date | [Optional] [Defaults to `undefined`] |
-| **endDate** | `Date` | Filter allocations ending on or before this date | [Optional] [Defaults to `undefined`] |
+| Name          | Type     | Description                                       | Notes                                |
+| ------------- | -------- | ------------------------------------------------- | ------------------------------------ |
+| **resource**  | `number` | Resource identifier                               | [Defaults to `undefined`]            |
+| **slug**      | `string` | Resource group slug                               | [Defaults to `undefined`]            |
+| **startDate** | `Date`   | Filter allocations starting on or after this date | [Optional] [Defaults to `undefined`] |
+| **endDate**   | `Date`   | Filter allocations ending on or before this date  | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 
@@ -355,15 +338,14 @@ No authorization required
 - **Content-Type**: Not defined
 - **Accept**: `application/json`
 
-
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Projects |  -  |
-| **500** | The entity is not a resource. |  -  |
+
+| Status code | Description                   | Response headers |
+| ----------- | ----------------------------- | ---------------- |
+| **200**     | Projects                      | -                |
+| **500**     | The entity is not a resource. | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
 
 ## showProject
 
@@ -374,23 +356,20 @@ Show project
 ### Example
 
 ```ts
-import {
-  Configuration,
-  PlanningApi,
-} from '';
+import { Configuration, PlanningApi } from '';
 import type { ShowProjectRequest } from '';
 
 async function example() {
-  console.log("🚀 Testing  SDK...");
+  console.log('🚀 Testing  SDK...');
   const api = new PlanningApi();
 
   const body = {
     // number | Project identifier
     project: 789,
     // Date | Filter allocations starting on or after this date (optional)
-    startDate: 2013-10-20,
+    startDate: 2013 - 10 - 20,
     // Date | Filter allocations ending on or before this date (optional)
-    endDate: 2013-10-20,
+    endDate: 2013 - 10 - 20
   } satisfies ShowProjectRequest;
 
   try {
@@ -407,12 +386,11 @@ example().catch(console.error);
 
 ### Parameters
 
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **project** | `number` | Project identifier | [Defaults to `undefined`] |
-| **startDate** | `Date` | Filter allocations starting on or after this date | [Optional] [Defaults to `undefined`] |
-| **endDate** | `Date` | Filter allocations ending on or before this date | [Optional] [Defaults to `undefined`] |
+| Name          | Type     | Description                                       | Notes                                |
+| ------------- | -------- | ------------------------------------------------- | ------------------------------------ |
+| **project**   | `number` | Project identifier                                | [Defaults to `undefined`]            |
+| **startDate** | `Date`   | Filter allocations starting on or after this date | [Optional] [Defaults to `undefined`] |
+| **endDate**   | `Date`   | Filter allocations ending on or before this date  | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 
@@ -427,15 +405,14 @@ No authorization required
 - **Content-Type**: Not defined
 - **Accept**: `application/json`
 
-
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Project |  -  |
-| **500** | The entity is not a project. |  -  |
+
+| Status code | Description                  | Response headers |
+| ----------- | ---------------------------- | ---------------- |
+| **200**     | Project                      | -                |
+| **500**     | The entity is not a project. | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
 
 ## updateProject
 
@@ -477,11 +454,10 @@ example().catch(console.error);
 
 ### Parameters
 
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **project** | `number` |  | [Defaults to `undefined`] |
-| **projectPayload** | [ProjectPayload](ProjectPayload.md) |  | |
+| Name               | Type                                | Description | Notes                     |
+| ------------------ | ----------------------------------- | ----------- | ------------------------- |
+| **project**        | `number`                            |             | [Defaults to `undefined`] |
+| **projectPayload** | [ProjectPayload](ProjectPayload.md) |             |                           |
 
 ### Return type
 
@@ -496,12 +472,11 @@ No authorization required
 - **Content-Type**: `application/json`
 - **Accept**: `application/json`
 
-
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Project |  -  |
-| **500** | Could not update project. |  -  |
+
+| Status code | Description               | Response headers |
+| ----------- | ------------------------- | ---------------- |
+| **200**     | Project                   | -                |
+| **500**     | Could not update project. | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
