@@ -1,10 +1,12 @@
 # ReportsApi
 
-All URIs are relative to _/api_
+All URIs are relative to */api*
 
-| Method                                                   | HTTP request                      | Description         |
-| -------------------------------------------------------- | --------------------------------- | ------------------- |
+| Method | HTTP request | Description |
+|------------- | ------------- | -------------|
 | [**generatePdfReport**](ReportsApi.md#generatepdfreport) | **GET** /v2/{clientId}/pdf/{slug} | Generate PDF report |
+
+
 
 ## generatePdfReport
 
@@ -17,14 +19,17 @@ Generate and download a PDF report based on encrypted data parameters. Supports 
 ### Example
 
 ```ts
-import { Configuration, ReportsApi } from '';
+import {
+  Configuration,
+  ReportsApi,
+} from '';
 import type { GeneratePdfReportRequest } from '';
 
 async function example() {
-  console.log('🚀 Testing  SDK...');
-  const config = new Configuration({
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
     // To configure OAuth2 access token for authorization: passport password
-    accessToken: 'YOUR ACCESS TOKEN'
+    accessToken: "YOUR ACCESS TOKEN",
   });
   const api = new ReportsApi(config);
 
@@ -36,7 +41,7 @@ async function example() {
     // string | Encrypted report data parameters
     data: data_example,
     // 'html' | Output format (html for preview, omit for PDF) (optional)
-    as: as_example
+    as: as_example,
   } satisfies GeneratePdfReportRequest;
 
   try {
@@ -53,12 +58,13 @@ example().catch(console.error);
 
 ### Parameters
 
-| Name         | Type     | Description                                    | Notes                                             |
-| ------------ | -------- | ---------------------------------------------- | ------------------------------------------------- |
-| **clientId** | `number` | Client ID                                      | [Defaults to `undefined`]                         |
-| **slug**     | `string` | PDF report configuration slug                  | [Defaults to `undefined`]                         |
-| **data**     | `string` | Encrypted report data parameters               | [Defaults to `undefined`]                         |
-| **as**       | `html`   | Output format (html for preview, omit for PDF) | [Optional] [Defaults to `undefined`] [Enum: html] |
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **clientId** | `number` | Client ID | [Defaults to `undefined`] |
+| **slug** | `string` | PDF report configuration slug | [Defaults to `undefined`] |
+| **data** | `string` | Encrypted report data parameters | [Defaults to `undefined`] |
+| **as** | `html` | Output format (html for preview, omit for PDF) | [Optional] [Defaults to `undefined`] [Enum: html] |
 
 ### Return type
 
@@ -73,14 +79,15 @@ example().catch(console.error);
 - **Content-Type**: Not defined
 - **Accept**: `application/pdf`
 
-### HTTP response details
 
-| Status code | Description                    | Response headers |
-| ----------- | ------------------------------ | ---------------- |
-| **200**     | PDF file or HTML preview       | -                |
-| **400**     | Invalid data or unknown type   | -                |
-| **401**     | Unauthorized                   | -                |
-| **403**     | Unauthenticated                | -                |
-| **404**     | Report configuration not found | -                |
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | PDF file or HTML preview |  -  |
+| **400** | Invalid data or unknown type |  -  |
+| **401** | Unauthorized |  -  |
+| **403** | Unauthenticated |  -  |
+| **404** | Report configuration not found |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+

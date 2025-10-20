@@ -1,16 +1,18 @@
 # AllocationsApi
 
-All URIs are relative to _/api_
+All URIs are relative to */api*
 
-| Method                                                                       | HTTP request                                        | Description                    |
-| ---------------------------------------------------------------------------- | --------------------------------------------------- | ------------------------------ |
-| [**createAllocation**](AllocationsApi.md#createallocation)                   | **POST** /v2/datasources/allocations                | Create allocation (deprecated) |
-| [**createMultipleAllocations**](AllocationsApi.md#createmultipleallocations) | **POST** /v2/datasources/allocations/multiple       | Create multiple allocations    |
-| [**deleteAllocation**](AllocationsApi.md#deleteallocation)                   | **DELETE** /v2/datasources/allocations/{allocation} | Delete allocation              |
-| [**showAllocation**](AllocationsApi.md#showallocation)                       | **GET** /v2/datasources/allocations/{allocation}    | Show allocation                |
-| [**showMultipleAllocations**](AllocationsApi.md#showmultipleallocations)     | **GET** /v2/datasources/allocations/multiple        | Show multiple allocations      |
-| [**updateAllocation**](AllocationsApi.md#updateallocation)                   | **PATCH** /v2/datasources/allocations/{allocation}  | Update allocation (deprecated) |
-| [**updateMultipleAllocations**](AllocationsApi.md#updatemultipleallocations) | **PUT** /v2/datasources/allocations/multiple        | Update multiple allocations    |
+| Method | HTTP request | Description |
+|------------- | ------------- | -------------|
+| [**createAllocation**](AllocationsApi.md#createallocation) | **POST** /v2/datasources/allocations | Create allocation (deprecated) |
+| [**createMultipleAllocations**](AllocationsApi.md#createmultipleallocations) | **POST** /v2/datasources/allocations/multiple | Create multiple allocations |
+| [**deleteAllocation**](AllocationsApi.md#deleteallocation) | **DELETE** /v2/datasources/allocations/{allocation} | Delete allocation |
+| [**showAllocation**](AllocationsApi.md#showallocation) | **GET** /v2/datasources/allocations/{allocation} | Show allocation |
+| [**showMultipleAllocations**](AllocationsApi.md#showmultipleallocations) | **GET** /v2/datasources/allocations/multiple | Show multiple allocations |
+| [**updateAllocation**](AllocationsApi.md#updateallocation) | **PATCH** /v2/datasources/allocations/{allocation} | Update allocation (deprecated) |
+| [**updateMultipleAllocations**](AllocationsApi.md#updatemultipleallocations) | **PUT** /v2/datasources/allocations/multiple | Update multiple allocations |
+
+
 
 ## createAllocation
 
@@ -50,9 +52,10 @@ example().catch(console.error);
 
 ### Parameters
 
-| Name                        | Type                                                  | Description | Notes |
-| --------------------------- | ----------------------------------------------------- | ----------- | ----- |
-| **entityAllocationPayload** | [EntityAllocationPayload](EntityAllocationPayload.md) |             |       |
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **entityAllocationPayload** | [EntityAllocationPayload](EntityAllocationPayload.md) |  | |
 
 ### Return type
 
@@ -67,13 +70,14 @@ No authorization required
 - **Content-Type**: `application/json`
 - **Accept**: `application/json`
 
-### HTTP response details
 
+### HTTP response details
 | Status code | Description | Response headers |
-| ----------- | ----------- | ---------------- |
-| **200**     | Allocation  | -                |
+|-------------|-------------|------------------|
+| **200** | Allocation |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
 
 ## createMultipleAllocations
 
@@ -113,9 +117,10 @@ example().catch(console.error);
 
 ### Parameters
 
-| Name                            | Type                                                          | Description | Notes |
-| ------------------------------- | ------------------------------------------------------------- | ----------- | ----- |
-| **entityAllocationBulkPayload** | [EntityAllocationBulkPayload](EntityAllocationBulkPayload.md) |             |       |
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **entityAllocationBulkPayload** | [EntityAllocationBulkPayload](EntityAllocationBulkPayload.md) |  | |
 
 ### Return type
 
@@ -130,13 +135,14 @@ No authorization required
 - **Content-Type**: `application/json`
 - **Accept**: `application/json`
 
-### HTTP response details
 
-| Status code | Description         | Response headers |
-| ----------- | ------------------- | ---------------- |
-| **201**     | Allocations created | -                |
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **201** | Allocations created |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
 
 ## deleteAllocation
 
@@ -147,16 +153,19 @@ Delete allocation
 ### Example
 
 ```ts
-import { Configuration, AllocationsApi } from '';
+import {
+  Configuration,
+  AllocationsApi,
+} from '';
 import type { DeleteAllocationRequest } from '';
 
 async function example() {
-  console.log('🚀 Testing  SDK...');
+  console.log("🚀 Testing  SDK...");
   const api = new AllocationsApi();
 
   const body = {
     // number
-    allocation: 789
+    allocation: 789,
   } satisfies DeleteAllocationRequest;
 
   try {
@@ -173,9 +182,10 @@ example().catch(console.error);
 
 ### Parameters
 
-| Name           | Type     | Description | Notes                     |
-| -------------- | -------- | ----------- | ------------------------- |
-| **allocation** | `number` |             | [Defaults to `undefined`] |
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **allocation** | `number` |  | [Defaults to `undefined`] |
 
 ### Return type
 
@@ -190,14 +200,15 @@ No authorization required
 - **Content-Type**: Not defined
 - **Accept**: Not defined
 
-### HTTP response details
 
-| Status code | Description                  | Response headers |
-| ----------- | ---------------------------- | ---------------- |
-| **204**     | Allocation deleted           | -                |
-| **500**     | Could not delete allocation. | -                |
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **204** | Allocation deleted |  -  |
+| **500** | Could not delete allocation. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
 
 ## showAllocation
 
@@ -208,16 +219,19 @@ Show allocation
 ### Example
 
 ```ts
-import { Configuration, AllocationsApi } from '';
+import {
+  Configuration,
+  AllocationsApi,
+} from '';
 import type { ShowAllocationRequest } from '';
 
 async function example() {
-  console.log('🚀 Testing  SDK...');
+  console.log("🚀 Testing  SDK...");
   const api = new AllocationsApi();
 
   const body = {
     // number
-    allocation: 789
+    allocation: 789,
   } satisfies ShowAllocationRequest;
 
   try {
@@ -234,9 +248,10 @@ example().catch(console.error);
 
 ### Parameters
 
-| Name           | Type     | Description | Notes                     |
-| -------------- | -------- | ----------- | ------------------------- |
-| **allocation** | `number` |             | [Defaults to `undefined`] |
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **allocation** | `number` |  | [Defaults to `undefined`] |
 
 ### Return type
 
@@ -251,13 +266,14 @@ No authorization required
 - **Content-Type**: Not defined
 - **Accept**: `application/json`
 
-### HTTP response details
 
+### HTTP response details
 | Status code | Description | Response headers |
-| ----------- | ----------- | ---------------- |
-| **200**     | Allocation  | -                |
+|-------------|-------------|------------------|
+| **200** | Allocation |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
 
 ## showMultipleAllocations
 
@@ -297,8 +313,9 @@ example().catch(console.error);
 
 ### Parameters
 
-| Name    | Type     | Description                            | Notes                                |
-| ------- | -------- | -------------------------------------- | ------------------------------------ |
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
 | **ids** | `string` | Comma separated allocation identifiers | [Optional] [Defaults to `undefined`] |
 
 ### Return type
@@ -314,14 +331,15 @@ No authorization required
 - **Content-Type**: Not defined
 - **Accept**: `application/json`
 
-### HTTP response details
 
-| Status code | Description            | Response headers |
-| ----------- | ---------------------- | ---------------- |
-| **200**     | Allocations            | -                |
-| **422**     | IDs missing or invalid | -                |
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Allocations |  -  |
+| **422** | IDs missing or invalid |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
 
 ## updateAllocation
 
@@ -363,10 +381,11 @@ example().catch(console.error);
 
 ### Parameters
 
-| Name                        | Type                                                  | Description | Notes                     |
-| --------------------------- | ----------------------------------------------------- | ----------- | ------------------------- |
-| **allocation**              | `number`                                              |             | [Defaults to `undefined`] |
-| **entityAllocationPayload** | [EntityAllocationPayload](EntityAllocationPayload.md) |             |                           |
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **allocation** | `number` |  | [Defaults to `undefined`] |
+| **entityAllocationPayload** | [EntityAllocationPayload](EntityAllocationPayload.md) |  | |
 
 ### Return type
 
@@ -381,14 +400,15 @@ No authorization required
 - **Content-Type**: `application/json`
 - **Accept**: `application/json`
 
-### HTTP response details
 
-| Status code | Description                  | Response headers |
-| ----------- | ---------------------------- | ---------------- |
-| **200**     | Allocation                   | -                |
-| **500**     | Could not update allocation. | -                |
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Allocation |  -  |
+| **500** | Could not update allocation. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
 
 ## updateMultipleAllocations
 
@@ -428,9 +448,10 @@ example().catch(console.error);
 
 ### Parameters
 
-| Name                                  | Type                                                                      | Description | Notes |
-| ------------------------------------- | ------------------------------------------------------------------------- | ----------- | ----- |
-| **entityAllocationUpdateBulkPayload** | [EntityAllocationUpdateBulkPayload](EntityAllocationUpdateBulkPayload.md) |             |       |
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **entityAllocationUpdateBulkPayload** | [EntityAllocationUpdateBulkPayload](EntityAllocationUpdateBulkPayload.md) |  | |
 
 ### Return type
 
@@ -445,10 +466,11 @@ No authorization required
 - **Content-Type**: `application/json`
 - **Accept**: `application/json`
 
-### HTTP response details
 
-| Status code | Description         | Response headers |
-| ----------- | ------------------- | ---------------- |
-| **201**     | Allocations updated | -                |
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **201** | Allocations updated |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+

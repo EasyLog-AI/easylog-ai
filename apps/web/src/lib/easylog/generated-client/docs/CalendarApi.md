@@ -1,10 +1,12 @@
 # CalendarApi
 
-All URIs are relative to _/api_
+All URIs are relative to */api*
 
-| Method                                                    | HTTP request                     | Description                     |
-| --------------------------------------------------------- | -------------------------------- | ------------------------------- |
+| Method | HTTP request | Description |
+|------------- | ------------- | -------------|
 | [**exportCalendarICS**](CalendarApi.md#exportcalendarics) | **GET** /v2/calendar/{token}/ics | Export resource calendar as ICS |
+
+
 
 ## exportCalendarICS
 
@@ -17,16 +19,19 @@ Export allocations for a resource as an iCalendar (.ics) file using a secure tok
 ### Example
 
 ```ts
-import { Configuration, CalendarApi } from '';
+import {
+  Configuration,
+  CalendarApi,
+} from '';
 import type { ExportCalendarICSRequest } from '';
 
 async function example() {
-  console.log('🚀 Testing  SDK...');
+  console.log("🚀 Testing  SDK...");
   const api = new CalendarApi();
 
   const body = {
     // string | Secure calendar token
-    token: token_example
+    token: token_example,
   } satisfies ExportCalendarICSRequest;
 
   try {
@@ -43,8 +48,9 @@ example().catch(console.error);
 
 ### Parameters
 
-| Name      | Type     | Description           | Notes                     |
-| --------- | -------- | --------------------- | ------------------------- |
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
 | **token** | `string` | Secure calendar token | [Defaults to `undefined`] |
 
 ### Return type
@@ -60,11 +66,12 @@ No authorization required
 - **Content-Type**: Not defined
 - **Accept**: `text/calendar`
 
-### HTTP response details
 
-| Status code | Description        | Response headers |
-| ----------- | ------------------ | ---------------- |
-| **200**     | ICS calendar file  | -                |
-| **404**     | Calendar not found | -                |
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | ICS calendar file |  -  |
+| **404** | Calendar not found |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+

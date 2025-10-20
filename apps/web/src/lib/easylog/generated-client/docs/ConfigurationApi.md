@@ -1,10 +1,12 @@
 # ConfigurationApi
 
-All URIs are relative to _/api_
+All URIs are relative to */api*
 
-| Method                                                                   | HTTP request              | Description              |
-| ------------------------------------------------------------------------ | ------------------------- | ------------------------ |
+| Method | HTTP request | Description |
+|------------- | ------------- | -------------|
 | [**getClientConfiguration**](ConfigurationApi.md#getclientconfiguration) | **GET** /v2/configuration | Get client configuration |
+
+
 
 ## getClientConfiguration
 
@@ -17,14 +19,17 @@ Retrieve the authenticated user\&#39;s client configuration including default ti
 ### Example
 
 ```ts
-import { Configuration, ConfigurationApi } from '';
+import {
+  Configuration,
+  ConfigurationApi,
+} from '';
 import type { GetClientConfigurationRequest } from '';
 
 async function example() {
-  console.log('🚀 Testing  SDK...');
-  const config = new Configuration({
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
     // To configure OAuth2 access token for authorization: passport password
-    accessToken: 'YOUR ACCESS TOKEN'
+    accessToken: "YOUR ACCESS TOKEN",
   });
   const api = new ConfigurationApi(config);
 
@@ -57,10 +62,11 @@ This endpoint does not need any parameter.
 - **Content-Type**: Not defined
 - **Accept**: `application/json`
 
-### HTTP response details
 
-| Status code | Description          | Response headers |
-| ----------- | -------------------- | ---------------- |
-| **200**     | Client configuration | -                |
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Client configuration |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+

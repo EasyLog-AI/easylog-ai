@@ -1,17 +1,19 @@
 # SubmissionsApi
 
-All URIs are relative to _/api_
+All URIs are relative to */api*
 
-| Method                                                                | HTTP request                                    | Description                     |
-| --------------------------------------------------------------------- | ----------------------------------------------- | ------------------------------- |
-| [**deleteSubmission**](SubmissionsApi.md#deletesubmission)            | **DELETE** /v2/submissions/{submission}         | Delete submission               |
-| [**listSubmissionMedia**](SubmissionsApi.md#listsubmissionmedia)      | **GET** /v2/submissions/{submission}/media      | List media for a submission     |
-| [**listSubmissions**](SubmissionsApi.md#listsubmissions)              | **GET** /v2/submissions                         | List submissions                |
-| [**persistSubmission**](SubmissionsApi.md#persistsubmissionoperation) | **POST** /v2/submissions/{project_form}/persist | Persist submission              |
+| Method | HTTP request | Description |
+|------------- | ------------- | -------------|
+| [**deleteSubmission**](SubmissionsApi.md#deletesubmission) | **DELETE** /v2/submissions/{submission} | Delete submission |
+| [**listSubmissionMedia**](SubmissionsApi.md#listsubmissionmedia) | **GET** /v2/submissions/{submission}/media | List media for a submission |
+| [**listSubmissions**](SubmissionsApi.md#listsubmissions) | **GET** /v2/submissions | List submissions |
+| [**persistSubmission**](SubmissionsApi.md#persistsubmissionoperation) | **POST** /v2/submissions/{project_form}/persist | Persist submission |
 | [**prepareSubmission**](SubmissionsApi.md#preparesubmissionoperation) | **POST** /v2/submissions/{project_form}/prepare | Prepare submission file uploads |
-| [**showSubmission**](SubmissionsApi.md#showsubmission)                | **GET** /v2/submissions/{submission}            | Show submission                 |
-| [**updateSubmission**](SubmissionsApi.md#updatesubmission)            | **PATCH** /v2/submissions/{submission}          | Update submission               |
-| [**uploadSubmissionMedia**](SubmissionsApi.md#uploadsubmissionmedia)  | **POST** /v2/submissions/{submission}/media     | Upload media to a submission    |
+| [**showSubmission**](SubmissionsApi.md#showsubmission) | **GET** /v2/submissions/{submission} | Show submission |
+| [**updateSubmission**](SubmissionsApi.md#updatesubmission) | **PATCH** /v2/submissions/{submission} | Update submission |
+| [**uploadSubmissionMedia**](SubmissionsApi.md#uploadsubmissionmedia) | **POST** /v2/submissions/{submission}/media | Upload media to a submission |
+
+
 
 ## deleteSubmission
 
@@ -24,20 +26,23 @@ Delete a submission and all associated media. Users can only delete submissions 
 ### Example
 
 ```ts
-import { Configuration, SubmissionsApi } from '';
+import {
+  Configuration,
+  SubmissionsApi,
+} from '';
 import type { DeleteSubmissionRequest } from '';
 
 async function example() {
-  console.log('🚀 Testing  SDK...');
-  const config = new Configuration({
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
     // To configure OAuth2 access token for authorization: passport password
-    accessToken: 'YOUR ACCESS TOKEN'
+    accessToken: "YOUR ACCESS TOKEN",
   });
   const api = new SubmissionsApi(config);
 
   const body = {
     // number | Submission ID
-    submission: 789
+    submission: 789,
   } satisfies DeleteSubmissionRequest;
 
   try {
@@ -54,8 +59,9 @@ example().catch(console.error);
 
 ### Parameters
 
-| Name           | Type     | Description   | Notes                     |
-| -------------- | -------- | ------------- | ------------------------- |
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
 | **submission** | `number` | Submission ID | [Defaults to `undefined`] |
 
 ### Return type
@@ -71,15 +77,16 @@ example().catch(console.error);
 - **Content-Type**: Not defined
 - **Accept**: Not defined
 
-### HTTP response details
 
-| Status code | Description                                          | Response headers |
-| ----------- | ---------------------------------------------------- | ---------------- |
-| **204**     | Submission deleted                                   | -                |
-| **403**     | Forbidden - not authorized to delete this submission | -                |
-| **404**     | Submission not found                                 | -                |
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **204** | Submission deleted |  -  |
+| **403** | Forbidden - not authorized to delete this submission |  -  |
+| **404** | Submission not found |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
 
 ## listSubmissionMedia
 
@@ -92,20 +99,23 @@ Get all media files attached to a submission.
 ### Example
 
 ```ts
-import { Configuration, SubmissionsApi } from '';
+import {
+  Configuration,
+  SubmissionsApi,
+} from '';
 import type { ListSubmissionMediaRequest } from '';
 
 async function example() {
-  console.log('🚀 Testing  SDK...');
-  const config = new Configuration({
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
     // To configure OAuth2 access token for authorization: passport password
-    accessToken: 'YOUR ACCESS TOKEN'
+    accessToken: "YOUR ACCESS TOKEN",
   });
   const api = new SubmissionsApi(config);
 
   const body = {
     // number | Submission ID
-    submission: 789
+    submission: 789,
   } satisfies ListSubmissionMediaRequest;
 
   try {
@@ -122,8 +132,9 @@ example().catch(console.error);
 
 ### Parameters
 
-| Name           | Type     | Description   | Notes                     |
-| -------------- | -------- | ------------- | ------------------------- |
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
 | **submission** | `number` | Submission ID | [Defaults to `undefined`] |
 
 ### Return type
@@ -139,19 +150,20 @@ example().catch(console.error);
 - **Content-Type**: Not defined
 - **Accept**: `application/json`
 
-### HTTP response details
 
-| Status code | Description                                        | Response headers |
-| ----------- | -------------------------------------------------- | ---------------- |
-| **200**     | Media collection                                   | -                |
-| **403**     | Forbidden - not authorized to view this submission | -                |
-| **404**     | Submission not found                               | -                |
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Media collection |  -  |
+| **403** | Forbidden - not authorized to view this submission |  -  |
+| **404** | Submission not found |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
+
 ## listSubmissions
 
-> SubmissionCollection listSubmissions(projectFormId, issuerId, from, to, \_with)
+> SubmissionCollection listSubmissions(projectFormId, issuerId, from, to, _with)
 
 List submissions
 
@@ -160,14 +172,17 @@ List all submissions for the current user. Regular users only see their own subm
 ### Example
 
 ```ts
-import { Configuration, SubmissionsApi } from '';
+import {
+  Configuration,
+  SubmissionsApi,
+} from '';
 import type { ListSubmissionsRequest } from '';
 
 async function example() {
-  console.log('🚀 Testing  SDK...');
-  const config = new Configuration({
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
     // To configure OAuth2 access token for authorization: passport password
-    accessToken: 'YOUR ACCESS TOKEN'
+    accessToken: "YOUR ACCESS TOKEN",
   });
   const api = new SubmissionsApi(config);
 
@@ -177,13 +192,11 @@ async function example() {
     // number | Filter by issuer user ID (requires ViewAllSubmissions permission) (optional)
     issuerId: 789,
     // Date | Filter submissions created from this date (optional)
-    from: 2013 - 10 - 20,
+    from: 2013-10-20,
     // Date | Filter submissions created until this date (optional)
-    to: 2013 - 10 - 20,
+    to: 2013-10-20,
     // string | Comma-separated list of relationships to eager load (projectForm, issuer, media) (optional)
-    _with: projectForm,
-    issuer,
-    media
+    _with: projectForm,issuer,media,
   } satisfies ListSubmissionsRequest;
 
   try {
@@ -200,13 +213,14 @@ example().catch(console.error);
 
 ### Parameters
 
-| Name              | Type     | Description                                                                      | Notes                                |
-| ----------------- | -------- | -------------------------------------------------------------------------------- | ------------------------------------ |
-| **projectFormId** | `number` | Filter by project form ID                                                        | [Optional] [Defaults to `undefined`] |
-| **issuerId**      | `number` | Filter by issuer user ID (requires ViewAllSubmissions permission)                | [Optional] [Defaults to `undefined`] |
-| **from**          | `Date`   | Filter submissions created from this date                                        | [Optional] [Defaults to `undefined`] |
-| **to**            | `Date`   | Filter submissions created until this date                                       | [Optional] [Defaults to `undefined`] |
-| **\_with**        | `string` | Comma-separated list of relationships to eager load (projectForm, issuer, media) | [Optional] [Defaults to `undefined`] |
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **projectFormId** | `number` | Filter by project form ID | [Optional] [Defaults to `undefined`] |
+| **issuerId** | `number` | Filter by issuer user ID (requires ViewAllSubmissions permission) | [Optional] [Defaults to `undefined`] |
+| **from** | `Date` | Filter submissions created from this date | [Optional] [Defaults to `undefined`] |
+| **to** | `Date` | Filter submissions created until this date | [Optional] [Defaults to `undefined`] |
+| **_with** | `string` | Comma-separated list of relationships to eager load (projectForm, issuer, media) | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 
@@ -221,14 +235,15 @@ example().catch(console.error);
 - **Content-Type**: Not defined
 - **Accept**: `application/json`
 
-### HTTP response details
 
-| Status code | Description                                                 | Response headers |
-| ----------- | ----------------------------------------------------------- | ---------------- |
-| **200**     | Submissions collection                                      | -                |
-| **403**     | Forbidden - insufficient permissions to filter by issuer_id | -                |
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Submissions collection |  -  |
+| **403** | Forbidden - insufficient permissions to filter by issuer_id |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
 
 ## persistSubmission
 
@@ -249,7 +264,7 @@ import type { PersistSubmissionOperationRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({
+  const config = new Configuration({ 
     // To configure OAuth2 access token for authorization: passport password
     accessToken: "YOUR ACCESS TOKEN",
   });
@@ -276,10 +291,11 @@ example().catch(console.error);
 
 ### Parameters
 
-| Name                         | Type                                                    | Description     | Notes                     |
-| ---------------------------- | ------------------------------------------------------- | --------------- | ------------------------- |
-| **projectForm**              | `number`                                                | Project form ID | [Defaults to `undefined`] |
-| **persistSubmissionRequest** | [PersistSubmissionRequest](PersistSubmissionRequest.md) |                 |                           |
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **projectForm** | `number` | Project form ID | [Defaults to `undefined`] |
+| **persistSubmissionRequest** | [PersistSubmissionRequest](PersistSubmissionRequest.md) |  | |
 
 ### Return type
 
@@ -294,17 +310,18 @@ example().catch(console.error);
 - **Content-Type**: `application/json`
 - **Accept**: `application/json`
 
-### HTTP response details
 
-| Status code | Description                     | Response headers |
-| ----------- | ------------------------------- | ---------------- |
-| **201**     | Submission created              | -                |
-| **400**     | Invalid data or file tokens     | -                |
-| **404**     | Project form not found          | -                |
-| **422**     | Validation error                | -                |
-| **500**     | Server error during persistence | -                |
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **201** | Submission created |  -  |
+| **400** | Invalid data or file tokens |  -  |
+| **404** | Project form not found |  -  |
+| **422** | Validation error |  -  |
+| **500** | Server error during persistence |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
 
 ## prepareSubmission
 
@@ -325,7 +342,7 @@ import type { PrepareSubmissionOperationRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({
+  const config = new Configuration({ 
     // To configure OAuth2 access token for authorization: passport password
     accessToken: "YOUR ACCESS TOKEN",
   });
@@ -352,10 +369,11 @@ example().catch(console.error);
 
 ### Parameters
 
-| Name                         | Type                                                    | Description     | Notes                     |
-| ---------------------------- | ------------------------------------------------------- | --------------- | ------------------------- |
-| **projectForm**              | `number`                                                | Project form ID | [Defaults to `undefined`] |
-| **prepareSubmissionRequest** | [PrepareSubmissionRequest](PrepareSubmissionRequest.md) |                 |                           |
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **projectForm** | `number` | Project form ID | [Defaults to `undefined`] |
+| **prepareSubmissionRequest** | [PrepareSubmissionRequest](PrepareSubmissionRequest.md) |  | |
 
 ### Return type
 
@@ -370,15 +388,16 @@ example().catch(console.error);
 - **Content-Type**: `application/json`
 - **Accept**: `application/json`
 
-### HTTP response details
 
-| Status code | Description            | Response headers |
-| ----------- | ---------------------- | ---------------- |
-| **200**     | Pre-signed upload URLs | -                |
-| **404**     | Project form not found | -                |
-| **422**     | Validation error       | -                |
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Pre-signed upload URLs |  -  |
+| **404** | Project form not found |  -  |
+| **422** | Validation error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
 
 ## showSubmission
 
@@ -391,20 +410,23 @@ Display a specific submission. Users can only view submissions they created or i
 ### Example
 
 ```ts
-import { Configuration, SubmissionsApi } from '';
+import {
+  Configuration,
+  SubmissionsApi,
+} from '';
 import type { ShowSubmissionRequest } from '';
 
 async function example() {
-  console.log('🚀 Testing  SDK...');
-  const config = new Configuration({
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
     // To configure OAuth2 access token for authorization: passport password
-    accessToken: 'YOUR ACCESS TOKEN'
+    accessToken: "YOUR ACCESS TOKEN",
   });
   const api = new SubmissionsApi(config);
 
   const body = {
     // number | Submission ID
-    submission: 789
+    submission: 789,
   } satisfies ShowSubmissionRequest;
 
   try {
@@ -421,8 +443,9 @@ example().catch(console.error);
 
 ### Parameters
 
-| Name           | Type     | Description   | Notes                     |
-| -------------- | -------- | ------------- | ------------------------- |
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
 | **submission** | `number` | Submission ID | [Defaults to `undefined`] |
 
 ### Return type
@@ -438,15 +461,16 @@ example().catch(console.error);
 - **Content-Type**: Not defined
 - **Accept**: `application/json`
 
-### HTTP response details
 
-| Status code | Description                                        | Response headers |
-| ----------- | -------------------------------------------------- | ---------------- |
-| **200**     | Submission                                         | -                |
-| **403**     | Forbidden - not authorized to view this submission | -                |
-| **404**     | Submission not found                               | -                |
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Submission |  -  |
+| **403** | Forbidden - not authorized to view this submission |  -  |
+| **404** | Submission not found |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
 
 ## updateSubmission
 
@@ -467,7 +491,7 @@ import type { UpdateSubmissionRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({
+  const config = new Configuration({ 
     // To configure OAuth2 access token for authorization: passport password
     accessToken: "YOUR ACCESS TOKEN",
   });
@@ -494,10 +518,11 @@ example().catch(console.error);
 
 ### Parameters
 
-| Name                      | Type                                              | Description   | Notes                     |
-| ------------------------- | ------------------------------------------------- | ------------- | ------------------------- |
-| **submission**            | `number`                                          | Submission ID | [Defaults to `undefined`] |
-| **updateSubmissionInput** | [UpdateSubmissionInput](UpdateSubmissionInput.md) |               |                           |
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **submission** | `number` | Submission ID | [Defaults to `undefined`] |
+| **updateSubmissionInput** | [UpdateSubmissionInput](UpdateSubmissionInput.md) |  | |
 
 ### Return type
 
@@ -512,16 +537,17 @@ example().catch(console.error);
 - **Content-Type**: `application/json`
 - **Accept**: `application/json`
 
-### HTTP response details
 
-| Status code | Description                                          | Response headers |
-| ----------- | ---------------------------------------------------- | ---------------- |
-| **200**     | Updated submission                                   | -                |
-| **403**     | Forbidden - not authorized to update this submission | -                |
-| **404**     | Submission not found                                 | -                |
-| **422**     | Validation error                                     | -                |
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Updated submission |  -  |
+| **403** | Forbidden - not authorized to update this submission |  -  |
+| **404** | Submission not found |  -  |
+| **422** | Validation error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
 
 ## uploadSubmissionMedia
 
@@ -534,14 +560,17 @@ Upload a file and attach it to a submission. Maximum file size: 10MB.
 ### Example
 
 ```ts
-import { Configuration, SubmissionsApi } from '';
+import {
+  Configuration,
+  SubmissionsApi,
+} from '';
 import type { UploadSubmissionMediaRequest } from '';
 
 async function example() {
-  console.log('🚀 Testing  SDK...');
-  const config = new Configuration({
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
     // To configure OAuth2 access token for authorization: passport password
-    accessToken: 'YOUR ACCESS TOKEN'
+    accessToken: "YOUR ACCESS TOKEN",
   });
   const api = new SubmissionsApi(config);
 
@@ -549,7 +578,7 @@ async function example() {
     // number | Submission ID
     submission: 789,
     // Blob | File to upload (max 10MB)
-    file: BINARY_DATA_HERE
+    file: BINARY_DATA_HERE,
   } satisfies UploadSubmissionMediaRequest;
 
   try {
@@ -566,10 +595,11 @@ example().catch(console.error);
 
 ### Parameters
 
-| Name           | Type     | Description               | Notes                     |
-| -------------- | -------- | ------------------------- | ------------------------- |
-| **submission** | `number` | Submission ID             | [Defaults to `undefined`] |
-| **file**       | `Blob`   | File to upload (max 10MB) | [Defaults to `undefined`] |
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **submission** | `number` | Submission ID | [Defaults to `undefined`] |
+| **file** | `Blob` | File to upload (max 10MB) | [Defaults to `undefined`] |
 
 ### Return type
 
@@ -584,13 +614,14 @@ example().catch(console.error);
 - **Content-Type**: `multipart/form-data`
 - **Accept**: `application/json`
 
-### HTTP response details
 
-| Status code | Description                                          | Response headers |
-| ----------- | ---------------------------------------------------- | ---------------- |
-| **201**     | Media uploaded                                       | -                |
-| **403**     | Forbidden - not authorized to update this submission | -                |
-| **404**     | Submission not found                                 | -                |
-| **422**     | Validation error                                     | -                |
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **201** | Media uploaded |  -  |
+| **403** | Forbidden - not authorized to update this submission |  -  |
+| **404** | Submission not found |  -  |
+| **422** | Validation error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+

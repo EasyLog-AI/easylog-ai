@@ -1,12 +1,14 @@
 # AnnouncementsApi
 
-All URIs are relative to _/api_
+All URIs are relative to */api*
 
-| Method                                                                       | HTTP request                                     | Description                |
-| ---------------------------------------------------------------------------- | ------------------------------------------------ | -------------------------- |
-| [**listAnnouncements**](AnnouncementsApi.md#listannouncements)               | **GET** /v2/announcements                        | List announcements         |
-| [**showAnnouncement**](AnnouncementsApi.md#showannouncement)                 | **GET** /v2/announcements/{announcement}         | Show announcement          |
+| Method | HTTP request | Description |
+|------------- | ------------- | -------------|
+| [**listAnnouncements**](AnnouncementsApi.md#listannouncements) | **GET** /v2/announcements | List announcements |
+| [**showAnnouncement**](AnnouncementsApi.md#showannouncement) | **GET** /v2/announcements/{announcement} | Show announcement |
 | [**updateAnnouncementStatus**](AnnouncementsApi.md#updateannouncementstatus) | **POST** /v2/announcements/{announcement}/status | Update announcement status |
+
+
 
 ## listAnnouncements
 
@@ -19,14 +21,17 @@ List all announcements for the authenticated user. Automatically marks unread an
 ### Example
 
 ```ts
-import { Configuration, AnnouncementsApi } from '';
+import {
+  Configuration,
+  AnnouncementsApi,
+} from '';
 import type { ListAnnouncementsRequest } from '';
 
 async function example() {
-  console.log('🚀 Testing  SDK...');
-  const config = new Configuration({
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
     // To configure OAuth2 access token for authorization: passport password
-    accessToken: 'YOUR ACCESS TOKEN'
+    accessToken: "YOUR ACCESS TOKEN",
   });
   const api = new AnnouncementsApi(config);
 
@@ -59,13 +64,14 @@ This endpoint does not need any parameter.
 - **Content-Type**: Not defined
 - **Accept**: `application/json`
 
-### HTTP response details
 
-| Status code | Description              | Response headers |
-| ----------- | ------------------------ | ---------------- |
-| **200**     | Announcements collection | -                |
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Announcements collection |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
 
 ## showAnnouncement
 
@@ -78,20 +84,23 @@ Display a specific announcement. Automatically marks the announcement as retriev
 ### Example
 
 ```ts
-import { Configuration, AnnouncementsApi } from '';
+import {
+  Configuration,
+  AnnouncementsApi,
+} from '';
 import type { ShowAnnouncementRequest } from '';
 
 async function example() {
-  console.log('🚀 Testing  SDK...');
-  const config = new Configuration({
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
     // To configure OAuth2 access token for authorization: passport password
-    accessToken: 'YOUR ACCESS TOKEN'
+    accessToken: "YOUR ACCESS TOKEN",
   });
   const api = new AnnouncementsApi(config);
 
   const body = {
     // number | Announcement ID
-    announcement: 789
+    announcement: 789,
   } satisfies ShowAnnouncementRequest;
 
   try {
@@ -108,8 +117,9 @@ example().catch(console.error);
 
 ### Parameters
 
-| Name             | Type     | Description     | Notes                     |
-| ---------------- | -------- | --------------- | ------------------------- |
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
 | **announcement** | `number` | Announcement ID | [Defaults to `undefined`] |
 
 ### Return type
@@ -125,15 +135,16 @@ example().catch(console.error);
 - **Content-Type**: Not defined
 - **Accept**: `application/json`
 
-### HTTP response details
 
-| Status code | Description                                          | Response headers |
-| ----------- | ---------------------------------------------------- | ---------------- |
-| **200**     | Announcement                                         | -                |
-| **403**     | Forbidden - not authorized to view this announcement | -                |
-| **404**     | Announcement not found                               | -                |
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Announcement |  -  |
+| **403** | Forbidden - not authorized to view this announcement |  -  |
+| **404** | Announcement not found |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
 
 ## updateAnnouncementStatus
 
@@ -154,7 +165,7 @@ import type { UpdateAnnouncementStatusRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({
+  const config = new Configuration({ 
     // To configure OAuth2 access token for authorization: passport password
     accessToken: "YOUR ACCESS TOKEN",
   });
@@ -181,10 +192,11 @@ example().catch(console.error);
 
 ### Parameters
 
-| Name                        | Type                                                  | Description     | Notes                     |
-| --------------------------- | ----------------------------------------------------- | --------------- | ------------------------- |
-| **announcement**            | `number`                                              | Announcement ID | [Defaults to `undefined`] |
-| **announcementStatusInput** | [AnnouncementStatusInput](AnnouncementStatusInput.md) |                 |                           |
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **announcement** | `number` | Announcement ID | [Defaults to `undefined`] |
+| **announcementStatusInput** | [AnnouncementStatusInput](AnnouncementStatusInput.md) |  | |
 
 ### Return type
 
@@ -199,13 +211,14 @@ example().catch(console.error);
 - **Content-Type**: `application/json`
 - **Accept**: `application/json`
 
-### HTTP response details
 
-| Status code | Description                                    | Response headers |
-| ----------- | ---------------------------------------------- | ---------------- |
-| **200**     | Announcement with updated status               | -                |
-| **403**     | Forbidden - not authorized or invalid media_id | -                |
-| **404**     | Announcement not found                         | -                |
-| **422**     | Validation error                               | -                |
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Announcement with updated status |  -  |
+| **403** | Forbidden - not authorized or invalid media_id |  -  |
+| **404** | Announcement not found |  -  |
+| **422** | Validation error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+

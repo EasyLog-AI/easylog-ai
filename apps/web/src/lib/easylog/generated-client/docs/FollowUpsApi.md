@@ -1,14 +1,16 @@
 # FollowUpsApi
 
-All URIs are relative to _/api_
+All URIs are relative to */api*
 
-| Method                                               | HTTP request                         | Description      |
-| ---------------------------------------------------- | ------------------------------------ | ---------------- |
-| [**createFollowUp**](FollowUpsApi.md#createfollowup) | **POST** /v2/follow-ups              | Create follow-up |
+| Method | HTTP request | Description |
+|------------- | ------------- | -------------|
+| [**createFollowUp**](FollowUpsApi.md#createfollowup) | **POST** /v2/follow-ups | Create follow-up |
 | [**deleteFollowUp**](FollowUpsApi.md#deletefollowup) | **DELETE** /v2/follow-ups/{followUp} | Delete follow-up |
-| [**listFollowUps**](FollowUpsApi.md#listfollowups)   | **GET** /v2/follow-ups               | List follow-ups  |
-| [**showFollowUp**](FollowUpsApi.md#showfollowup)     | **GET** /v2/follow-ups/{followUp}    | Show follow-up   |
-| [**updateFollowUp**](FollowUpsApi.md#updatefollowup) | **PATCH** /v2/follow-ups/{followUp}  | Update follow-up |
+| [**listFollowUps**](FollowUpsApi.md#listfollowups) | **GET** /v2/follow-ups | List follow-ups |
+| [**showFollowUp**](FollowUpsApi.md#showfollowup) | **GET** /v2/follow-ups/{followUp} | Show follow-up |
+| [**updateFollowUp**](FollowUpsApi.md#updatefollowup) | **PATCH** /v2/follow-ups/{followUp} | Update follow-up |
+
+
 
 ## createFollowUp
 
@@ -29,7 +31,7 @@ import type { CreateFollowUpRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({
+  const config = new Configuration({ 
     // To configure OAuth2 access token for authorization: passport password
     accessToken: "YOUR ACCESS TOKEN",
   });
@@ -54,9 +56,10 @@ example().catch(console.error);
 
 ### Parameters
 
-| Name                   | Type                                        | Description | Notes |
-| ---------------------- | ------------------------------------------- | ----------- | ----- |
-| **storeFollowUpInput** | [StoreFollowUpInput](StoreFollowUpInput.md) |             |       |
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **storeFollowUpInput** | [StoreFollowUpInput](StoreFollowUpInput.md) |  | |
 
 ### Return type
 
@@ -71,14 +74,15 @@ example().catch(console.error);
 - **Content-Type**: `application/json`
 - **Accept**: `application/json`
 
-### HTTP response details
 
-| Status code | Description       | Response headers |
-| ----------- | ----------------- | ---------------- |
-| **200**     | Created follow-up | -                |
-| **422**     | Validation error  | -                |
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Created follow-up |  -  |
+| **422** | Validation error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
 
 ## deleteFollowUp
 
@@ -91,20 +95,23 @@ Remove the specified resource from storage.
 ### Example
 
 ```ts
-import { Configuration, FollowUpsApi } from '';
+import {
+  Configuration,
+  FollowUpsApi,
+} from '';
 import type { DeleteFollowUpRequest } from '';
 
 async function example() {
-  console.log('🚀 Testing  SDK...');
-  const config = new Configuration({
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
     // To configure OAuth2 access token for authorization: passport password
-    accessToken: 'YOUR ACCESS TOKEN'
+    accessToken: "YOUR ACCESS TOKEN",
   });
   const api = new FollowUpsApi(config);
 
   const body = {
     // number | Follow-up ID
-    followUp: 789
+    followUp: 789,
   } satisfies DeleteFollowUpRequest;
 
   try {
@@ -121,8 +128,9 @@ example().catch(console.error);
 
 ### Parameters
 
-| Name         | Type     | Description  | Notes                     |
-| ------------ | -------- | ------------ | ------------------------- |
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
 | **followUp** | `number` | Follow-up ID | [Defaults to `undefined`] |
 
 ### Return type
@@ -138,14 +146,15 @@ example().catch(console.error);
 - **Content-Type**: Not defined
 - **Accept**: Not defined
 
-### HTTP response details
 
-| Status code | Description         | Response headers |
-| ----------- | ------------------- | ---------------- |
-| **204**     | Follow-up deleted   | -                |
-| **404**     | Follow-up not found | -                |
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **204** | Follow-up deleted |  -  |
+| **404** | Follow-up not found |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
 
 ## listFollowUps
 
@@ -158,14 +167,17 @@ List all follow-ups for the current client. Follow-ups are filtered by user grou
 ### Example
 
 ```ts
-import { Configuration, FollowUpsApi } from '';
+import {
+  Configuration,
+  FollowUpsApi,
+} from '';
 import type { ListFollowUpsRequest } from '';
 
 async function example() {
-  console.log('🚀 Testing  SDK...');
-  const config = new Configuration({
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
     // To configure OAuth2 access token for authorization: passport password
-    accessToken: 'YOUR ACCESS TOKEN'
+    accessToken: "YOUR ACCESS TOKEN",
   });
   const api = new FollowUpsApi(config);
 
@@ -198,13 +210,14 @@ This endpoint does not need any parameter.
 - **Content-Type**: Not defined
 - **Accept**: `application/json`
 
-### HTTP response details
 
+### HTTP response details
 | Status code | Description | Response headers |
-| ----------- | ----------- | ---------------- |
-| **200**     | Follow-ups  | -                |
+|-------------|-------------|------------------|
+| **200** | Follow-ups |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
 
 ## showFollowUp
 
@@ -217,20 +230,23 @@ Display the specified resource.
 ### Example
 
 ```ts
-import { Configuration, FollowUpsApi } from '';
+import {
+  Configuration,
+  FollowUpsApi,
+} from '';
 import type { ShowFollowUpRequest } from '';
 
 async function example() {
-  console.log('🚀 Testing  SDK...');
-  const config = new Configuration({
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
     // To configure OAuth2 access token for authorization: passport password
-    accessToken: 'YOUR ACCESS TOKEN'
+    accessToken: "YOUR ACCESS TOKEN",
   });
   const api = new FollowUpsApi(config);
 
   const body = {
     // number | Follow-up ID
-    followUp: 789
+    followUp: 789,
   } satisfies ShowFollowUpRequest;
 
   try {
@@ -247,8 +263,9 @@ example().catch(console.error);
 
 ### Parameters
 
-| Name         | Type     | Description  | Notes                     |
-| ------------ | -------- | ------------ | ------------------------- |
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
 | **followUp** | `number` | Follow-up ID | [Defaults to `undefined`] |
 
 ### Return type
@@ -264,14 +281,15 @@ example().catch(console.error);
 - **Content-Type**: Not defined
 - **Accept**: `application/json`
 
-### HTTP response details
 
-| Status code | Description         | Response headers |
-| ----------- | ------------------- | ---------------- |
-| **200**     | Follow-up           | -                |
-| **404**     | Follow-up not found | -                |
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Follow-up |  -  |
+| **404** | Follow-up not found |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
 
 ## updateFollowUp
 
@@ -292,7 +310,7 @@ import type { UpdateFollowUpRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const config = new Configuration({
+  const config = new Configuration({ 
     // To configure OAuth2 access token for authorization: passport password
     accessToken: "YOUR ACCESS TOKEN",
   });
@@ -319,10 +337,11 @@ example().catch(console.error);
 
 ### Parameters
 
-| Name                    | Type                                          | Description  | Notes                     |
-| ----------------------- | --------------------------------------------- | ------------ | ------------------------- |
-| **followUp**            | `number`                                      | Follow-up ID | [Defaults to `undefined`] |
-| **updateFollowUpInput** | [UpdateFollowUpInput](UpdateFollowUpInput.md) |              |                           |
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **followUp** | `number` | Follow-up ID | [Defaults to `undefined`] |
+| **updateFollowUpInput** | [UpdateFollowUpInput](UpdateFollowUpInput.md) |  | |
 
 ### Return type
 
@@ -337,12 +356,13 @@ example().catch(console.error);
 - **Content-Type**: `application/json`
 - **Accept**: `application/json`
 
-### HTTP response details
 
-| Status code | Description         | Response headers |
-| ----------- | ------------------- | ---------------- |
-| **200**     | Updated follow-up   | -                |
-| **404**     | Follow-up not found | -                |
-| **422**     | Validation error    | -                |
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Updated follow-up |  -  |
+| **404** | Follow-up not found |  -  |
+| **422** | Validation error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
