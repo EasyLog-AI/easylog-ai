@@ -196,6 +196,12 @@ Remember: Return ONLY the JSON object with "summary" and "tags" fields. Do not i
       }
     });
 
-    logger.info('Document inserted', { document });
+    /** Update document status to completed */
+    await db
+      .update(documents)
+      .set({ status: 'completed' })
+      .where(eq(documents.id, documentId));
+
+    logger.info('Document ingestion completed', { documentId, document });
   }
 });
