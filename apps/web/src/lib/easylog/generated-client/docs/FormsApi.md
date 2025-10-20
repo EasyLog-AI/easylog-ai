@@ -2,16 +2,17 @@
 
 All URIs are relative to _/api_
 
-| Method                                                   | HTTP request                        | Description                |
-| -------------------------------------------------------- | ----------------------------------- | -------------------------- |
-| [**createForm**](FormsApi.md#createform)                 | **POST** /v2/forms                  | Create form                |
-| [**deleteForm**](FormsApi.md#deleteform)                 | **DELETE** /v2/forms/{form}         | Delete form                |
-| [**getFormSchema**](FormsApi.md#getformschema)           | **GET** /v2/forms/{form}/schema     | Get form JSON schema       |
-| [**listFormCategories**](FormsApi.md#listformcategories) | **GET** /v2/forms/{form}/categories | List categories for a form |
-| [**listFormVersions**](FormsApi.md#listformversions)     | **GET** /v2/forms/{form}/versions   | List form versions         |
-| [**listForms**](FormsApi.md#listforms)                   | **GET** /v2/forms                   | List forms                 |
-| [**showForm**](FormsApi.md#showform)                     | **GET** /v2/forms/{form}            | Show form                  |
-| [**updateForm**](FormsApi.md#updateform)                 | **PATCH** /v2/forms/{form}          | Update form                |
+| Method                                                       | HTTP request                           | Description                      |
+| ------------------------------------------------------------ | -------------------------------------- | -------------------------------- |
+| [**createForm**](FormsApi.md#createform)                     | **POST** /v2/forms                     | Create form                      |
+| [**deleteForm**](FormsApi.md#deleteform)                     | **DELETE** /v2/forms/{form}            | Delete form                      |
+| [**getFormSchema**](FormsApi.md#getformschema)               | **GET** /v2/forms/{form}/schema        | Get form JSON schema             |
+| [**listFormCategories**](FormsApi.md#listformcategories)     | **GET** /v2/forms/{form}/categories    | List categories for a form       |
+| [**listFormProjectForms**](FormsApi.md#listformprojectforms) | **GET** /v2/forms/{form}/project-forms | List project forms for this form |
+| [**listFormVersions**](FormsApi.md#listformversions)         | **GET** /v2/forms/{form}/versions      | List form versions               |
+| [**listForms**](FormsApi.md#listforms)                       | **GET** /v2/forms                      | List forms                       |
+| [**showForm**](FormsApi.md#showform)                         | **GET** /v2/forms/{form}               | Show form                        |
+| [**updateForm**](FormsApi.md#updateform)                     | **PATCH** /v2/forms/{form}             | Update form                      |
 
 ## createForm
 
@@ -281,6 +282,73 @@ example().catch(console.error);
 | ----------- | -------------- | ---------------- |
 | **200**     | Categories     | -                |
 | **404**     | Form not found | -                |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+## listFormProjectForms
+
+> ProjectFormCollection listFormProjectForms(form)
+
+List project forms for this form
+
+Get all ProjectForms (form-to-project associations) for a specific form. This helps map from a form ID to project form IDs which are needed for submissions.
+
+### Example
+
+```ts
+import { Configuration, FormsApi } from '';
+import type { ListFormProjectFormsRequest } from '';
+
+async function example() {
+  console.log('🚀 Testing  SDK...');
+  const config = new Configuration({
+    // To configure OAuth2 access token for authorization: passport password
+    accessToken: 'YOUR ACCESS TOKEN'
+  });
+  const api = new FormsApi(config);
+
+  const body = {
+    // number | Form ID
+    form: 56
+  } satisfies ListFormProjectFormsRequest;
+
+  try {
+    const data = await api.listFormProjectForms(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+| Name     | Type     | Description | Notes                     |
+| -------- | -------- | ----------- | ------------------------- |
+| **form** | `number` | Form ID     | [Defaults to `undefined`] |
+
+### Return type
+
+[**ProjectFormCollection**](ProjectFormCollection.md)
+
+### Authorization
+
+[passport password](../README.md#passport-password)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+### HTTP response details
+
+| Status code | Description              | Response headers |
+| ----------- | ------------------------ | ---------------- |
+| **200**     | Project forms collection | -                |
+| **404**     | Form not found           | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

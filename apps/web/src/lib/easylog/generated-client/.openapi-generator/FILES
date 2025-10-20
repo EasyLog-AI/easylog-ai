@@ -88,6 +88,9 @@ docs/PrepareSubmissionRequest.md
 docs/PrepareSubmissionRequestFilesInner.md
 docs/Project.md
 docs/ProjectCollection.md
+docs/ProjectForm.md
+docs/ProjectFormCollection.md
+docs/ProjectFormResource.md
 docs/ProjectPayload.md
 docs/ReportsApi.md
 docs/Resource.md
@@ -169,6 +172,9 @@ models/PrepareSubmissionRequest.ts
 models/PrepareSubmissionRequestFilesInner.ts
 models/Project.ts
 models/ProjectCollection.ts
+models/ProjectForm.ts
+models/ProjectFormCollection.ts
+models/ProjectFormResource.ts
 models/ProjectPayload.ts
 models/Resource.ts
 models/ResourceCollection.ts
