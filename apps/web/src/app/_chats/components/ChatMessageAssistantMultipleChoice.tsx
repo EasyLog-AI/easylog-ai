@@ -124,10 +124,10 @@ const ChatMessageAssistantMultipleChoice = ({
   const currentValue = multipleChoiceQuestion?.value || answer;
 
   return (
-    <div className="bg-surface-muted shadow-short my-2 max-w-4xl space-y-4 overflow-auto rounded-xl p-3">
+    <div className="my-2 max-w-xl space-y-3">
       <Typography variant="labelMd">{question}</Typography>
 
-      <div className="grid gap-2">
+      <div className="grid gap-1.5">
         {options.map((option) => {
           const isSelected = currentValue === option;
           const isDisabled = Boolean(currentValue && currentValue !== option);
@@ -137,7 +137,7 @@ const ChatMessageAssistantMultipleChoice = ({
               key={option}
               size="lg"
               colorRole="brand"
-              className="w-full"
+              className="min-h-13 w-full"
               isDisabled={isPending || isDisabled}
               isToggled={isSelected}
               onClick={() => {
