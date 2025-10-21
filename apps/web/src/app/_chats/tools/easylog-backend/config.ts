@@ -428,13 +428,15 @@ export const showFollowUpCategoryConfig = {
 
 export const listFormsConfig = {
   name: 'listForms',
-  description: 'List all forms available in Easylog.',
+  description:
+    'List all forms available in Easylog. Returns form metadata (id, name, description) WITHOUT the form content/schema. Use showForm() to get the full form details including content when needed.',
   inputSchema: z.object({})
 } as const;
 
 export const showFormConfig = {
   name: 'showForm',
-  description: 'Retrieve details for a specific form, including metadata.',
+  description:
+    'Retrieve complete details for a specific form, including metadata AND the full form content/schema. Use this after listForms() when you need to see or analyze the actual form structure.',
   inputSchema: z.object({
     formId: z.number().describe('The ID of the form to retrieve')
   })
