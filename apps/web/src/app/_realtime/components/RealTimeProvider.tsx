@@ -29,7 +29,7 @@ import convertUIToRealtime from '../utils/convertUIToRealtime';
 import filterNewMessages from '../utils/filterNewMessages';
 
 interface RealTimeContextType {
-  agent: RealtimeAgent;
+  agent: RealtimeAgent | null;
   session: RealtimeSession | null;
   connect: () => void;
   disconnect: () => void;
@@ -111,48 +111,54 @@ const RealTimeProvider = ({
     )
   );
 
-  const agent = useMemo(
-    () =>
-      new RealtimeAgent({
-        name: dbChat.agent.name,
-        instructions: dbChat.agent.prompt,
-        voice: dbChat.agent.voiceChatVoice,
-        tools: [
-          ...Object.values(toolsConfig).map((toolConfig) =>
-            tool({
-              name: toolConfig.name,
-              description: toolConfig.description,
-              parameters: toolConfig.inputSchema,
-              execute: async (args) => {
-                console.log(
-                  `🔧 Tool called: ${toolConfig.name} - initiating handover`
-                );
+  const agent = useMemo(() => {
+    /**
+     * Only create agent if voice chat is enabled
+     * This prevents OpenAI tool parsing errors when voice chat is disabled
+     */
+    if (!isEnabled) {
+      return null;
+    }
 
-                setMode('awaiting-tool-call');
+    return new RealtimeAgent({
+      name: dbChat.agent.name,
+      instructions: dbChat.agent.prompt,
+      voice: dbChat.agent.voiceChatVoice,
+      tools: [
+        ...Object.values(toolsConfig).map((toolConfig) =>
+          tool({
+            name: toolConfig.name,
+            description: toolConfig.description,
+            parameters: toolConfig.inputSchema,
+            execute: async (args) => {
+              console.log(
+                `🔧 Tool called: ${toolConfig.name} - initiating handover`
+              );
 
-                await sendMessage({
-                  parts: [
-                    {
-                      type: 'text',
-                      text: `[execute the tool ${toolConfig.name} with the arguments of ${JSON.stringify(args)}]`
-                    }
-                  ],
-                  role: 'user'
-                });
+              setMode('awaiting-tool-call');
 
-                return '[done]';
-              }
-            })
-          )
-        ]
-      }),
+              await sendMessage({
+                parts: [
+                  {
+                    type: 'text',
+                    text: `[execute the tool ${toolConfig.name} with the arguments of ${JSON.stringify(args)}]`
+                  }
+                ],
+                role: 'user'
+              });
+
+              return '[done]';
+            }
+          })
+        )
+      ]
+    });
     // eslint-disable-next-line react-compiler/react-compiler
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [dbChat.agent.name, dbChat.agent.prompt, dbChat.agent.voiceChatVoice]
-  );
+  }, [dbChat.agent.name, dbChat.agent.prompt, dbChat.agent.voiceChatVoice, isEnabled]);
 
   const session = useMemo(() => {
-    if (isEnabled) {
+    if (isEnabled && agent) {
       return new RealtimeSession(agent, {
         model: 'gpt-realtime-2025-08-28'
       });
