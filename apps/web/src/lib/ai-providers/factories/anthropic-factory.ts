@@ -36,7 +36,7 @@ const createAnthropicProvider = (
         // Disable context_management when any non-text content is present (e.g., images, PDFs, documents)
         const hasNonTextContent = Array.isArray(body.messages)
           ? body.messages.some((msg: { content?: unknown }) => {
-              const content = (msg as any).content;
+              const content = msg.content;
               if (Array.isArray(content)) {
                 return content.some(
                   (part: { type?: string }) =>
@@ -132,25 +132,27 @@ const createAnthropicProvider = (
             estimatedTokens: Math.round(contextSize / 4) // Rough estimate: 4 chars = 1 token
           },
           conversation: {
-            recentMessages: recentMessages.map((msg) => ({
-              role: msg.role,
-              contentPreview: Array.isArray(msg.content)
-                ? msg.content.map((c) => c.type).join(', ')
-                : typeof msg.content === 'string'
-                  ? msg.content.substring(0, 100) +
-                    (msg.content.length > 100 ? '...' : '')
-                  : 'unknown',
-              hasToolUse:
-                Array.isArray(msg.content) &&
-                msg.content.some(
-                  (c: { type: string }) => c.type === 'tool_use'
-                ),
-              hasToolResult:
-                Array.isArray(msg.content) &&
-                msg.content.some(
-                  (c: { type: string }) => c.type === 'tool_result'
-                )
-            })),
+            recentMessages: recentMessages.map(
+              (msg: { role: string; content: unknown }) => ({
+                role: msg.role,
+                contentPreview: Array.isArray(msg.content)
+                  ? msg.content.map((c: { type: string }) => c.type).join(', ')
+                  : typeof msg.content === 'string'
+                    ? msg.content.substring(0, 100) +
+                      (msg.content.length > 100 ? '...' : '')
+                    : 'unknown',
+                hasToolUse:
+                  Array.isArray(msg.content) &&
+                  msg.content.some(
+                    (c: { type: string }) => c.type === 'tool_use'
+                  ),
+                hasToolResult:
+                  Array.isArray(msg.content) &&
+                  msg.content.some(
+                    (c: { type: string }) => c.type === 'tool_result'
+                  )
+              })
+            ),
             toolUsesInConversation: toolUses.length,
             toolResultsInConversation: toolResults.length,
             recentToolUses: toolUses.slice(-5).map((t) => ({
