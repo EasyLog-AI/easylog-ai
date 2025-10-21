@@ -257,13 +257,13 @@ export const listFollowUpsConfig = {
   inputSchema: z.object({
     page: z
       .number()
-      .optional()
+      .default(1)
       .describe('Page number for pagination (default: 1)'),
     perPage: z
       .number()
       .min(1)
       .max(100)
-      .optional()
+      .default(25)
       .describe('Number of items per page (1-100, default: 25)')
   })
 } as const;
@@ -374,13 +374,13 @@ export const listFollowUpEntriesConfig = {
       .describe('The ID of the follow-up to list entries for'),
     page: z
       .number()
-      .optional()
+      .default(1)
       .describe('Page number for pagination (default: 1)'),
     perPage: z
       .number()
       .min(1)
       .max(100)
-      .optional()
+      .default(25)
       .describe('Number of items per page (1-100, default: 25)')
   })
 } as const;
@@ -439,13 +439,13 @@ export const listFollowUpCategoriesConfig = {
   inputSchema: z.object({
     page: z
       .number()
-      .optional()
+      .default(1)
       .describe('Page number for pagination (default: 1)'),
     perPage: z
       .number()
       .min(1)
       .max(100)
-      .optional()
+      .default(25)
       .describe('Number of items per page (1-100, default: 25)')
   })
 } as const;
@@ -465,13 +465,13 @@ export const listFormsConfig = {
   inputSchema: z.object({
     page: z
       .number()
-      .optional()
+      .default(1)
       .describe('Page number for pagination (default: 1)'),
     perPage: z
       .number()
       .min(1)
       .max(100)
-      .optional()
+      .default(25)
       .describe('Number of items per page (1-100, default: 25)')
   })
 } as const;
@@ -575,35 +575,40 @@ export const listSubmissionsConfig = {
   inputSchema: z.object({
     page: z
       .number()
-      .optional()
+      .default(1)
       .describe('Page number for pagination (default: 1)'),
     perPage: z
       .number()
       .min(1)
       .max(100)
-      .optional()
+      .default(25)
       .describe('Number of items per page (1-100, default: 25)'),
     projectFormId: z
       .number()
       .nullable()
+      .optional()
       .describe('Optional filter by project form ID'),
     issuerId: z
       .number()
       .nullable()
+      .optional()
       .describe(
         'Optional filter by issuer ID (requires ViewAllSubmissions permission)'
       ),
     from: z
       .string()
       .nullable()
+      .optional()
       .describe('Optional filter for submissions from this date (YYYY-MM-DD)'),
     to: z
       .string()
       .nullable()
+      .optional()
       .describe('Optional filter for submissions until this date (YYYY-MM-DD)'),
     with: z
       .string()
       .nullable()
+      .optional()
       .describe(
         'Optional comma-separated list of relations to include (e.g. "form,issuer,media")'
       )
