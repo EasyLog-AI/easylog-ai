@@ -2,13 +2,13 @@
 
 All URIs are relative to _/api_
 
-| Method                                               | HTTP request                         | Description      |
-| ---------------------------------------------------- | ------------------------------------ | ---------------- |
-| [**createFollowUp**](FollowUpsApi.md#createfollowup) | **POST** /v2/follow-ups              | Create follow-up |
-| [**deleteFollowUp**](FollowUpsApi.md#deletefollowup) | **DELETE** /v2/follow-ups/{followUp} | Delete follow-up |
-| [**listFollowUps**](FollowUpsApi.md#listfollowups)   | **GET** /v2/follow-ups               | List follow-ups  |
-| [**showFollowUp**](FollowUpsApi.md#showfollowup)     | **GET** /v2/follow-ups/{followUp}    | Show follow-up   |
-| [**updateFollowUp**](FollowUpsApi.md#updatefollowup) | **PATCH** /v2/follow-ups/{followUp}  | Update follow-up |
+| Method                                               | HTTP request                         | Description                 |
+| ---------------------------------------------------- | ------------------------------------ | --------------------------- |
+| [**createFollowUp**](FollowUpsApi.md#createfollowup) | **POST** /v2/follow-ups              | Create follow-up            |
+| [**deleteFollowUp**](FollowUpsApi.md#deletefollowup) | **DELETE** /v2/follow-ups/{followUp} | Delete follow-up            |
+| [**listFollowUps**](FollowUpsApi.md#listfollowups)   | **GET** /v2/follow-ups               | List follow-ups (paginated) |
+| [**showFollowUp**](FollowUpsApi.md#showfollowup)     | **GET** /v2/follow-ups/{followUp}    | Show follow-up              |
+| [**updateFollowUp**](FollowUpsApi.md#updatefollowup) | **PATCH** /v2/follow-ups/{followUp}  | Update follow-up            |
 
 ## createFollowUp
 
@@ -149,9 +149,9 @@ example().catch(console.error);
 
 ## listFollowUps
 
-> FollowUpCollection listFollowUps()
+> FollowUpCollection listFollowUps(page, perPage)
 
-List follow-ups
+List follow-ups (paginated)
 
 List all follow-ups for the current client. Follow-ups are filtered by user group membership unless the user has the FollowUpOverrideGroups permission. Users will only see follow-ups that are either assigned to their groups or have no group assignment (ungrouped).
 
@@ -169,8 +169,15 @@ async function example() {
   });
   const api = new FollowUpsApi(config);
 
+  const body = {
+    // number | Page number (optional)
+    page: 56,
+    // number | Number of items per page (1-100) (optional)
+    perPage: 56
+  } satisfies ListFollowUpsRequest;
+
   try {
-    const data = await api.listFollowUps();
+    const data = await api.listFollowUps(body);
     console.log(data);
   } catch (error) {
     console.error(error);
@@ -183,7 +190,10 @@ example().catch(console.error);
 
 ### Parameters
 
-This endpoint does not need any parameter.
+| Name        | Type     | Description                      | Notes                         |
+| ----------- | -------- | -------------------------------- | ----------------------------- |
+| **page**    | `number` | Page number                      | [Optional] [Defaults to `1`]  |
+| **perPage** | `number` | Number of items per page (1-100) | [Optional] [Defaults to `25`] |
 
 ### Return type
 
@@ -200,9 +210,9 @@ This endpoint does not need any parameter.
 
 ### HTTP response details
 
-| Status code | Description | Response headers |
-| ----------- | ----------- | ---------------- |
-| **200**     | Follow-ups  | -                |
+| Status code | Description                     | Response headers |
+| ----------- | ------------------------------- | ---------------- |
+| **200**     | Paginated follow-ups collection | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

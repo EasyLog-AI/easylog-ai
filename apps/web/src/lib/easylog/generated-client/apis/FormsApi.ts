@@ -13,7 +13,7 @@
 import * as runtime from '../runtime';
 import type {
   CategoryCollection,
-  FormCollection,
+  FormListCollection,
   FormResource,
   ProjectFormCollection,
   StoreFormInput,
@@ -22,8 +22,8 @@ import type {
 import {
   CategoryCollectionFromJSON,
   CategoryCollectionToJSON,
-  FormCollectionFromJSON,
-  FormCollectionToJSON,
+  FormListCollectionFromJSON,
+  FormListCollectionToJSON,
   FormResourceFromJSON,
   FormResourceToJSON,
   ProjectFormCollectionFromJSON,
@@ -56,6 +56,11 @@ export interface ListFormProjectFormsRequest {
 
 export interface ListFormVersionsRequest {
   form: number;
+}
+
+export interface ListFormsRequest {
+  page?: number;
+  perPage?: number;
 }
 
 export interface ShowFormRequest {
@@ -396,11 +401,24 @@ export class FormsApi extends runtime.BaseAPI {
     await this.listFormVersionsRaw(requestParameters, initOverrides);
   }
 
-  /** Display a listing of the resource. List forms */
+  /**
+   * Display a listing of the resource. Returns a paginated list of forms
+   * without the heavy content field. Use the show endpoint to retrieve a
+   * specific form with its full content. List forms (paginated)
+   */
   async listFormsRaw(
+    requestParameters: ListFormsRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction
-  ): Promise<runtime.ApiResponse<FormCollection>> {
+  ): Promise<runtime.ApiResponse<FormListCollection>> {
     const queryParameters: any = {};
+
+    if (requestParameters['page'] != null) {
+      queryParameters['page'] = requestParameters['page'];
+    }
+
+    if (requestParameters['perPage'] != null) {
+      queryParameters['per_page'] = requestParameters['perPage'];
+    }
 
     const headerParameters: runtime.HTTPHeaders = {};
 
@@ -425,15 +443,20 @@ export class FormsApi extends runtime.BaseAPI {
     );
 
     return new runtime.JSONApiResponse(response, (jsonValue) =>
-      FormCollectionFromJSON(jsonValue)
+      FormListCollectionFromJSON(jsonValue)
     );
   }
 
-  /** Display a listing of the resource. List forms */
+  /**
+   * Display a listing of the resource. Returns a paginated list of forms
+   * without the heavy content field. Use the show endpoint to retrieve a
+   * specific form with its full content. List forms (paginated)
+   */
   async listForms(
+    requestParameters: ListFormsRequest = {},
     initOverrides?: RequestInit | runtime.InitOverrideFunction
-  ): Promise<FormCollection> {
-    const response = await this.listFormsRaw(initOverrides);
+  ): Promise<FormListCollection> {
+    const response = await this.listFormsRaw(requestParameters, initOverrides);
     return await response.value();
   }
 

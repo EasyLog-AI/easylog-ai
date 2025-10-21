@@ -11,6 +11,20 @@
  */
 
 import { mapValues } from '../runtime';
+import type { CategoryCollectionLinks } from './CategoryCollectionLinks';
+import {
+  CategoryCollectionLinksFromJSON,
+  CategoryCollectionLinksFromJSONTyped,
+  CategoryCollectionLinksToJSON,
+  CategoryCollectionLinksToJSONTyped
+} from './CategoryCollectionLinks';
+import type { CategoryCollectionMeta } from './CategoryCollectionMeta';
+import {
+  CategoryCollectionMetaFromJSON,
+  CategoryCollectionMetaFromJSONTyped,
+  CategoryCollectionMetaToJSON,
+  CategoryCollectionMetaToJSONTyped
+} from './CategoryCollectionMeta';
 import type { FollowUpEntry } from './FollowUpEntry';
 import {
   FollowUpEntryFromJSON,
@@ -20,6 +34,8 @@ import {
 } from './FollowUpEntry';
 
 /**
+ * Paginated collection of follow-up entries
+ *
  * @export
  * @interface FollowUpEntryCollection
  */
@@ -29,6 +45,16 @@ export interface FollowUpEntryCollection {
    * @type {FollowUpEntry[]}
    */
   data?: Array<FollowUpEntry>;
+  /**
+   * @memberof FollowUpEntryCollection
+   * @type {CategoryCollectionLinks}
+   */
+  links?: CategoryCollectionLinks;
+  /**
+   * @memberof FollowUpEntryCollection
+   * @type {CategoryCollectionMeta}
+   */
+  meta?: CategoryCollectionMeta;
 }
 
 /** Check if a given object implements the FollowUpEntryCollection interface. */
@@ -55,7 +81,15 @@ export function FollowUpEntryCollectionFromJSONTyped(
     data:
       json['data'] == null
         ? undefined
-        : (json['data'] as Array<any>).map(FollowUpEntryFromJSON)
+        : (json['data'] as Array<any>).map(FollowUpEntryFromJSON),
+    links:
+      json['links'] == null
+        ? undefined
+        : CategoryCollectionLinksFromJSON(json['links']),
+    meta:
+      json['meta'] == null
+        ? undefined
+        : CategoryCollectionMetaFromJSON(json['meta'])
   };
 }
 
@@ -77,6 +111,8 @@ export function FollowUpEntryCollectionToJSONTyped(
     data:
       value['data'] == null
         ? undefined
-        : (value['data'] as Array<any>).map(FollowUpEntryToJSON)
+        : (value['data'] as Array<any>).map(FollowUpEntryToJSON),
+    links: CategoryCollectionLinksToJSON(value['links']),
+    meta: CategoryCollectionMetaToJSON(value['meta'])
   };
 }

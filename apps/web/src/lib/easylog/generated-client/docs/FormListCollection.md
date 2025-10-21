@@ -1,26 +1,24 @@
-# CategoryCollection
-
-Paginated collection of categories
+# FormListCollection
 
 ## Properties
 
 | Name    | Type                                                  |
 | ------- | ----------------------------------------------------- |
-| `data`  | [Array&lt;Category&gt;](Category.md)                  |
+| `data`  | [Array&lt;FormListItem&gt;](FormListItem.md)          |
 | `links` | [CategoryCollectionLinks](CategoryCollectionLinks.md) |
 | `meta`  | [CategoryCollectionMeta](CategoryCollectionMeta.md)   |
 
 ## Example
 
 ```typescript
-import type { CategoryCollection } from '';
+import type { FormListCollection } from '';
 
 // TODO: Update the object below with actual values
 const example = {
   data: null,
   links: null,
   meta: null
-} satisfies CategoryCollection;
+} satisfies FormListCollection;
 
 console.log(example);
 
@@ -29,7 +27,7 @@ const exampleJSON: string = JSON.stringify(example);
 console.log(exampleJSON);
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as CategoryCollection;
+const exampleParsed = JSON.parse(exampleJSON) as FormListCollection;
 console.log(exampleParsed);
 ```
 

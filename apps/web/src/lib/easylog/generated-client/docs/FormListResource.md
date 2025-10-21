@@ -1,22 +1,20 @@
-# FormCollection
-
-Non-paginated collection of forms with full content (used by nested endpoints like category forms)
+# FormListResource
 
 ## Properties
 
-| Name   | Type                         |
-| ------ | ---------------------------- |
-| `data` | [Array&lt;Form&gt;](Form.md) |
+| Name   | Type                            |
+| ------ | ------------------------------- |
+| `data` | [FormListItem](FormListItem.md) |
 
 ## Example
 
 ```typescript
-import type { FormCollection } from '';
+import type { FormListResource } from '';
 
 // TODO: Update the object below with actual values
 const example = {
   data: null
-} satisfies FormCollection;
+} satisfies FormListResource;
 
 console.log(example);
 
@@ -25,7 +23,7 @@ const exampleJSON: string = JSON.stringify(example);
 console.log(exampleJSON);
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as FormCollection;
+const exampleParsed = JSON.parse(exampleJSON) as FormListResource;
 console.log(exampleParsed);
 ```
 

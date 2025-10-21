@@ -1,10 +1,14 @@
 # SubmissionCollection
 
+Paginated collection of submissions
+
 ## Properties
 
-| Name   | Type                                     |
-| ------ | ---------------------------------------- |
-| `data` | [Array&lt;Submission&gt;](Submission.md) |
+| Name    | Type                                                  |
+| ------- | ----------------------------------------------------- |
+| `data`  | [Array&lt;Submission&gt;](Submission.md)              |
+| `links` | [CategoryCollectionLinks](CategoryCollectionLinks.md) |
+| `meta`  | [CategoryCollectionMeta](CategoryCollectionMeta.md)   |
 
 ## Example
 
@@ -13,7 +17,9 @@ import type { SubmissionCollection } from '';
 
 // TODO: Update the object below with actual values
 const example = {
-  data: null
+  data: null,
+  links: null,
+  meta: null
 } satisfies SubmissionCollection;
 
 console.log(example);

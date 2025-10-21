@@ -2,14 +2,14 @@
 
 All URIs are relative to _/api_
 
-| Method                                                      | HTTP request                            | Description              |
-| ----------------------------------------------------------- | --------------------------------------- | ------------------------ |
-| [**createCategory**](CategoriesApi.md#createcategory)       | **POST** /v2/categories                 | Create category          |
-| [**deleteCategory**](CategoriesApi.md#deletecategory)       | **DELETE** /v2/categories/{category}    | Delete category          |
-| [**listCategories**](CategoriesApi.md#listcategories)       | **GET** /v2/categories                  | List categories          |
-| [**listCategoryForms**](CategoriesApi.md#listcategoryforms) | **GET** /v2/categories/{category}/forms | List forms in a category |
-| [**showCategory**](CategoriesApi.md#showcategory)           | **GET** /v2/categories/{category}       | Show category            |
-| [**updateCategory**](CategoriesApi.md#updatecategory)       | **PATCH** /v2/categories/{category}     | Update category          |
+| Method                                                      | HTTP request                            | Description                 |
+| ----------------------------------------------------------- | --------------------------------------- | --------------------------- |
+| [**createCategory**](CategoriesApi.md#createcategory)       | **POST** /v2/categories                 | Create category             |
+| [**deleteCategory**](CategoriesApi.md#deletecategory)       | **DELETE** /v2/categories/{category}    | Delete category             |
+| [**listCategories**](CategoriesApi.md#listcategories)       | **GET** /v2/categories                  | List categories (paginated) |
+| [**listCategoryForms**](CategoriesApi.md#listcategoryforms) | **GET** /v2/categories/{category}/forms | List forms in a category    |
+| [**showCategory**](CategoriesApi.md#showcategory)           | **GET** /v2/categories/{category}       | Show category               |
+| [**updateCategory**](CategoriesApi.md#updatecategory)       | **PATCH** /v2/categories/{category}     | Update category             |
 
 ## createCategory
 
@@ -150,9 +150,9 @@ example().catch(console.error);
 
 ## listCategories
 
-> CategoryCollection listCategories()
+> CategoryCollection listCategories(page, perPage)
 
-List categories
+List categories (paginated)
 
 Display a listing of the resource.
 
@@ -170,8 +170,15 @@ async function example() {
   });
   const api = new CategoriesApi(config);
 
+  const body = {
+    // number | Page number (optional)
+    page: 56,
+    // number | Number of items per page (1-100) (optional)
+    perPage: 56
+  } satisfies ListCategoriesRequest;
+
   try {
-    const data = await api.listCategories();
+    const data = await api.listCategories(body);
     console.log(data);
   } catch (error) {
     console.error(error);
@@ -184,7 +191,10 @@ example().catch(console.error);
 
 ### Parameters
 
-This endpoint does not need any parameter.
+| Name        | Type     | Description                      | Notes                         |
+| ----------- | -------- | -------------------------------- | ----------------------------- |
+| **page**    | `number` | Page number                      | [Optional] [Defaults to `1`]  |
+| **perPage** | `number` | Number of items per page (1-100) | [Optional] [Defaults to `25`] |
 
 ### Return type
 
@@ -201,9 +211,9 @@ This endpoint does not need any parameter.
 
 ### HTTP response details
 
-| Status code | Description           | Response headers |
-| ----------- | --------------------- | ---------------- |
-| **200**     | Categories collection | -                |
+| Status code | Description                     | Response headers |
+| ----------- | ------------------------------- | ---------------- |
+| **200**     | Paginated categories collection | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

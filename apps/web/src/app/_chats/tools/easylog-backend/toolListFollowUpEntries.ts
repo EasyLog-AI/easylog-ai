@@ -9,12 +9,14 @@ import getEasylogClient from './utils/getEasylogClient';
 const toolListFollowUpEntries = (userId: string) => {
   return tool({
     ...listFollowUpEntriesConfig,
-    execute: async ({ followUpId }) => {
+    execute: async ({ followUpId, page, perPage }) => {
       const client = await getEasylogClient(userId);
 
-      const [entries, error] = await tryCatch(
+      const [response, error] = await tryCatch(
         client.followUpEntries.listFollowUpEntries({
-          followUp: followUpId
+          followUp: followUpId,
+          page,
+          perPage
         })
       );
 
@@ -23,9 +25,26 @@ const toolListFollowUpEntries = (userId: string) => {
         return `Error listing follow-up entries: ${error.message}`;
       }
 
-      console.log('follow-up entries', entries);
+      const { data, meta, links } = response;
 
-      return JSON.stringify(entries, null, 2);
+      const summary = `Found ${meta?.total ?? 0} entries for follow-up ${followUpId} (showing ${meta?.from ?? 0}-${meta?.to ?? 0}). Page ${meta?.currentPage ?? 1} of ${meta?.lastPage ?? 1}.`;
+
+      return JSON.stringify(
+        {
+          summary,
+          pagination: {
+            currentPage: meta?.currentPage ?? 1,
+            totalPages: meta?.lastPage ?? 1,
+            perPage: meta?.perPage ?? 25,
+            totalItems: meta?.total ?? 0,
+            hasNextPage: links?.next != null,
+            hasPrevPage: links?.prev != null
+          },
+          entries: data
+        },
+        null,
+        2
+      );
     }
   });
 };

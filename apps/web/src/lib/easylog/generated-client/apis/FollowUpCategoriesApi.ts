@@ -22,6 +22,11 @@ import {
   FollowUpCategoryResourceToJSON
 } from '../models/index';
 
+export interface ListFollowUpCategoriesRequest {
+  page?: number;
+  perPage?: number;
+}
+
 export interface ShowFollowUpCategoryRequest {
   category: number;
 }
@@ -32,12 +37,21 @@ export class FollowUpCategoriesApi extends runtime.BaseAPI {
    * filtered by user group membership unless the user has the
    * FollowUpOverrideGroups permission. Users will only see categories that
    * are either assigned to their groups or have no group assignment
-   * (ungrouped). List follow-up categories
+   * (ungrouped). List follow-up categories (paginated)
    */
   async listFollowUpCategoriesRaw(
+    requestParameters: ListFollowUpCategoriesRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction
   ): Promise<runtime.ApiResponse<FollowUpCategoryCollection>> {
     const queryParameters: any = {};
+
+    if (requestParameters['page'] != null) {
+      queryParameters['page'] = requestParameters['page'];
+    }
+
+    if (requestParameters['perPage'] != null) {
+      queryParameters['per_page'] = requestParameters['perPage'];
+    }
 
     const headerParameters: runtime.HTTPHeaders = {};
 
@@ -71,12 +85,16 @@ export class FollowUpCategoriesApi extends runtime.BaseAPI {
    * filtered by user group membership unless the user has the
    * FollowUpOverrideGroups permission. Users will only see categories that
    * are either assigned to their groups or have no group assignment
-   * (ungrouped). List follow-up categories
+   * (ungrouped). List follow-up categories (paginated)
    */
   async listFollowUpCategories(
+    requestParameters: ListFollowUpCategoriesRequest = {},
     initOverrides?: RequestInit | runtime.InitOverrideFunction
   ): Promise<FollowUpCategoryCollection> {
-    const response = await this.listFollowUpCategoriesRaw(initOverrides);
+    const response = await this.listFollowUpCategoriesRaw(
+      requestParameters,
+      initOverrides
+    );
     return await response.value();
   }
 

@@ -6,7 +6,7 @@ All URIs are relative to _/api_
 | --------------------------------------------------------------------- | ----------------------------------------------- | ------------------------------- |
 | [**deleteSubmission**](SubmissionsApi.md#deletesubmission)            | **DELETE** /v2/submissions/{submission}         | Delete submission               |
 | [**listSubmissionMedia**](SubmissionsApi.md#listsubmissionmedia)      | **GET** /v2/submissions/{submission}/media      | List media for a submission     |
-| [**listSubmissions**](SubmissionsApi.md#listsubmissions)              | **GET** /v2/submissions                         | List submissions                |
+| [**listSubmissions**](SubmissionsApi.md#listsubmissions)              | **GET** /v2/submissions                         | List submissions (paginated)    |
 | [**persistSubmission**](SubmissionsApi.md#persistsubmissionoperation) | **POST** /v2/submissions/{project_form}/persist | Persist submission              |
 | [**prepareSubmission**](SubmissionsApi.md#preparesubmissionoperation) | **POST** /v2/submissions/{project_form}/prepare | Prepare submission file uploads |
 | [**showSubmission**](SubmissionsApi.md#showsubmission)                | **GET** /v2/submissions/{submission}            | Show submission                 |
@@ -151,9 +151,9 @@ example().catch(console.error);
 
 ## listSubmissions
 
-> SubmissionCollection listSubmissions(projectFormId, issuerId, from, to, \_with)
+> SubmissionCollection listSubmissions(page, projectFormId, issuerId, from, to, \_with, perPage)
 
-List submissions
+List submissions (paginated)
 
 List all submissions for the current user. Regular users only see their own submissions. Users with ViewAllSubmissions permission can see all submissions in their client and filter by issuer_id.
 
@@ -172,6 +172,8 @@ async function example() {
   const api = new SubmissionsApi(config);
 
   const body = {
+    // number | Page number (optional)
+    page: 56,
     // number | Filter by project form ID (optional)
     projectFormId: 789,
     // number | Filter by issuer user ID (requires ViewAllSubmissions permission) (optional)
@@ -183,7 +185,9 @@ async function example() {
     // string | Comma-separated list of relationships to eager load (projectForm, issuer, media) (optional)
     _with: projectForm,
     issuer,
-    media
+    media,
+    // number | Number of items per page (1-100) (optional)
+    perPage: 56
   } satisfies ListSubmissionsRequest;
 
   try {
@@ -202,11 +206,13 @@ example().catch(console.error);
 
 | Name              | Type     | Description                                                                      | Notes                                |
 | ----------------- | -------- | -------------------------------------------------------------------------------- | ------------------------------------ |
+| **page**          | `number` | Page number                                                                      | [Optional] [Defaults to `1`]         |
 | **projectFormId** | `number` | Filter by project form ID                                                        | [Optional] [Defaults to `undefined`] |
 | **issuerId**      | `number` | Filter by issuer user ID (requires ViewAllSubmissions permission)                | [Optional] [Defaults to `undefined`] |
 | **from**          | `Date`   | Filter submissions created from this date                                        | [Optional] [Defaults to `undefined`] |
 | **to**            | `Date`   | Filter submissions created until this date                                       | [Optional] [Defaults to `undefined`] |
 | **\_with**        | `string` | Comma-separated list of relationships to eager load (projectForm, issuer, media) | [Optional] [Defaults to `undefined`] |
+| **perPage**       | `number` | Number of items per page (1-100)                                                 | [Optional] [Defaults to `25`]        |
 
 ### Return type
 
@@ -225,7 +231,7 @@ example().catch(console.error);
 
 | Status code | Description                                                 | Response headers |
 | ----------- | ----------------------------------------------------------- | ---------------- |
-| **200**     | Submissions collection                                      | -                |
+| **200**     | Paginated submissions collection                            | -                |
 | **403**     | Forbidden - insufficient permissions to filter by issuer_id | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)

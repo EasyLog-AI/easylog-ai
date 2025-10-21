@@ -39,6 +39,11 @@ export interface DeleteCategoryRequest {
   category: number;
 }
 
+export interface ListCategoriesRequest {
+  page?: number;
+  perPage?: number;
+}
+
 export interface ListCategoryFormsRequest {
   category: number;
 }
@@ -160,11 +165,20 @@ export class CategoriesApi extends runtime.BaseAPI {
     await this.deleteCategoryRaw(requestParameters, initOverrides);
   }
 
-  /** Display a listing of the resource. List categories */
+  /** Display a listing of the resource. List categories (paginated) */
   async listCategoriesRaw(
+    requestParameters: ListCategoriesRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction
   ): Promise<runtime.ApiResponse<CategoryCollection>> {
     const queryParameters: any = {};
+
+    if (requestParameters['page'] != null) {
+      queryParameters['page'] = requestParameters['page'];
+    }
+
+    if (requestParameters['perPage'] != null) {
+      queryParameters['per_page'] = requestParameters['perPage'];
+    }
 
     const headerParameters: runtime.HTTPHeaders = {};
 
@@ -193,11 +207,15 @@ export class CategoriesApi extends runtime.BaseAPI {
     );
   }
 
-  /** Display a listing of the resource. List categories */
+  /** Display a listing of the resource. List categories (paginated) */
   async listCategories(
+    requestParameters: ListCategoriesRequest = {},
     initOverrides?: RequestInit | runtime.InitOverrideFunction
   ): Promise<CategoryCollection> {
-    const response = await this.listCategoriesRaw(initOverrides);
+    const response = await this.listCategoriesRaw(
+      requestParameters,
+      initOverrides
+    );
     return await response.value();
   }
 

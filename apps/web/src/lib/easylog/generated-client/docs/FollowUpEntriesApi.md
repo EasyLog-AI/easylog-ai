@@ -2,13 +2,13 @@
 
 All URIs are relative to _/api_
 
-| Method                                                               | HTTP request                               | Description            |
-| -------------------------------------------------------------------- | ------------------------------------------ | ---------------------- |
-| [**createFollowUpEntry**](FollowUpEntriesApi.md#createfollowupentry) | **POST** /v2/follow-ups/{followUp}/entries | Create follow-up entry |
-| [**deleteFollowUpEntry**](FollowUpEntriesApi.md#deletefollowupentry) | **DELETE** /v2/entries/{entry}             | Delete follow-up entry |
-| [**listFollowUpEntries**](FollowUpEntriesApi.md#listfollowupentries) | **GET** /v2/follow-ups/{followUp}/entries  | List follow-up entries |
-| [**showFollowUpEntry**](FollowUpEntriesApi.md#showfollowupentry)     | **GET** /v2/entries/{entry}                | Show follow-up entry   |
-| [**updateFollowUpEntry**](FollowUpEntriesApi.md#updatefollowupentry) | **PATCH** /v2/entries/{entry}              | Update follow-up entry |
+| Method                                                               | HTTP request                               | Description                        |
+| -------------------------------------------------------------------- | ------------------------------------------ | ---------------------------------- |
+| [**createFollowUpEntry**](FollowUpEntriesApi.md#createfollowupentry) | **POST** /v2/follow-ups/{followUp}/entries | Create follow-up entry             |
+| [**deleteFollowUpEntry**](FollowUpEntriesApi.md#deletefollowupentry) | **DELETE** /v2/entries/{entry}             | Delete follow-up entry             |
+| [**listFollowUpEntries**](FollowUpEntriesApi.md#listfollowupentries) | **GET** /v2/follow-ups/{followUp}/entries  | List follow-up entries (paginated) |
+| [**showFollowUpEntry**](FollowUpEntriesApi.md#showfollowupentry)     | **GET** /v2/entries/{entry}                | Show follow-up entry               |
+| [**updateFollowUpEntry**](FollowUpEntriesApi.md#updatefollowupentry) | **PATCH** /v2/entries/{entry}              | Update follow-up entry             |
 
 ## createFollowUpEntry
 
@@ -153,9 +153,9 @@ example().catch(console.error);
 
 ## listFollowUpEntries
 
-> FollowUpEntryCollection listFollowUpEntries(followUp)
+> FollowUpEntryCollection listFollowUpEntries(followUp, page, perPage)
 
-List follow-up entries
+List follow-up entries (paginated)
 
 Display a listing of the resource.
 
@@ -175,7 +175,11 @@ async function example() {
 
   const body = {
     // number | Follow-up ID
-    followUp: 789
+    followUp: 789,
+    // number | Page number (optional)
+    page: 56,
+    // number | Number of items per page (1-100) (optional)
+    perPage: 56
   } satisfies ListFollowUpEntriesRequest;
 
   try {
@@ -192,9 +196,11 @@ example().catch(console.error);
 
 ### Parameters
 
-| Name         | Type     | Description  | Notes                     |
-| ------------ | -------- | ------------ | ------------------------- |
-| **followUp** | `number` | Follow-up ID | [Defaults to `undefined`] |
+| Name         | Type     | Description                      | Notes                         |
+| ------------ | -------- | -------------------------------- | ----------------------------- |
+| **followUp** | `number` | Follow-up ID                     | [Defaults to `undefined`]     |
+| **page**     | `number` | Page number                      | [Optional] [Defaults to `1`]  |
+| **perPage**  | `number` | Number of items per page (1-100) | [Optional] [Defaults to `25`] |
 
 ### Return type
 
@@ -211,10 +217,10 @@ example().catch(console.error);
 
 ### HTTP response details
 
-| Status code | Description         | Response headers |
-| ----------- | ------------------- | ---------------- |
-| **200**     | Follow-up entries   | -                |
-| **404**     | Follow-up not found | -                |
+| Status code | Description                            | Response headers |
+| ----------- | -------------------------------------- | ---------------- |
+| **200**     | Paginated follow-up entries collection | -                |
+| **404**     | Follow-up not found                    | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

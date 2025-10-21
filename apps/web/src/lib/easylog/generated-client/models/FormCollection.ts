@@ -20,6 +20,9 @@ import {
 } from './Form';
 
 /**
+ * Non-paginated collection of forms with full content (used by nested endpoints
+ * like category forms)
+ *
  * @export
  * @interface FormCollection
  */

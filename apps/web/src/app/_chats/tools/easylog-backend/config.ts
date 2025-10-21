@@ -253,8 +253,19 @@ export const updatePlanningProjectConfig = {
 export const listFollowUpsConfig = {
   name: 'listFollowUps',
   description:
-    'Retrieve all follow-ups for the current client. Follow-ups are filtered by user group membership unless the user has the FollowUpOverrideGroups permission.',
-  inputSchema: z.object({})
+    'Retrieve follow-ups for the current client (paginated, returns first 25 by default). Follow-ups are filtered by user group membership unless the user has the FollowUpOverrideGroups permission.',
+  inputSchema: z.object({
+    page: z
+      .number()
+      .optional()
+      .describe('Page number for pagination (default: 1)'),
+    perPage: z
+      .number()
+      .min(1)
+      .max(100)
+      .optional()
+      .describe('Number of items per page (1-100, default: 25)')
+  })
 } as const;
 
 export const showFollowUpConfig = {
@@ -356,11 +367,21 @@ export const deleteFollowUpConfig = {
 export const listFollowUpEntriesConfig = {
   name: 'listFollowUpEntries',
   description:
-    'List all entries for a specific follow-up. Entries represent submitted data for a follow-up form.',
+    'List entries for a specific follow-up (paginated, returns first 25 by default). Entries represent submitted data for a follow-up form.',
   inputSchema: z.object({
     followUpId: z
       .number()
-      .describe('The ID of the follow-up to list entries for')
+      .describe('The ID of the follow-up to list entries for'),
+    page: z
+      .number()
+      .optional()
+      .describe('Page number for pagination (default: 1)'),
+    perPage: z
+      .number()
+      .min(1)
+      .max(100)
+      .optional()
+      .describe('Number of items per page (1-100, default: 25)')
   })
 } as const;
 
@@ -414,8 +435,19 @@ export const deleteFollowUpEntryConfig = {
 export const listFollowUpCategoriesConfig = {
   name: 'listFollowUpCategories',
   description:
-    'List all follow-up categories available to the current user. Categories may be filtered based on group membership.',
-  inputSchema: z.object({})
+    'List follow-up categories available to the current user (paginated, returns first 25 by default). Categories may be filtered based on group membership.',
+  inputSchema: z.object({
+    page: z
+      .number()
+      .optional()
+      .describe('Page number for pagination (default: 1)'),
+    perPage: z
+      .number()
+      .min(1)
+      .max(100)
+      .optional()
+      .describe('Number of items per page (1-100, default: 25)')
+  })
 } as const;
 
 export const showFollowUpCategoryConfig = {
@@ -429,8 +461,19 @@ export const showFollowUpCategoryConfig = {
 export const listFormsConfig = {
   name: 'listForms',
   description:
-    'List all forms available in Easylog. Returns form metadata (id, name, description) WITHOUT the form content/schema. Use showForm() to get the full form details including content when needed.',
-  inputSchema: z.object({})
+    'List forms available in Easylog (paginated, returns first 25 forms by default). This endpoint returns lightweight form metadata without the heavy content field. To get complete form details including schema, use showForm with a specific form ID.',
+  inputSchema: z.object({
+    page: z
+      .number()
+      .optional()
+      .describe('Page number for pagination (default: 1)'),
+    perPage: z
+      .number()
+      .min(1)
+      .max(100)
+      .optional()
+      .describe('Number of items per page (1-100, default: 25)')
+  })
 } as const;
 
 export const showFormConfig = {
@@ -528,8 +571,18 @@ export const deleteFormConfig = {
 export const listSubmissionsConfig = {
   name: 'listSubmissions',
   description:
-    'Retrieve all submissions for the current user. Regular users only see their own submissions. Users with ViewAllSubmissions permission can see all submissions in their client and filter by issuer_id.',
+    'Retrieve submissions for the current user (paginated, returns first 25 by default). Regular users only see their own submissions. Users with ViewAllSubmissions permission can see all submissions in their client and filter by issuer_id.',
   inputSchema: z.object({
+    page: z
+      .number()
+      .optional()
+      .describe('Page number for pagination (default: 1)'),
+    perPage: z
+      .number()
+      .min(1)
+      .max(100)
+      .optional()
+      .describe('Number of items per page (1-100, default: 25)'),
     projectFormId: z
       .number()
       .nullable()

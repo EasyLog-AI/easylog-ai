@@ -32,6 +32,8 @@ docs/CalendarApi.md
 docs/CategoriesApi.md
 docs/Category.md
 docs/CategoryCollection.md
+docs/CategoryCollectionLinks.md
+docs/CategoryCollectionMeta.md
 docs/CategoryResource.md
 docs/ClientConfiguration.md
 docs/ClientConfigurationCan.md
@@ -66,6 +68,9 @@ docs/FollowUpResource.md
 docs/FollowUpsApi.md
 docs/Form.md
 docs/FormCollection.md
+docs/FormListCollection.md
+docs/FormListItem.md
+docs/FormListResource.md
 docs/FormResource.md
 docs/FormsApi.md
 docs/ListSubmissionMedia200Response.md
@@ -124,6 +129,8 @@ models/BulletinChapterCollection.ts
 models/BulletinItem.ts
 models/Category.ts
 models/CategoryCollection.ts
+models/CategoryCollectionLinks.ts
+models/CategoryCollectionMeta.ts
 models/CategoryResource.ts
 models/ClientConfiguration.ts
 models/ClientConfigurationCan.ts
@@ -153,6 +160,9 @@ models/FollowUpEntryUser.ts
 models/FollowUpResource.ts
 models/Form.ts
 models/FormCollection.ts
+models/FormListCollection.ts
+models/FormListItem.ts
+models/FormListResource.ts
 models/FormResource.ts
 models/ListSubmissionMedia200Response.ts
 models/MediaResource.ts

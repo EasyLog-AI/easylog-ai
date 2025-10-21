@@ -12,80 +12,72 @@
 
 import { mapValues } from '../runtime';
 /**
- * Complete form representation including content field (use for
- * show/create/update endpoints)
+ * Lightweight form representation for list endpoints
  *
  * @export
- * @interface Form
+ * @interface FormListItem
  */
-export interface Form {
+export interface FormListItem {
   /**
-   * @memberof Form
+   * @memberof FormListItem
    * @type {number}
    */
   id?: number;
   /**
-   * @memberof Form
+   * @memberof FormListItem
    * @type {string}
    */
   name?: string;
   /**
-   * @memberof Form
+   * @memberof FormListItem
    * @type {string}
    */
   description?: string | null;
   /**
-   * @memberof Form
+   * @memberof FormListItem
    * @type {string}
    */
   avatar?: string | null;
   /**
-   * @memberof Form
+   * @memberof FormListItem
    * @type {number}
    */
   clientId?: number;
   /**
-   * JSON string containing form schema, widgets, and configuration
-   *
-   * @memberof Form
-   * @type {string}
-   */
-  content?: string;
-  /**
-   * @memberof Form
+   * @memberof FormListItem
    * @type {boolean}
    */
   hasActions?: boolean;
   /**
-   * @memberof Form
+   * @memberof FormListItem
    * @type {Date}
    */
   createdAt?: Date | null;
   /**
-   * @memberof Form
+   * @memberof FormListItem
    * @type {Date}
    */
   updatedAt?: Date | null;
   /**
-   * @memberof Form
+   * @memberof FormListItem
    * @type {Date}
    */
   accessedAt?: Date | null;
 }
 
-/** Check if a given object implements the Form interface. */
-export function instanceOfForm(value: object): value is Form {
+/** Check if a given object implements the FormListItem interface. */
+export function instanceOfFormListItem(value: object): value is FormListItem {
   return true;
 }
 
-export function FormFromJSON(json: any): Form {
-  return FormFromJSONTyped(json, false);
+export function FormListItemFromJSON(json: any): FormListItem {
+  return FormListItemFromJSONTyped(json, false);
 }
 
-export function FormFromJSONTyped(
+export function FormListItemFromJSONTyped(
   json: any,
   ignoreDiscriminator: boolean
-): Form {
+): FormListItem {
   if (json == null) {
     return json;
   }
@@ -95,7 +87,6 @@ export function FormFromJSONTyped(
     description: json['description'] == null ? undefined : json['description'],
     avatar: json['avatar'] == null ? undefined : json['avatar'],
     clientId: json['client_id'] == null ? undefined : json['client_id'],
-    content: json['content'] == null ? undefined : json['content'],
     hasActions: json['has_actions'] == null ? undefined : json['has_actions'],
     createdAt:
       json['created_at'] == null ? undefined : new Date(json['created_at']),
@@ -106,12 +97,12 @@ export function FormFromJSONTyped(
   };
 }
 
-export function FormToJSON(json: any): Form {
-  return FormToJSONTyped(json, false);
+export function FormListItemToJSON(json: any): FormListItem {
+  return FormListItemToJSONTyped(json, false);
 }
 
-export function FormToJSONTyped(
-  value?: Form | null,
+export function FormListItemToJSONTyped(
+  value?: FormListItem | null,
   ignoreDiscriminator: boolean = false
 ): any {
   if (value == null) {
@@ -124,7 +115,6 @@ export function FormToJSONTyped(
     description: value['description'],
     avatar: value['avatar'],
     client_id: value['clientId'],
-    content: value['content'],
     has_actions: value['hasActions'],
     created_at:
       value['createdAt'] == null

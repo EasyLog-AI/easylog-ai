@@ -10,7 +10,7 @@ All URIs are relative to _/api_
 | [**listFormCategories**](FormsApi.md#listformcategories)     | **GET** /v2/forms/{form}/categories    | List categories for a form       |
 | [**listFormProjectForms**](FormsApi.md#listformprojectforms) | **GET** /v2/forms/{form}/project-forms | List project forms for this form |
 | [**listFormVersions**](FormsApi.md#listformversions)         | **GET** /v2/forms/{form}/versions      | List form versions               |
-| [**listForms**](FormsApi.md#listforms)                       | **GET** /v2/forms                      | List forms                       |
+| [**listForms**](FormsApi.md#listforms)                       | **GET** /v2/forms                      | List forms (paginated)           |
 | [**showForm**](FormsApi.md#showform)                         | **GET** /v2/forms/{form}               | Show form                        |
 | [**updateForm**](FormsApi.md#updateform)                     | **PATCH** /v2/forms/{form}             | Update form                      |
 
@@ -421,11 +421,11 @@ example().catch(console.error);
 
 ## listForms
 
-> FormCollection listForms()
+> FormListCollection listForms(page, perPage)
 
-List forms
+List forms (paginated)
 
-Display a listing of the resource.
+Display a listing of the resource. Returns a paginated list of forms without the heavy content field. Use the show endpoint to retrieve a specific form with its full content.
 
 ### Example
 
@@ -441,8 +441,15 @@ async function example() {
   });
   const api = new FormsApi(config);
 
+  const body = {
+    // number | Page number (optional)
+    page: 56,
+    // number | Number of items per page (1-100) (optional)
+    perPage: 56
+  } satisfies ListFormsRequest;
+
   try {
-    const data = await api.listForms();
+    const data = await api.listForms(body);
     console.log(data);
   } catch (error) {
     console.error(error);
@@ -455,11 +462,14 @@ example().catch(console.error);
 
 ### Parameters
 
-This endpoint does not need any parameter.
+| Name        | Type     | Description                      | Notes                         |
+| ----------- | -------- | -------------------------------- | ----------------------------- |
+| **page**    | `number` | Page number                      | [Optional] [Defaults to `1`]  |
+| **perPage** | `number` | Number of items per page (1-100) | [Optional] [Defaults to `25`] |
 
 ### Return type
 
-[**FormCollection**](FormCollection.md)
+[**FormListCollection**](FormListCollection.md)
 
 ### Authorization
 
@@ -472,9 +482,9 @@ This endpoint does not need any parameter.
 
 ### HTTP response details
 
-| Status code | Description      | Response headers |
-| ----------- | ---------------- | ---------------- |
-| **200**     | Forms collection | -                |
+| Status code | Description                                         | Response headers |
+| ----------- | --------------------------------------------------- | ---------------- |
+| **200**     | Paginated forms collection (excludes content field) | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

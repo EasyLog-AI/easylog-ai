@@ -18,13 +18,6 @@ import {
   CategoryCollectionLinksToJSON,
   CategoryCollectionLinksToJSONTyped
 } from './CategoryCollectionLinks';
-import type { Category } from './Category';
-import {
-  CategoryFromJSON,
-  CategoryFromJSONTyped,
-  CategoryToJSON,
-  CategoryToJSONTyped
-} from './Category';
 import type { CategoryCollectionMeta } from './CategoryCollectionMeta';
 import {
   CategoryCollectionMetaFromJSON,
@@ -32,46 +25,51 @@ import {
   CategoryCollectionMetaToJSON,
   CategoryCollectionMetaToJSONTyped
 } from './CategoryCollectionMeta';
+import type { FormListItem } from './FormListItem';
+import {
+  FormListItemFromJSON,
+  FormListItemFromJSONTyped,
+  FormListItemToJSON,
+  FormListItemToJSONTyped
+} from './FormListItem';
 
 /**
- * Paginated collection of categories
- *
  * @export
- * @interface CategoryCollection
+ * @interface FormListCollection
  */
-export interface CategoryCollection {
+export interface FormListCollection {
   /**
-   * @memberof CategoryCollection
-   * @type {Category[]}
+   * @memberof FormListCollection
+   * @type {FormListItem[]}
    */
-  data?: Array<Category>;
+  data?: Array<FormListItem>;
   /**
-   * @memberof CategoryCollection
+   * @memberof FormListCollection
    * @type {CategoryCollectionLinks}
    */
   links?: CategoryCollectionLinks;
   /**
-   * @memberof CategoryCollection
+   * @memberof FormListCollection
    * @type {CategoryCollectionMeta}
    */
   meta?: CategoryCollectionMeta;
 }
 
-/** Check if a given object implements the CategoryCollection interface. */
-export function instanceOfCategoryCollection(
+/** Check if a given object implements the FormListCollection interface. */
+export function instanceOfFormListCollection(
   value: object
-): value is CategoryCollection {
+): value is FormListCollection {
   return true;
 }
 
-export function CategoryCollectionFromJSON(json: any): CategoryCollection {
-  return CategoryCollectionFromJSONTyped(json, false);
+export function FormListCollectionFromJSON(json: any): FormListCollection {
+  return FormListCollectionFromJSONTyped(json, false);
 }
 
-export function CategoryCollectionFromJSONTyped(
+export function FormListCollectionFromJSONTyped(
   json: any,
   ignoreDiscriminator: boolean
-): CategoryCollection {
+): FormListCollection {
   if (json == null) {
     return json;
   }
@@ -79,7 +77,7 @@ export function CategoryCollectionFromJSONTyped(
     data:
       json['data'] == null
         ? undefined
-        : (json['data'] as Array<any>).map(CategoryFromJSON),
+        : (json['data'] as Array<any>).map(FormListItemFromJSON),
     links:
       json['links'] == null
         ? undefined
@@ -91,12 +89,12 @@ export function CategoryCollectionFromJSONTyped(
   };
 }
 
-export function CategoryCollectionToJSON(json: any): CategoryCollection {
-  return CategoryCollectionToJSONTyped(json, false);
+export function FormListCollectionToJSON(json: any): FormListCollection {
+  return FormListCollectionToJSONTyped(json, false);
 }
 
-export function CategoryCollectionToJSONTyped(
-  value?: CategoryCollection | null,
+export function FormListCollectionToJSONTyped(
+  value?: FormListCollection | null,
   ignoreDiscriminator: boolean = false
 ): any {
   if (value == null) {
@@ -107,7 +105,7 @@ export function CategoryCollectionToJSONTyped(
     data:
       value['data'] == null
         ? undefined
-        : (value['data'] as Array<any>).map(CategoryToJSON),
+        : (value['data'] as Array<any>).map(FormListItemToJSON),
     links: CategoryCollectionLinksToJSON(value['links']),
     meta: CategoryCollectionMetaToJSON(value['meta'])
   };

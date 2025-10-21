@@ -36,6 +36,11 @@ export interface DeleteFollowUpRequest {
   followUp: number;
 }
 
+export interface ListFollowUpsRequest {
+  page?: number;
+  perPage?: number;
+}
+
 export interface ShowFollowUpRequest {
   followUp: number;
 }
@@ -158,11 +163,21 @@ export class FollowUpsApi extends runtime.BaseAPI {
    * user group membership unless the user has the FollowUpOverrideGroups
    * permission. Users will only see follow-ups that are either assigned to
    * their groups or have no group assignment (ungrouped). List follow-ups
+   * (paginated)
    */
   async listFollowUpsRaw(
+    requestParameters: ListFollowUpsRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction
   ): Promise<runtime.ApiResponse<FollowUpCollection>> {
     const queryParameters: any = {};
+
+    if (requestParameters['page'] != null) {
+      queryParameters['page'] = requestParameters['page'];
+    }
+
+    if (requestParameters['perPage'] != null) {
+      queryParameters['per_page'] = requestParameters['perPage'];
+    }
 
     const headerParameters: runtime.HTTPHeaders = {};
 
@@ -196,11 +211,16 @@ export class FollowUpsApi extends runtime.BaseAPI {
    * user group membership unless the user has the FollowUpOverrideGroups
    * permission. Users will only see follow-ups that are either assigned to
    * their groups or have no group assignment (ungrouped). List follow-ups
+   * (paginated)
    */
   async listFollowUps(
+    requestParameters: ListFollowUpsRequest = {},
     initOverrides?: RequestInit | runtime.InitOverrideFunction
   ): Promise<FollowUpCollection> {
-    const response = await this.listFollowUpsRaw(initOverrides);
+    const response = await this.listFollowUpsRaw(
+      requestParameters,
+      initOverrides
+    );
     return await response.value();
   }
 

@@ -11,6 +11,20 @@
  */
 
 import { mapValues } from '../runtime';
+import type { CategoryCollectionLinks } from './CategoryCollectionLinks';
+import {
+  CategoryCollectionLinksFromJSON,
+  CategoryCollectionLinksFromJSONTyped,
+  CategoryCollectionLinksToJSON,
+  CategoryCollectionLinksToJSONTyped
+} from './CategoryCollectionLinks';
+import type { CategoryCollectionMeta } from './CategoryCollectionMeta';
+import {
+  CategoryCollectionMetaFromJSON,
+  CategoryCollectionMetaFromJSONTyped,
+  CategoryCollectionMetaToJSON,
+  CategoryCollectionMetaToJSONTyped
+} from './CategoryCollectionMeta';
 import type { Submission } from './Submission';
 import {
   SubmissionFromJSON,
@@ -20,6 +34,8 @@ import {
 } from './Submission';
 
 /**
+ * Paginated collection of submissions
+ *
  * @export
  * @interface SubmissionCollection
  */
@@ -29,6 +45,16 @@ export interface SubmissionCollection {
    * @type {Submission[]}
    */
   data?: Array<Submission>;
+  /**
+   * @memberof SubmissionCollection
+   * @type {CategoryCollectionLinks}
+   */
+  links?: CategoryCollectionLinks;
+  /**
+   * @memberof SubmissionCollection
+   * @type {CategoryCollectionMeta}
+   */
+  meta?: CategoryCollectionMeta;
 }
 
 /** Check if a given object implements the SubmissionCollection interface. */
@@ -53,7 +79,15 @@ export function SubmissionCollectionFromJSONTyped(
     data:
       json['data'] == null
         ? undefined
-        : (json['data'] as Array<any>).map(SubmissionFromJSON)
+        : (json['data'] as Array<any>).map(SubmissionFromJSON),
+    links:
+      json['links'] == null
+        ? undefined
+        : CategoryCollectionLinksFromJSON(json['links']),
+    meta:
+      json['meta'] == null
+        ? undefined
+        : CategoryCollectionMetaFromJSON(json['meta'])
   };
 }
 
@@ -73,6 +107,8 @@ export function SubmissionCollectionToJSONTyped(
     data:
       value['data'] == null
         ? undefined
-        : (value['data'] as Array<any>).map(SubmissionToJSON)
+        : (value['data'] as Array<any>).map(SubmissionToJSON),
+    links: CategoryCollectionLinksToJSON(value['links']),
+    meta: CategoryCollectionMetaToJSON(value['meta'])
   };
 }

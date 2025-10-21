@@ -9,37 +9,40 @@ import getEasylogClient from './utils/getEasylogClient';
 const toolListForms = (userId: string) => {
   return tool({
     ...listFormsConfig,
-    execute: async () => {
+    execute: async ({ page, perPage }) => {
       const client = await getEasylogClient(userId);
 
-      const [forms, error] = await tryCatch(client.forms.listForms());
+      const [forms, error] = await tryCatch(
+        client.forms.listForms({ page, perPage })
+      );
 
       if (error) {
         Sentry.captureException(error);
         return `Error listing forms: ${error.message}`;
       }
 
-      console.log('forms', forms);
+      // Extract pagination info and forms from the paginated response
+      // Note: The API already returns FormListResource without the heavy content field
+      const { data, meta, links } = forms;
 
-      /**
-       * Return only essential fields without the large content field to prevent
-       * token limit issues. The agent should use showForm() to get the full
-       * form details when needed.
-       */
-      const formsSummary = forms?.data?.map((form) => ({
-        id: form.id,
-        name: form.name,
-        description: form.description,
-        avatar: form.avatar,
-        clientId: form.clientId,
-        hasActions: form.hasActions,
-        createdAt: form.createdAt,
-        updatedAt: form.updatedAt,
-        accessedAt: form.accessedAt
-        // Exclude 'content' field to reduce payload size
-      }));
+      const summary = `Found ${meta?.total ?? 0} forms total (showing ${meta?.from ?? 0}-${meta?.to ?? 0}). Page ${meta?.currentPage ?? 1} of ${meta?.lastPage ?? 1}.`;
 
-      return JSON.stringify({ data: formsSummary }, null, 2);
+      return JSON.stringify(
+        {
+          summary,
+          pagination: {
+            currentPage: meta?.currentPage ?? 1,
+            totalPages: meta?.lastPage ?? 1,
+            perPage: meta?.perPage ?? 25,
+            totalItems: meta?.total ?? 0,
+            hasNextPage: links?.next != null,
+            hasPrevPage: links?.prev != null
+          },
+          forms: data
+        },
+        null,
+        2
+      );
     }
   });
 };

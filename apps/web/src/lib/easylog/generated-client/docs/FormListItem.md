@@ -1,6 +1,6 @@
-# Form
+# FormListItem
 
-Complete form representation including content field (use for show/create/update endpoints)
+Lightweight form representation for list endpoints
 
 ## Properties
 
@@ -11,7 +11,6 @@ Complete form representation including content field (use for show/create/update
 | `description` | string  |
 | `avatar`      | string  |
 | `clientId`    | number  |
-| `content`     | string  |
 | `hasActions`  | boolean |
 | `createdAt`   | Date    |
 | `updatedAt`   | Date    |
@@ -20,7 +19,7 @@ Complete form representation including content field (use for show/create/update
 ## Example
 
 ```typescript
-import type { Form } from '';
+import type { FormListItem } from '';
 
 // TODO: Update the object below with actual values
 const example = {
@@ -29,12 +28,11 @@ const example = {
   description: null,
   avatar: null,
   clientId: null,
-  content: null,
   hasActions: null,
   createdAt: null,
   updatedAt: null,
   accessedAt: null
-} satisfies Form;
+} satisfies FormListItem;
 
 console.log(example);
 
@@ -43,7 +41,7 @@ const exampleJSON: string = JSON.stringify(example);
 console.log(exampleJSON);
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as Form;
+const exampleParsed = JSON.parse(exampleJSON) as FormListItem;
 console.log(exampleParsed);
 ```
 

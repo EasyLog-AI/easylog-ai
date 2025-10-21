@@ -36,6 +36,8 @@ export interface DeleteFollowUpEntryRequest {
 
 export interface ListFollowUpEntriesRequest {
   followUp: number;
+  page?: number;
+  perPage?: number;
 }
 
 export interface ShowFollowUpEntryRequest {
@@ -166,7 +168,7 @@ export class FollowUpEntriesApi extends runtime.BaseAPI {
     await this.deleteFollowUpEntryRaw(requestParameters, initOverrides);
   }
 
-  /** Display a listing of the resource. List follow-up entries */
+  /** Display a listing of the resource. List follow-up entries (paginated) */
   async listFollowUpEntriesRaw(
     requestParameters: ListFollowUpEntriesRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction
@@ -179,6 +181,14 @@ export class FollowUpEntriesApi extends runtime.BaseAPI {
     }
 
     const queryParameters: any = {};
+
+    if (requestParameters['page'] != null) {
+      queryParameters['page'] = requestParameters['page'];
+    }
+
+    if (requestParameters['perPage'] != null) {
+      queryParameters['per_page'] = requestParameters['perPage'];
+    }
 
     const headerParameters: runtime.HTTPHeaders = {};
 
@@ -211,7 +221,7 @@ export class FollowUpEntriesApi extends runtime.BaseAPI {
     );
   }
 
-  /** Display a listing of the resource. List follow-up entries */
+  /** Display a listing of the resource. List follow-up entries (paginated) */
   async listFollowUpEntries(
     requestParameters: ListFollowUpEntriesRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction

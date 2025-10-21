@@ -52,11 +52,13 @@ export interface ListSubmissionMediaRequest {
 }
 
 export interface ListSubmissionsRequest {
+  page?: number;
   projectFormId?: number;
   issuerId?: number;
   from?: Date;
   to?: Date;
   _with?: string;
+  perPage?: number;
 }
 
 export interface PersistSubmissionOperationRequest {
@@ -204,12 +206,17 @@ export class SubmissionsApi extends runtime.BaseAPI {
    * List all submissions for the current user. Regular users only see their
    * own submissions. Users with ViewAllSubmissions permission can see all
    * submissions in their client and filter by issuer_id. List submissions
+   * (paginated)
    */
   async listSubmissionsRaw(
     requestParameters: ListSubmissionsRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction
   ): Promise<runtime.ApiResponse<SubmissionCollection>> {
     const queryParameters: any = {};
+
+    if (requestParameters['page'] != null) {
+      queryParameters['page'] = requestParameters['page'];
+    }
 
     if (requestParameters['projectFormId'] != null) {
       queryParameters['project_form_id'] = requestParameters['projectFormId'];
@@ -233,6 +240,10 @@ export class SubmissionsApi extends runtime.BaseAPI {
 
     if (requestParameters['_with'] != null) {
       queryParameters['with'] = requestParameters['_with'];
+    }
+
+    if (requestParameters['perPage'] != null) {
+      queryParameters['per_page'] = requestParameters['perPage'];
     }
 
     const headerParameters: runtime.HTTPHeaders = {};
@@ -266,6 +277,7 @@ export class SubmissionsApi extends runtime.BaseAPI {
    * List all submissions for the current user. Regular users only see their
    * own submissions. Users with ViewAllSubmissions permission can see all
    * submissions in their client and filter by issuer_id. List submissions
+   * (paginated)
    */
   async listSubmissions(
     requestParameters: ListSubmissionsRequest = {},

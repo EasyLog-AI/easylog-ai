@@ -11,6 +11,20 @@
  */
 
 import { mapValues } from '../runtime';
+import type { CategoryCollectionLinks } from './CategoryCollectionLinks';
+import {
+  CategoryCollectionLinksFromJSON,
+  CategoryCollectionLinksFromJSONTyped,
+  CategoryCollectionLinksToJSON,
+  CategoryCollectionLinksToJSONTyped
+} from './CategoryCollectionLinks';
+import type { CategoryCollectionMeta } from './CategoryCollectionMeta';
+import {
+  CategoryCollectionMetaFromJSON,
+  CategoryCollectionMetaFromJSONTyped,
+  CategoryCollectionMetaToJSON,
+  CategoryCollectionMetaToJSONTyped
+} from './CategoryCollectionMeta';
 import type { FollowUp } from './FollowUp';
 import {
   FollowUpFromJSON,
@@ -20,6 +34,8 @@ import {
 } from './FollowUp';
 
 /**
+ * Paginated collection of follow-ups
+ *
  * @export
  * @interface FollowUpCollection
  */
@@ -29,6 +45,16 @@ export interface FollowUpCollection {
    * @type {FollowUp[]}
    */
   data?: Array<FollowUp>;
+  /**
+   * @memberof FollowUpCollection
+   * @type {CategoryCollectionLinks}
+   */
+  links?: CategoryCollectionLinks;
+  /**
+   * @memberof FollowUpCollection
+   * @type {CategoryCollectionMeta}
+   */
+  meta?: CategoryCollectionMeta;
 }
 
 /** Check if a given object implements the FollowUpCollection interface. */
@@ -53,7 +79,15 @@ export function FollowUpCollectionFromJSONTyped(
     data:
       json['data'] == null
         ? undefined
-        : (json['data'] as Array<any>).map(FollowUpFromJSON)
+        : (json['data'] as Array<any>).map(FollowUpFromJSON),
+    links:
+      json['links'] == null
+        ? undefined
+        : CategoryCollectionLinksFromJSON(json['links']),
+    meta:
+      json['meta'] == null
+        ? undefined
+        : CategoryCollectionMetaFromJSON(json['meta'])
   };
 }
 
@@ -73,6 +107,8 @@ export function FollowUpCollectionToJSONTyped(
     data:
       value['data'] == null
         ? undefined
-        : (value['data'] as Array<any>).map(FollowUpToJSON)
+        : (value['data'] as Array<any>).map(FollowUpToJSON),
+    links: CategoryCollectionLinksToJSON(value['links']),
+    meta: CategoryCollectionMetaToJSON(value['meta'])
   };
 }

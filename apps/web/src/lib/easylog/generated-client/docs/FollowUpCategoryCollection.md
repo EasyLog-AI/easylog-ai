@@ -1,10 +1,14 @@
 # FollowUpCategoryCollection
 
+Paginated collection of follow-up categories
+
 ## Properties
 
-| Name   | Type                                                 |
-| ------ | ---------------------------------------------------- |
-| `data` | [Array&lt;FollowUpCategory&gt;](FollowUpCategory.md) |
+| Name    | Type                                                  |
+| ------- | ----------------------------------------------------- |
+| `data`  | [Array&lt;FollowUpCategory&gt;](FollowUpCategory.md)  |
+| `links` | [CategoryCollectionLinks](CategoryCollectionLinks.md) |
+| `meta`  | [CategoryCollectionMeta](CategoryCollectionMeta.md)   |
 
 ## Example
 
@@ -13,7 +17,9 @@ import type { FollowUpCategoryCollection } from '';
 
 // TODO: Update the object below with actual values
 const example = {
-  data: null
+  data: null,
+  links: null,
+  meta: null
 } satisfies FollowUpCategoryCollection;
 
 console.log(example);
