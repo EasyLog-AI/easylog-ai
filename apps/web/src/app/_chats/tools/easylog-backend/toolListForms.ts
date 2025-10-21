@@ -22,9 +22,9 @@ const toolListForms = (userId: string) => {
       console.log('forms', forms);
 
       /**
-       * Return only essential fields without the large content field
-       * to prevent token limit issues. The agent should use showForm()
-       * to get the full form details when needed.
+       * Return only essential fields without the large content field to prevent
+       * token limit issues. The agent should use showForm() to get the full
+       * form details when needed.
        */
       const formsSummary = forms?.data?.map((form) => ({
         id: form.id,
