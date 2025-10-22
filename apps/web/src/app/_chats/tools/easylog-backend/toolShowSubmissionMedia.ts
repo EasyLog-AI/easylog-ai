@@ -15,23 +15,37 @@ const toolShowSubmissionMedia = (
     execute: async ({ mediaId, size = 'detail' }) => {
       const client = await getEasylogClient(userId);
 
-      const [media, error] = await tryCatch(
-        client.media.showMedia({
-          media: String(mediaId),
-          conversion: size === 'original' ? undefined : size
+      // Direct API call since MediaApi is not yet generated
+      // TODO: Replace with client.media.showMedia() after OpenAPI regeneration
+      const baseUrl = 'https://staging2.easylog.nu/api';
+      const url = `${baseUrl}/v2/media/${mediaId}${size !== 'original' ? `?conversion=${size}` : ''}`;
+      
+      const [response, fetchError] = await tryCatch(
+        fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${await client.submissions.configuration.accessToken?.('')}`,
+            'Accept': 'application/json'
+          }
         })
       );
 
-      if (error) {
-        Sentry.captureException(error);
-        return `Error fetching media: ${error.message}`;
+      if (fetchError || !response.ok) {
+        Sentry.captureException(fetchError || new Error(`HTTP ${response.status}`));
+        return `Error fetching media: ${fetchError?.message || response.statusText}`;
       }
 
-      if (!media?.data) {
+      const [data, jsonError] = await tryCatch(response.json());
+      
+      if (jsonError) {
+        Sentry.captureException(jsonError);
+        return `Error parsing response: ${jsonError.message}`;
+      }
+
+      const mediaData = data.data;
+
+      if (!mediaData) {
         return `Media ${mediaId} not found`;
       }
-
-      const mediaData = media.data;
       console.log('[showSubmissionMedia] Retrieved media:', {
         id: mediaData.id,
         name: mediaData.name,
@@ -54,7 +68,7 @@ const toolShowSubmissionMedia = (
       const formatBytes = (bytes: number) => {
         if (bytes === 0) return '0 Bytes';
         const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB'];
+        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return (
           Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i]
