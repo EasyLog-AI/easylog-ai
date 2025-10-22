@@ -269,7 +269,7 @@ export const POST = async (
         updateSubmission: toolUpdateSubmission(user.id),
         deleteSubmission: toolDeleteSubmission(user.id),
         listSubmissionMedia: toolListSubmissionMedia(user.id),
-        showSubmissionMedia: toolShowSubmissionMedia(user.id, writer),
+        showSubmissionMedia: toolShowSubmissionMedia(user.id),
         prepareSubmission: toolPrepareSubmission(user.id),
         uploadSubmissionMedia: toolUploadSubmissionMedia(user.id),
         executeSql: toolExecuteSQL(writer),
