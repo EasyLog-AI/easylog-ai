@@ -39,11 +39,15 @@ const toolShowSubmissionMedia = (
         })
       );
 
-      if (fetchError || !response.ok) {
-        Sentry.captureException(
-          fetchError || new Error(`HTTP ${response.status}`)
-        );
-        return `Error fetching media: ${fetchError?.message || response.statusText}`;
+      if (fetchError) {
+        Sentry.captureException(fetchError);
+        return `Error fetching media: ${fetchError.message}`;
+      }
+
+      if (!response || !response.ok) {
+        const error = new Error(`HTTP ${response?.status || 'unknown'}`);
+        Sentry.captureException(error);
+        return `Error fetching media: ${response?.statusText || 'Unknown error'}`;
       }
 
       const [data, jsonError] = await tryCatch(response.json());
