@@ -23,19 +23,6 @@ const toolShowSubmission = (userId: string) => {
         return `Error getting submission: ${error.message}`;
       }
 
-      // Debug: Check what we actually received
-      console.log('[DEBUG] showSubmission response:', submission);
-      console.log('[DEBUG] Type of response:', typeof submission);
-      console.log('[DEBUG] Keys:', submission ? Object.keys(submission) : 'null');
-      
-      // If submission has a data property, return that
-      if (submission && 'data' in submission && submission.data) {
-        console.log('[DEBUG] Returning submission.data');
-        return JSON.stringify(submission.data, null, 2);
-      }
-      
-      // Otherwise return the whole submission
-      console.log('[DEBUG] Returning full submission');
       return JSON.stringify(submission, null, 2);
     }
   });
