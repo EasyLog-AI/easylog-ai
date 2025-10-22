@@ -23,8 +23,6 @@ const toolListSubmissionMedia = (userId: string) => {
         return `Error listing submission media: ${error.message}`;
       }
 
-      console.log('submission media', media);
-
       return JSON.stringify(media, null, 2);
     }
   });
