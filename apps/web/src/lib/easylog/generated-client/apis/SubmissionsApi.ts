@@ -17,8 +17,8 @@ import type {
   PersistSubmissionRequest,
   PrepareSubmission200Response,
   PrepareSubmissionRequest,
+  ShowSubmission200Response,
   SubmissionCollection,
-  SubmissionResource,
   UpdateSubmissionInput,
   UploadSubmissionMedia201Response
 } from '../models/index';
@@ -33,10 +33,10 @@ import {
   PrepareSubmission200ResponseToJSON,
   PrepareSubmissionRequestFromJSON,
   PrepareSubmissionRequestToJSON,
+  ShowSubmission200ResponseFromJSON,
+  ShowSubmission200ResponseToJSON,
   SubmissionCollectionFromJSON,
   SubmissionCollectionToJSON,
-  SubmissionResourceFromJSON,
-  SubmissionResourceToJSON,
   UpdateSubmissionInputFromJSON,
   UpdateSubmissionInputToJSON,
   UploadSubmissionMedia201ResponseFromJSON,
@@ -437,7 +437,7 @@ export class SubmissionsApi extends runtime.BaseAPI {
   async showSubmissionRaw(
     requestParameters: ShowSubmissionRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction
-  ): Promise<runtime.ApiResponse<SubmissionResource>> {
+  ): Promise<runtime.ApiResponse<ShowSubmission200Response>> {
     if (requestParameters['submission'] == null) {
       throw new runtime.RequiredError(
         'submission',
@@ -471,7 +471,7 @@ export class SubmissionsApi extends runtime.BaseAPI {
     );
 
     return new runtime.JSONApiResponse(response, (jsonValue) =>
-      SubmissionResourceFromJSON(jsonValue)
+      ShowSubmission200ResponseFromJSON(jsonValue)
     );
   }
 
@@ -482,7 +482,7 @@ export class SubmissionsApi extends runtime.BaseAPI {
   async showSubmission(
     requestParameters: ShowSubmissionRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction
-  ): Promise<SubmissionResource> {
+  ): Promise<ShowSubmission200Response> {
     const response = await this.showSubmissionRaw(
       requestParameters,
       initOverrides
@@ -498,7 +498,7 @@ export class SubmissionsApi extends runtime.BaseAPI {
   async updateSubmissionRaw(
     requestParameters: UpdateSubmissionRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction
-  ): Promise<runtime.ApiResponse<SubmissionResource>> {
+  ): Promise<runtime.ApiResponse<ShowSubmission200Response>> {
     if (requestParameters['submission'] == null) {
       throw new runtime.RequiredError(
         'submission',
@@ -544,7 +544,7 @@ export class SubmissionsApi extends runtime.BaseAPI {
     );
 
     return new runtime.JSONApiResponse(response, (jsonValue) =>
-      SubmissionResourceFromJSON(jsonValue)
+      ShowSubmission200ResponseFromJSON(jsonValue)
     );
   }
 
@@ -556,7 +556,7 @@ export class SubmissionsApi extends runtime.BaseAPI {
   async updateSubmission(
     requestParameters: UpdateSubmissionRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction
-  ): Promise<SubmissionResource> {
+  ): Promise<ShowSubmission200Response> {
     const response = await this.updateSubmissionRaw(
       requestParameters,
       initOverrides

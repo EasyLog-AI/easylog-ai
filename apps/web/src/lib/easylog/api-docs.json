@@ -2959,7 +2959,12 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/SubmissionResource"
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Submission"
+                                        }
+                                    },
+                                    "type": "object"
                                 }
                             }
                         }
@@ -3048,7 +3053,12 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/SubmissionResource"
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Submission"
+                                        }
+                                    },
+                                    "type": "object"
                                 }
                             }
                         }
@@ -4826,14 +4836,6 @@
                             "null"
                         ],
                         "format": "date-time"
-                    }
-                },
-                "type": "object"
-            },
-            "SubmissionResource": {
-                "properties": {
-                    "data": {
-                        "$ref": "#/components/schemas/Submission"
                     }
                 },
                 "type": "object"

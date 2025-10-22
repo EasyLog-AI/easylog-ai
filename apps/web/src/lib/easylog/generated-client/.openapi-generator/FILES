@@ -94,12 +94,12 @@ models/ResourceCollection.ts
 models/ShowDatasource200Response.ts
 models/ShowDatasourceEntry200Response.ts
 models/ShowResourceByGroup200Response.ts
+models/ShowSubmission200Response.ts
 models/StoreCategoryInput.ts
 models/StoreFollowUpInput.ts
 models/StoreFormInput.ts
 models/Submission.ts
 models/SubmissionCollection.ts
-models/SubmissionResource.ts
 models/UpdateCategoryInput.ts
 models/UpdateFollowUpInput.ts
 models/UpdateFormInput.ts

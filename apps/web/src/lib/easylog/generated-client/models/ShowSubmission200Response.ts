@@ -21,31 +21,33 @@ import {
 
 /**
  * @export
- * @interface SubmissionResource
+ * @interface ShowSubmission200Response
  */
-export interface SubmissionResource {
+export interface ShowSubmission200Response {
   /**
-   * @memberof SubmissionResource
+   * @memberof ShowSubmission200Response
    * @type {Submission}
    */
   data?: Submission;
 }
 
-/** Check if a given object implements the SubmissionResource interface. */
-export function instanceOfSubmissionResource(
+/** Check if a given object implements the ShowSubmission200Response interface. */
+export function instanceOfShowSubmission200Response(
   value: object
-): value is SubmissionResource {
+): value is ShowSubmission200Response {
   return true;
 }
 
-export function SubmissionResourceFromJSON(json: any): SubmissionResource {
-  return SubmissionResourceFromJSONTyped(json, false);
+export function ShowSubmission200ResponseFromJSON(
+  json: any
+): ShowSubmission200Response {
+  return ShowSubmission200ResponseFromJSONTyped(json, false);
 }
 
-export function SubmissionResourceFromJSONTyped(
+export function ShowSubmission200ResponseFromJSONTyped(
   json: any,
   ignoreDiscriminator: boolean
-): SubmissionResource {
+): ShowSubmission200Response {
   if (json == null) {
     return json;
   }
@@ -54,12 +56,14 @@ export function SubmissionResourceFromJSONTyped(
   };
 }
 
-export function SubmissionResourceToJSON(json: any): SubmissionResource {
-  return SubmissionResourceToJSONTyped(json, false);
+export function ShowSubmission200ResponseToJSON(
+  json: any
+): ShowSubmission200Response {
+  return ShowSubmission200ResponseToJSONTyped(json, false);
 }
 
-export function SubmissionResourceToJSONTyped(
-  value?: SubmissionResource | null,
+export function ShowSubmission200ResponseToJSONTyped(
+  value?: ShowSubmission200Response | null,
   ignoreDiscriminator: boolean = false
 ): any {
   if (value == null) {
