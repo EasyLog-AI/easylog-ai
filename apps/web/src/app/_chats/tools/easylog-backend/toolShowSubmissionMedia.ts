@@ -59,22 +59,12 @@ const toolShowSubmissionMedia = (userId: string) => {
       if (!mediaData) {
         return `Media ${mediaId} not found`;
       }
-      console.log('[showSubmissionMedia] Retrieved media:', {
-        id: mediaData.id,
-        name: mediaData.name,
-        mimeType: mediaData.mimeType,
-        size: mediaData.size,
-        hasConversions: Object.keys(mediaData.conversions || {}).length
-      });
 
       // Determine which URL to use based on requested size
       let imageUrl = mediaData.url;
 
       if (size !== 'original' && mediaData.conversions?.[size]) {
         imageUrl = mediaData.conversions[size];
-        console.log(`[showSubmissionMedia] Using ${size} conversion`);
-      } else {
-        console.log('[showSubmissionMedia] Using original URL');
       }
 
       // Return media details with public URL for agent to use
