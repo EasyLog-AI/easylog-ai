@@ -1,15 +1,12 @@
-import { UIMessageStreamWriter, tool } from 'ai';
 import * as Sentry from '@sentry/nextjs';
+import { tool } from 'ai';
 
 import authServerClient from '@/lib/better-auth/server';
 import tryCatch from '@/utils/try-catch';
 
 import { showSubmissionMediaConfig } from './config';
 
-const toolShowSubmissionMedia = (
-  userId: string,
-  messageStreamWriter: UIMessageStreamWriter
-) => {
+const toolShowSubmissionMedia = (userId: string) => {
   return tool({
     ...showSubmissionMediaConfig,
     execute: async ({ mediaId, size = 'detail' }) => {
