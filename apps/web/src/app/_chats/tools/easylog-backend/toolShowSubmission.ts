@@ -23,8 +23,6 @@ const toolShowSubmission = (userId: string) => {
         return `Error getting submission: ${error.message}`;
       }
 
-      console.log('submission', submission);
-
       return JSON.stringify(submission, null, 2);
     }
   });

@@ -67,6 +67,12 @@ export const voiceChatVoiceEnum = pgEnum('voice_chat_voice_enum', [
   'verse'
 ]);
 
+export const anthropicRequestTypeEnum = pgEnum('anthropic_request_type_enum', [
+  'api_request',
+  'usage',
+  'error'
+]);
+
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
@@ -305,4 +311,35 @@ export const scratchpadMessages = pgTable('scratchpad_messages', {
     .notNull(),
   message: text().notNull().default(''),
   ...timestamps
+});
+
+export const anthropicRequestTypeEnum = pgEnum('anthropic_request_type_enum', [
+  'api_request',
+  'usage',
+  'error'
+]);
+
+/**
+ * Anthropic API Logs Table
+ *
+ * Stores all Anthropic API interactions for monitoring:
+ *
+ * - Context management effectiveness
+ * - Prompt caching performance
+ * - Token usage and costs
+ * - Error tracking
+ */
+export const anthropicLogs = pgTable('anthropic_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  chatId: uuid('chat_id').references(() => chats.id, { onDelete: 'cascade' }),
+  timestamp: timestamp('timestamp', { mode: 'date' }).notNull().defaultNow(),
+  requestType: anthropicRequestTypeEnum('request_type').notNull(),
+  model: text('model'),
+  messagesCount: integer('messages_count'),
+  toolsCount: integer('tools_count'),
+  contextManagement: jsonb('context_management'),
+  cacheCreationTokens: integer('cache_creation_tokens'),
+  cacheReadTokens: integer('cache_read_tokens'),
+  errorMessage: text('error_message'),
+  rawData: jsonb('raw_data')
 });
