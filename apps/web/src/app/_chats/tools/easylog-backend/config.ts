@@ -670,6 +670,23 @@ export const listSubmissionMediaConfig = {
   })
 } as const;
 
+export const showSubmissionMediaConfig = {
+  name: 'showSubmissionMedia',
+  description:
+    'Display a specific media file from a submission directly in the chat. Shows images inline and provides download links for PDFs and other files. Use listSubmissionMedia first to get available media IDs and details.',
+  inputSchema: z.object({
+    mediaId: z
+      .union([z.number(), z.string()])
+      .describe('The ID or UUID of the media file to display'),
+    size: z
+      .enum(['preview', 'detail', 'original'])
+      .default('detail')
+      .describe(
+        'Image size to display: preview (150x150 thumbnail), detail (550px height), or original (full size). Default: detail'
+      )
+  })
+} as const;
+
 export const prepareSubmissionConfig = {
   name: 'prepareSubmission',
   description:

@@ -109,6 +109,7 @@ const getToolNamesFromCapabilities = (
       'updateSubmission',
       'deleteSubmission',
       'listSubmissionMedia',
+      'showSubmissionMedia',
       'prepareSubmission',
       'uploadSubmissionMedia'
     );
