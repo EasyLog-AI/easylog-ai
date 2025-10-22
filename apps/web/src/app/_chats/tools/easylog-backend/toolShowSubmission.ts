@@ -12,7 +12,7 @@ const toolShowSubmission = (userId: string) => {
     execute: async ({ submissionId }) => {
       const client = await getEasylogClient(userId);
 
-      const [submission, error] = await tryCatch(
+      const [submissionResponse, error] = await tryCatch(
         client.submissions.showSubmission({
           submission: submissionId
         })
@@ -23,7 +23,8 @@ const toolShowSubmission = (userId: string) => {
         return `Error getting submission: ${error.message}`;
       }
 
-      return JSON.stringify(submission, null, 2);
+      // The API returns { data: Submission }, so we unwrap it
+      return JSON.stringify(submissionResponse?.data, null, 2);
     }
   });
 };
