@@ -28,14 +28,6 @@ const toolShowSubmissionMedia = (userId: string) => {
         return `Media ${mediaId} not found`;
       }
 
-      console.log('[showSubmissionMedia] Retrieved media:', {
-        id: media.id,
-        name: media.name,
-        mimeType: media.mimeType,
-        size: media.size,
-        hasConversions: Object.keys(media.conversions || {}).length
-      });
-
       // Determine which URL to use based on requested size
       const conversions = media.conversions ?? {};
       const conversionEntries = Object.entries(conversions).filter(
