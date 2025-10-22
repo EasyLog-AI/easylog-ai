@@ -77,11 +77,9 @@ export class FollowUpsApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/follow-ups`;
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/follow-ups`,
         method: 'POST',
         headers: headerParameters,
         query: queryParameters,
@@ -131,15 +129,12 @@ export class FollowUpsApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/follow-ups/{followUp}`;
-    urlPath = urlPath.replace(
-      `{${'followUp'}}`,
-      encodeURIComponent(String(requestParameters['followUp']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/follow-ups/{followUp}`.replace(
+          `{${'followUp'}}`,
+          encodeURIComponent(String(requestParameters['followUp']))
+        ),
         method: 'DELETE',
         headers: headerParameters,
         query: queryParameters
@@ -159,10 +154,11 @@ export class FollowUpsApi extends runtime.BaseAPI {
   }
 
   /**
-   * List all follow-ups for the current client. Follow-ups are filtered by user
-   * group membership unless the user has the FollowUpOverrideGroups permission.
-   * Users will only see follow-ups that are either assigned to their groups or
-   * have no group assignment (ungrouped). List follow-ups (paginated)
+   * List all follow-ups for the current client. Follow-ups are filtered by
+   * user group membership unless the user has the FollowUpOverrideGroups
+   * permission. Users will only see follow-ups that are either assigned to
+   * their groups or have no group assignment (ungrouped). List follow-ups
+   * (paginated)
    */
   async listFollowUpsRaw(
     requestParameters: ListFollowUpsRequest,
@@ -188,11 +184,9 @@ export class FollowUpsApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/follow-ups`;
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/follow-ups`,
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -206,10 +200,11 @@ export class FollowUpsApi extends runtime.BaseAPI {
   }
 
   /**
-   * List all follow-ups for the current client. Follow-ups are filtered by user
-   * group membership unless the user has the FollowUpOverrideGroups permission.
-   * Users will only see follow-ups that are either assigned to their groups or
-   * have no group assignment (ungrouped). List follow-ups (paginated)
+   * List all follow-ups for the current client. Follow-ups are filtered by
+   * user group membership unless the user has the FollowUpOverrideGroups
+   * permission. Users will only see follow-ups that are either assigned to
+   * their groups or have no group assignment (ungrouped). List follow-ups
+   * (paginated)
    */
   async listFollowUps(
     requestParameters: ListFollowUpsRequest = {},
@@ -246,15 +241,12 @@ export class FollowUpsApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/follow-ups/{followUp}`;
-    urlPath = urlPath.replace(
-      `{${'followUp'}}`,
-      encodeURIComponent(String(requestParameters['followUp']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/follow-ups/{followUp}`.replace(
+          `{${'followUp'}}`,
+          encodeURIComponent(String(requestParameters['followUp']))
+        ),
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -312,15 +304,12 @@ export class FollowUpsApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/follow-ups/{followUp}`;
-    urlPath = urlPath.replace(
-      `{${'followUp'}}`,
-      encodeURIComponent(String(requestParameters['followUp']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/follow-ups/{followUp}`.replace(
+          `{${'followUp'}}`,
+          encodeURIComponent(String(requestParameters['followUp']))
+        ),
         method: 'PATCH',
         headers: headerParameters,
         query: queryParameters,

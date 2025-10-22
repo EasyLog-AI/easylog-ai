@@ -67,11 +67,9 @@ export class DatasourcesApi extends runtime.BaseAPI {
 
     const headerParameters: runtime.HTTPHeaders = {};
 
-    let urlPath = `/v2/datasources`;
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/datasources`,
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -104,11 +102,9 @@ export class DatasourcesApi extends runtime.BaseAPI {
 
     const headerParameters: runtime.HTTPHeaders = {};
 
-    let urlPath = `/v2/datasources/resources`;
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/datasources/resources`,
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -145,15 +141,12 @@ export class DatasourcesApi extends runtime.BaseAPI {
 
     const headerParameters: runtime.HTTPHeaders = {};
 
-    let urlPath = `/v2/datasources/{entity}`;
-    urlPath = urlPath.replace(
-      `{${'entity'}}`,
-      encodeURIComponent(String(requestParameters['entity']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/datasources/{entity}`.replace(
+          `{${'entity'}}`,
+          encodeURIComponent(String(requestParameters['entity']))
+        ),
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -212,19 +205,17 @@ export class DatasourcesApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/datasources/{entity}/entries/{entityDatum}`;
-    urlPath = urlPath.replace(
-      `{${'entity'}}`,
-      encodeURIComponent(String(requestParameters['entity']))
-    );
-    urlPath = urlPath.replace(
-      `{${'entityDatum'}}`,
-      encodeURIComponent(String(requestParameters['entityDatum']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/datasources/{entity}/entries/{entityDatum}`
+          .replace(
+            `{${'entity'}}`,
+            encodeURIComponent(String(requestParameters['entity']))
+          )
+          .replace(
+            `{${'entityDatum'}}`,
+            encodeURIComponent(String(requestParameters['entityDatum']))
+          ),
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -268,15 +259,12 @@ export class DatasourcesApi extends runtime.BaseAPI {
 
     const headerParameters: runtime.HTTPHeaders = {};
 
-    let urlPath = `/v2/datasources/resources/{resource}`;
-    urlPath = urlPath.replace(
-      `{${'resource'}}`,
-      encodeURIComponent(String(requestParameters['resource']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/datasources/resources/{resource}`.replace(
+          `{${'resource'}}`,
+          encodeURIComponent(String(requestParameters['resource']))
+        ),
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -324,19 +312,17 @@ export class DatasourcesApi extends runtime.BaseAPI {
 
     const headerParameters: runtime.HTTPHeaders = {};
 
-    let urlPath = `/v2/datasources/resources/{resource}/{slug}`;
-    urlPath = urlPath.replace(
-      `{${'resource'}}`,
-      encodeURIComponent(String(requestParameters['resource']))
-    );
-    urlPath = urlPath.replace(
-      `{${'slug'}}`,
-      encodeURIComponent(String(requestParameters['slug']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/datasources/resources/{resource}/{slug}`
+          .replace(
+            `{${'resource'}}`,
+            encodeURIComponent(String(requestParameters['resource']))
+          )
+          .replace(
+            `{${'slug'}}`,
+            encodeURIComponent(String(requestParameters['slug']))
+          ),
         method: 'GET',
         headers: headerParameters,
         query: queryParameters

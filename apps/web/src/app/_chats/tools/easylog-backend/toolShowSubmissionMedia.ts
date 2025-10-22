@@ -1,70 +1,54 @@
 import * as Sentry from '@sentry/nextjs';
 import { tool } from 'ai';
 
-import authServerClient from '@/lib/better-auth/server';
 import tryCatch from '@/utils/try-catch';
 
 import { showSubmissionMediaConfig } from './config';
+import getEasylogClient from './utils/getEasylogClient';
 
 const toolShowSubmissionMedia = (userId: string) => {
   return tool({
     ...showSubmissionMediaConfig,
     execute: async ({ mediaId, size = 'detail' }) => {
-      // Get access token for API authentication
-      const { accessToken } = await authServerClient.api.getAccessToken({
-        body: {
-          providerId: 'easylog',
-          userId
-        }
-      });
+      const client = await getEasylogClient(userId);
 
-      if (!accessToken) {
-        return 'Error: No access token available';
-      }
-
-      // Direct API call since MediaApi is not yet generated
-      // TODO: Replace with client.media.showMedia() after OpenAPI regeneration
-      const baseUrl = 'https://staging2.easylog.nu/api';
-      const url = `${baseUrl}/v2/media/${mediaId}${size !== 'original' ? `?conversion=${size}` : ''}`;
-
-      const [response, fetchError] = await tryCatch(
-        fetch(url, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            Accept: 'application/json'
-          }
+      const [media, apiError] = await tryCatch(
+        client.media.showMedia({
+          media: String(mediaId),
+          conversion: size === 'original' ? undefined : size
         })
       );
 
-      if (fetchError) {
-        Sentry.captureException(fetchError);
-        return `Error fetching media: ${fetchError.message}`;
+      if (apiError) {
+        Sentry.captureException(apiError);
+        return `Error fetching media: ${apiError.message}`;
       }
 
-      if (!response || !response.ok) {
-        const error = new Error(`HTTP ${response?.status || 'unknown'}`);
-        Sentry.captureException(error);
-        return `Error fetching media: ${response?.statusText || 'Unknown error'}`;
-      }
-
-      const [data, jsonError] = await tryCatch(response.json());
-
-      if (jsonError) {
-        Sentry.captureException(jsonError);
-        return `Error parsing response: ${jsonError.message}`;
-      }
-
-      const mediaData = data.data;
-
-      if (!mediaData) {
+      if (!media) {
         return `Media ${mediaId} not found`;
       }
 
-      // Determine which URL to use based on requested size
-      let imageUrl = mediaData.url;
+      console.log('[showSubmissionMedia] Retrieved media:', {
+        id: media.id,
+        name: media.name,
+        mimeType: media.mimeType,
+        size: media.size,
+        hasConversions: Object.keys(media.conversions || {}).length
+      });
 
-      if (size !== 'original' && mediaData.conversions?.[size]) {
-        imageUrl = mediaData.conversions[size];
+      // Determine which URL to use based on requested size
+      const conversions = media.conversions ?? {};
+      const conversionEntries = Object.entries(conversions).filter(
+        ([, value]) => Boolean(value)
+      );
+      let imageUrl = media.url;
+
+      if (
+        size !== 'original' &&
+        size &&
+        (conversions as Record<string, string | undefined>)[size]
+      ) {
+        imageUrl = (conversions as Record<string, string | undefined>)[size];
       }
 
       // Return media details with public URL for agent to use
@@ -79,15 +63,15 @@ const toolShowSubmissionMedia = (userId: string) => {
       };
 
       const result = {
-        id: mediaData.id,
-        uuid: mediaData.uuid,
-        name: mediaData.name,
-        fileName: mediaData.fileName,
-        mimeType: mediaData.mimeType,
-        size: formatBytes(mediaData.size || 0),
+        id: media.id,
+        uuid: media.uuid,
+        name: media.name,
+        fileName: media.fileName,
+        mimeType: media.mimeType,
+        size: formatBytes(media.size || 0),
         url: imageUrl,
-        availableSizes: Object.keys(mediaData.conversions || {}),
-        expiresAt: mediaData.expiresAt
+        availableSizes: conversionEntries.map(([key]) => key),
+        expiresAt: media.expiresAt
       };
 
       return JSON.stringify(result, null, 2);

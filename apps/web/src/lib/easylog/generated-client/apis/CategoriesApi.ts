@@ -84,11 +84,9 @@ export class CategoriesApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/categories`;
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/categories`,
         method: 'POST',
         headers: headerParameters,
         query: queryParameters,
@@ -138,15 +136,12 @@ export class CategoriesApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/categories/{category}`;
-    urlPath = urlPath.replace(
-      `{${'category'}}`,
-      encodeURIComponent(String(requestParameters['category']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/categories/{category}`.replace(
+          `{${'category'}}`,
+          encodeURIComponent(String(requestParameters['category']))
+        ),
         method: 'DELETE',
         headers: headerParameters,
         query: queryParameters
@@ -190,11 +185,9 @@ export class CategoriesApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/categories`;
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/categories`,
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -243,15 +236,12 @@ export class CategoriesApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/categories/{category}/forms`;
-    urlPath = urlPath.replace(
-      `{${'category'}}`,
-      encodeURIComponent(String(requestParameters['category']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/categories/{category}/forms`.replace(
+          `{${'category'}}`,
+          encodeURIComponent(String(requestParameters['category']))
+        ),
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -300,15 +290,12 @@ export class CategoriesApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/categories/{category}`;
-    urlPath = urlPath.replace(
-      `{${'category'}}`,
-      encodeURIComponent(String(requestParameters['category']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/categories/{category}`.replace(
+          `{${'category'}}`,
+          encodeURIComponent(String(requestParameters['category']))
+        ),
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -366,15 +353,12 @@ export class CategoriesApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/categories/{category}`;
-    urlPath = urlPath.replace(
-      `{${'category'}}`,
-      encodeURIComponent(String(requestParameters['category']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/categories/{category}`.replace(
+          `{${'category'}}`,
+          encodeURIComponent(String(requestParameters['category']))
+        ),
         method: 'PATCH',
         headers: headerParameters,
         query: queryParameters,

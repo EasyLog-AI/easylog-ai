@@ -114,15 +114,12 @@ export class SubmissionsApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/submissions/{submission}`;
-    urlPath = urlPath.replace(
-      `{${'submission'}}`,
-      encodeURIComponent(String(requestParameters['submission']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/submissions/{submission}`.replace(
+          `{${'submission'}}`,
+          encodeURIComponent(String(requestParameters['submission']))
+        ),
         method: 'DELETE',
         headers: headerParameters,
         query: queryParameters
@@ -169,15 +166,12 @@ export class SubmissionsApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/submissions/{submission}/media`;
-    urlPath = urlPath.replace(
-      `{${'submission'}}`,
-      encodeURIComponent(String(requestParameters['submission']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/submissions/{submission}/media`.replace(
+          `{${'submission'}}`,
+          encodeURIComponent(String(requestParameters['submission']))
+        ),
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -203,8 +197,8 @@ export class SubmissionsApi extends runtime.BaseAPI {
   }
 
   /**
-   * List all submissions for the current user. Regular users only see their own
-   * submissions. Users with ViewAllSubmissions permission can see all
+   * List all submissions for the current user. Regular users only see their
+   * own submissions. Users with ViewAllSubmissions permission can see all
    * submissions in their client and filter by issuer_id. List submissions
    * (paginated)
    */
@@ -256,11 +250,9 @@ export class SubmissionsApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/submissions`;
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/submissions`,
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -274,8 +266,8 @@ export class SubmissionsApi extends runtime.BaseAPI {
   }
 
   /**
-   * List all submissions for the current user. Regular users only see their own
-   * submissions. Users with ViewAllSubmissions permission can see all
+   * List all submissions for the current user. Regular users only see their
+   * own submissions. Users with ViewAllSubmissions permission can see all
    * submissions in their client and filter by issuer_id. List submissions
    * (paginated)
    */
@@ -327,15 +319,12 @@ export class SubmissionsApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/submissions/{project_form}/persist`;
-    urlPath = urlPath.replace(
-      `{${'project_form'}}`,
-      encodeURIComponent(String(requestParameters['projectForm']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/submissions/{project_form}/persist`.replace(
+          `{${'project_form'}}`,
+          encodeURIComponent(String(requestParameters['projectForm']))
+        ),
         method: 'POST',
         headers: headerParameters,
         query: queryParameters,
@@ -404,15 +393,12 @@ export class SubmissionsApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/submissions/{project_form}/prepare`;
-    urlPath = urlPath.replace(
-      `{${'project_form'}}`,
-      encodeURIComponent(String(requestParameters['projectForm']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/submissions/{project_form}/prepare`.replace(
+          `{${'project_form'}}`,
+          encodeURIComponent(String(requestParameters['projectForm']))
+        ),
         method: 'POST',
         headers: headerParameters,
         query: queryParameters,
@@ -445,8 +431,8 @@ export class SubmissionsApi extends runtime.BaseAPI {
   }
 
   /**
-   * Display a specific submission. Users can only view submissions they created
-   * or if they have ViewAllSubmissions permission. Show submission
+   * Display a specific submission. Users can only view submissions they
+   * created or if they have ViewAllSubmissions permission. Show submission
    */
   async showSubmissionRaw(
     requestParameters: ShowSubmissionRequest,
@@ -471,15 +457,12 @@ export class SubmissionsApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/submissions/{submission}`;
-    urlPath = urlPath.replace(
-      `{${'submission'}}`,
-      encodeURIComponent(String(requestParameters['submission']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/submissions/{submission}`.replace(
+          `{${'submission'}}`,
+          encodeURIComponent(String(requestParameters['submission']))
+        ),
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -493,8 +476,8 @@ export class SubmissionsApi extends runtime.BaseAPI {
   }
 
   /**
-   * Display a specific submission. Users can only view submissions they created
-   * or if they have ViewAllSubmissions permission. Show submission
+   * Display a specific submission. Users can only view submissions they
+   * created or if they have ViewAllSubmissions permission. Show submission
    */
   async showSubmission(
     requestParameters: ShowSubmissionRequest,
@@ -544,15 +527,12 @@ export class SubmissionsApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/submissions/{submission}`;
-    urlPath = urlPath.replace(
-      `{${'submission'}}`,
-      encodeURIComponent(String(requestParameters['submission']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/submissions/{submission}`.replace(
+          `{${'submission'}}`,
+          encodeURIComponent(String(requestParameters['submission']))
+        ),
         method: 'PATCH',
         headers: headerParameters,
         query: queryParameters,
@@ -638,15 +618,12 @@ export class SubmissionsApi extends runtime.BaseAPI {
       formParams.append('file', requestParameters['file'] as any);
     }
 
-    let urlPath = `/v2/submissions/{submission}/media`;
-    urlPath = urlPath.replace(
-      `{${'submission'}}`,
-      encodeURIComponent(String(requestParameters['submission']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/submissions/{submission}/media`.replace(
+          `{${'submission'}}`,
+          encodeURIComponent(String(requestParameters['submission']))
+        ),
         method: 'POST',
         headers: headerParameters,
         query: queryParameters,

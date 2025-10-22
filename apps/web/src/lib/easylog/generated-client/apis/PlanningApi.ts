@@ -81,11 +81,9 @@ export class PlanningApi extends runtime.BaseAPI {
 
     headerParameters['Content-Type'] = 'application/json';
 
-    let urlPath = `/v2/datasources/projects`;
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/datasources/projects`,
         method: 'POST',
         headers: headerParameters,
         query: queryParameters,
@@ -136,15 +134,12 @@ export class PlanningApi extends runtime.BaseAPI {
 
     headerParameters['Content-Type'] = 'application/json';
 
-    let urlPath = `/v2/datasources/{entity}/project`;
-    urlPath = urlPath.replace(
-      `{${'entity'}}`,
-      encodeURIComponent(String(requestParameters['entity']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/datasources/{entity}/project`.replace(
+          `{${'entity'}}`,
+          encodeURIComponent(String(requestParameters['entity']))
+        ),
         method: 'POST',
         headers: headerParameters,
         query: queryParameters,
@@ -186,15 +181,12 @@ export class PlanningApi extends runtime.BaseAPI {
 
     const headerParameters: runtime.HTTPHeaders = {};
 
-    let urlPath = `/v2/datasources/projects/{project}`;
-    urlPath = urlPath.replace(
-      `{${'project'}}`,
-      encodeURIComponent(String(requestParameters['project']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/datasources/projects/{project}`.replace(
+          `{${'project'}}`,
+          encodeURIComponent(String(requestParameters['project']))
+        ),
         method: 'DELETE',
         headers: headerParameters,
         query: queryParameters
@@ -238,11 +230,9 @@ export class PlanningApi extends runtime.BaseAPI {
 
     const headerParameters: runtime.HTTPHeaders = {};
 
-    let urlPath = `/v2/datasources/projects`;
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/datasources/projects`,
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -302,19 +292,17 @@ export class PlanningApi extends runtime.BaseAPI {
 
     const headerParameters: runtime.HTTPHeaders = {};
 
-    let urlPath = `/v2/datasources/resources/{resource}/projects/{slug}`;
-    urlPath = urlPath.replace(
-      `{${'resource'}}`,
-      encodeURIComponent(String(requestParameters['resource']))
-    );
-    urlPath = urlPath.replace(
-      `{${'slug'}}`,
-      encodeURIComponent(String(requestParameters['slug']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/datasources/resources/{resource}/projects/{slug}`
+          .replace(
+            `{${'resource'}}`,
+            encodeURIComponent(String(requestParameters['resource']))
+          )
+          .replace(
+            `{${'slug'}}`,
+            encodeURIComponent(String(requestParameters['slug']))
+          ),
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -365,15 +353,12 @@ export class PlanningApi extends runtime.BaseAPI {
 
     const headerParameters: runtime.HTTPHeaders = {};
 
-    let urlPath = `/v2/datasources/projects/{project}`;
-    urlPath = urlPath.replace(
-      `{${'project'}}`,
-      encodeURIComponent(String(requestParameters['project']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/datasources/projects/{project}`.replace(
+          `{${'project'}}`,
+          encodeURIComponent(String(requestParameters['project']))
+        ),
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -423,15 +408,12 @@ export class PlanningApi extends runtime.BaseAPI {
 
     headerParameters['Content-Type'] = 'application/json';
 
-    let urlPath = `/v2/datasources/projects/{project}`;
-    urlPath = urlPath.replace(
-      `{${'project'}}`,
-      encodeURIComponent(String(requestParameters['project']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/datasources/projects/{project}`.replace(
+          `{${'project'}}`,
+          encodeURIComponent(String(requestParameters['project']))
+        ),
         method: 'PATCH',
         headers: headerParameters,
         query: queryParameters,

@@ -35,9 +35,9 @@ export class FollowUpCategoriesApi extends runtime.BaseAPI {
   /**
    * List all follow-up categories for the current client. Categories are
    * filtered by user group membership unless the user has the
-   * FollowUpOverrideGroups permission. Users will only see categories that are
-   * either assigned to their groups or have no group assignment (ungrouped).
-   * List follow-up categories (paginated)
+   * FollowUpOverrideGroups permission. Users will only see categories that
+   * are either assigned to their groups or have no group assignment
+   * (ungrouped). List follow-up categories (paginated)
    */
   async listFollowUpCategoriesRaw(
     requestParameters: ListFollowUpCategoriesRequest,
@@ -63,11 +63,9 @@ export class FollowUpCategoriesApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/follow-ups/categories`;
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/follow-ups/categories`,
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -83,9 +81,9 @@ export class FollowUpCategoriesApi extends runtime.BaseAPI {
   /**
    * List all follow-up categories for the current client. Categories are
    * filtered by user group membership unless the user has the
-   * FollowUpOverrideGroups permission. Users will only see categories that are
-   * either assigned to their groups or have no group assignment (ungrouped).
-   * List follow-up categories (paginated)
+   * FollowUpOverrideGroups permission. Users will only see categories that
+   * are either assigned to their groups or have no group assignment
+   * (ungrouped). List follow-up categories (paginated)
    */
   async listFollowUpCategories(
     requestParameters: ListFollowUpCategoriesRequest = {},
@@ -122,15 +120,12 @@ export class FollowUpCategoriesApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/follow-ups/categories/{category}`;
-    urlPath = urlPath.replace(
-      `{${'category'}}`,
-      encodeURIComponent(String(requestParameters['category']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/follow-ups/categories/{category}`.replace(
+          `{${'category'}}`,
+          encodeURIComponent(String(requestParameters['category']))
+        ),
         method: 'GET',
         headers: headerParameters,
         query: queryParameters

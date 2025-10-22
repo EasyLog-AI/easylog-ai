@@ -22,8 +22,8 @@ export interface GeneratePdfReportRequest {
 export class ReportsApi extends runtime.BaseAPI {
   /**
    * Generate and download a PDF report based on encrypted data parameters.
-   * Supports exporting single or multiple Eloquent models as PDF. Add ?as=html
-   * to view HTML instead of PDF. Generate PDF report
+   * Supports exporting single or multiple Eloquent models as PDF. Add
+   * ?as=html to view HTML instead of PDF. Generate PDF report
    */
   async generatePdfReportRaw(
     requestParameters: GeneratePdfReportRequest,
@@ -70,19 +70,17 @@ export class ReportsApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/{clientId}/pdf/{slug}`;
-    urlPath = urlPath.replace(
-      `{${'clientId'}}`,
-      encodeURIComponent(String(requestParameters['clientId']))
-    );
-    urlPath = urlPath.replace(
-      `{${'slug'}}`,
-      encodeURIComponent(String(requestParameters['slug']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/{clientId}/pdf/{slug}`
+          .replace(
+            `{${'clientId'}}`,
+            encodeURIComponent(String(requestParameters['clientId']))
+          )
+          .replace(
+            `{${'slug'}}`,
+            encodeURIComponent(String(requestParameters['slug']))
+          ),
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -95,8 +93,8 @@ export class ReportsApi extends runtime.BaseAPI {
 
   /**
    * Generate and download a PDF report based on encrypted data parameters.
-   * Supports exporting single or multiple Eloquent models as PDF. Add ?as=html
-   * to view HTML instead of PDF. Generate PDF report
+   * Supports exporting single or multiple Eloquent models as PDF. Add
+   * ?as=html to view HTML instead of PDF. Generate PDF report
    */
   async generatePdfReport(
     requestParameters: GeneratePdfReportRequest,

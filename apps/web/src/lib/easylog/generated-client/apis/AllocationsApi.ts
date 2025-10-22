@@ -79,11 +79,9 @@ export class AllocationsApi extends runtime.BaseAPI {
 
     headerParameters['Content-Type'] = 'application/json';
 
-    let urlPath = `/v2/datasources/allocations`;
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/datasources/allocations`,
         method: 'POST',
         headers: headerParameters,
         query: queryParameters,
@@ -129,11 +127,9 @@ export class AllocationsApi extends runtime.BaseAPI {
 
     headerParameters['Content-Type'] = 'application/json';
 
-    let urlPath = `/v2/datasources/allocations/multiple`;
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/datasources/allocations/multiple`,
         method: 'POST',
         headers: headerParameters,
         query: queryParameters,
@@ -177,15 +173,12 @@ export class AllocationsApi extends runtime.BaseAPI {
 
     const headerParameters: runtime.HTTPHeaders = {};
 
-    let urlPath = `/v2/datasources/allocations/{allocation}`;
-    urlPath = urlPath.replace(
-      `{${'allocation'}}`,
-      encodeURIComponent(String(requestParameters['allocation']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/datasources/allocations/{allocation}`.replace(
+          `{${'allocation'}}`,
+          encodeURIComponent(String(requestParameters['allocation']))
+        ),
         method: 'DELETE',
         headers: headerParameters,
         query: queryParameters
@@ -220,15 +213,12 @@ export class AllocationsApi extends runtime.BaseAPI {
 
     const headerParameters: runtime.HTTPHeaders = {};
 
-    let urlPath = `/v2/datasources/allocations/{allocation}`;
-    urlPath = urlPath.replace(
-      `{${'allocation'}}`,
-      encodeURIComponent(String(requestParameters['allocation']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/datasources/allocations/{allocation}`.replace(
+          `{${'allocation'}}`,
+          encodeURIComponent(String(requestParameters['allocation']))
+        ),
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -266,11 +256,9 @@ export class AllocationsApi extends runtime.BaseAPI {
 
     const headerParameters: runtime.HTTPHeaders = {};
 
-    let urlPath = `/v2/datasources/allocations/multiple`;
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/datasources/allocations/multiple`,
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -320,15 +308,12 @@ export class AllocationsApi extends runtime.BaseAPI {
 
     headerParameters['Content-Type'] = 'application/json';
 
-    let urlPath = `/v2/datasources/allocations/{allocation}`;
-    urlPath = urlPath.replace(
-      `{${'allocation'}}`,
-      encodeURIComponent(String(requestParameters['allocation']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/datasources/allocations/{allocation}`.replace(
+          `{${'allocation'}}`,
+          encodeURIComponent(String(requestParameters['allocation']))
+        ),
         method: 'PATCH',
         headers: headerParameters,
         query: queryParameters,
@@ -374,11 +359,9 @@ export class AllocationsApi extends runtime.BaseAPI {
 
     headerParameters['Content-Type'] = 'application/json';
 
-    let urlPath = `/v2/datasources/allocations/multiple`;
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/datasources/allocations/multiple`,
         method: 'PUT',
         headers: headerParameters,
         query: queryParameters,

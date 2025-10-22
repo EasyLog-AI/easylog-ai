@@ -99,11 +99,9 @@ export class FormsApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/forms`;
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/forms`,
         method: 'POST',
         headers: headerParameters,
         query: queryParameters,
@@ -150,15 +148,12 @@ export class FormsApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/forms/{form}`;
-    urlPath = urlPath.replace(
-      `{${'form'}}`,
-      encodeURIComponent(String(requestParameters['form']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/forms/{form}`.replace(
+          `{${'form'}}`,
+          encodeURIComponent(String(requestParameters['form']))
+        ),
         method: 'DELETE',
         headers: headerParameters,
         query: queryParameters
@@ -201,15 +196,12 @@ export class FormsApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/forms/{form}/schema`;
-    urlPath = urlPath.replace(
-      `{${'form'}}`,
-      encodeURIComponent(String(requestParameters['form']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/forms/{form}/schema`.replace(
+          `{${'form'}}`,
+          encodeURIComponent(String(requestParameters['form']))
+        ),
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -252,15 +244,12 @@ export class FormsApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/forms/{form}/categories`;
-    urlPath = urlPath.replace(
-      `{${'form'}}`,
-      encodeURIComponent(String(requestParameters['form']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/forms/{form}/categories`.replace(
+          `{${'form'}}`,
+          encodeURIComponent(String(requestParameters['form']))
+        ),
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -313,15 +302,12 @@ export class FormsApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/forms/{form}/project-forms`;
-    urlPath = urlPath.replace(
-      `{${'form'}}`,
-      encodeURIComponent(String(requestParameters['form']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/forms/{form}/project-forms`.replace(
+          `{${'form'}}`,
+          encodeURIComponent(String(requestParameters['form']))
+        ),
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -374,15 +360,12 @@ export class FormsApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/forms/{form}/versions`;
-    urlPath = urlPath.replace(
-      `{${'form'}}`,
-      encodeURIComponent(String(requestParameters['form']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/forms/{form}/versions`.replace(
+          `{${'form'}}`,
+          encodeURIComponent(String(requestParameters['form']))
+        ),
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -430,11 +413,9 @@ export class FormsApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/forms`;
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/forms`,
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -484,15 +465,12 @@ export class FormsApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/forms/{form}`;
-    urlPath = urlPath.replace(
-      `{${'form'}}`,
-      encodeURIComponent(String(requestParameters['form']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/forms/{form}`.replace(
+          `{${'form'}}`,
+          encodeURIComponent(String(requestParameters['form']))
+        ),
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -547,15 +525,12 @@ export class FormsApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/forms/{form}`;
-    urlPath = urlPath.replace(
-      `{${'form'}}`,
-      encodeURIComponent(String(requestParameters['form']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/forms/{form}`.replace(
+          `{${'form'}}`,
+          encodeURIComponent(String(requestParameters['form']))
+        ),
         method: 'PATCH',
         headers: headerParameters,
         query: queryParameters,
