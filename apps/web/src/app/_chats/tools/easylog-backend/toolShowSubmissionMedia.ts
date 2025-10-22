@@ -1,10 +1,10 @@
 import { UIMessageStreamWriter, tool } from 'ai';
 import * as Sentry from '@sentry/nextjs';
 
+import authServerClient from '@/lib/better-auth/server';
 import tryCatch from '@/utils/try-catch';
 
 import { showSubmissionMediaConfig } from './config';
-import getEasylogClient from './utils/getEasylogClient';
 
 const toolShowSubmissionMedia = (
   userId: string,
@@ -13,29 +13,41 @@ const toolShowSubmissionMedia = (
   return tool({
     ...showSubmissionMediaConfig,
     execute: async ({ mediaId, size = 'detail' }) => {
-      const client = await getEasylogClient(userId);
+      // Get access token for API authentication
+      const { accessToken } = await authServerClient.api.getAccessToken({
+        body: {
+          providerId: 'easylog',
+          userId
+        }
+      });
+
+      if (!accessToken) {
+        return 'Error: No access token available';
+      }
 
       // Direct API call since MediaApi is not yet generated
       // TODO: Replace with client.media.showMedia() after OpenAPI regeneration
       const baseUrl = 'https://staging2.easylog.nu/api';
       const url = `${baseUrl}/v2/media/${mediaId}${size !== 'original' ? `?conversion=${size}` : ''}`;
-      
+
       const [response, fetchError] = await tryCatch(
         fetch(url, {
           headers: {
-            'Authorization': `Bearer ${await client.submissions.configuration.accessToken?.('')}`,
-            'Accept': 'application/json'
+            Authorization: `Bearer ${accessToken}`,
+            Accept: 'application/json'
           }
         })
       );
 
       if (fetchError || !response.ok) {
-        Sentry.captureException(fetchError || new Error(`HTTP ${response.status}`));
+        Sentry.captureException(
+          fetchError || new Error(`HTTP ${response.status}`)
+        );
         return `Error fetching media: ${fetchError?.message || response.statusText}`;
       }
 
       const [data, jsonError] = await tryCatch(response.json());
-      
+
       if (jsonError) {
         Sentry.captureException(jsonError);
         return `Error parsing response: ${jsonError.message}`;

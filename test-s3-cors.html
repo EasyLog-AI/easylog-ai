@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>S3 CORS Test - el-uploads-staging2</title>
+    <style>
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+        max-width: 800px;
+        margin: 50px auto;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+      .test-box {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .success {
+        color: #22c55e;
+        font-weight: bold;
+      }
+      .error {
+        color: #ef4444;
+        font-weight: bold;
+      }
+      .waiting {
+        color: #f59e0b;
+      }
+      pre {
+        background: #f3f4f6;
+        padding: 10px;
+        border-radius: 4px;
+        overflow-x: auto;
+      }
+      button {
+        background: #3b82f6;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+      button:hover {
+        background: #2563eb;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🧪 S3 CORS Test voor el-uploads-staging2</h1>
+
+    <div class="test-box">
+      <h2>Test 1: Bucket Root Access</h2>
+      <p>Test of de bucket bereikbaar is vanaf deze origin.</p>
+      <button onclick="testBucketRoot()">Run Test 1</button>
+      <div id="test1-result"></div>
+    </div>
+
+    <div class="test-box">
+      <h2>Test 2: Image Fetch (met file)</h2>
+      <p>Test of een bestand daadwerkelijk geladen kan worden.</p>
+      <input
+        type="text"
+        id="s3-url"
+        placeholder="Plak hier een S3 URL (optioneel)"
+        style="width: 100%; padding: 8px; margin: 10px 0"
+      />
+      <button onclick="testImageFetch()">Run Test 2</button>
+      <div id="test2-result"></div>
+    </div>
+
+    <div class="test-box">
+      <h2>Test 3: CORS Headers Check</h2>
+      <p>Inspecteer welke CORS headers de S3 bucket retourneert.</p>
+      <button onclick="testCorsHeaders()">Run Test 3</button>
+      <div id="test3-result"></div>
+    </div>
+
+    <script>
+      const BUCKET_URL =
+        'https://el-uploads-staging2.s3.eu-west-1.amazonaws.com';
+
+      async function testBucketRoot() {
+        const resultDiv = document.getElementById('test1-result');
+        resultDiv.innerHTML =
+          '<p class="waiting">⏳ Testing bucket access...</p>';
+
+        try {
+          const response = await fetch(BUCKET_URL, {
+            method: 'HEAD',
+            mode: 'cors'
+          });
+
+          resultDiv.innerHTML = `
+                    <p class="success">✅ SUCCESS! Bucket is accessible</p>
+                    <p>Status: ${response.status}</p>
+                    <p>CORS is working correctly! 🎉</p>
+                `;
+        } catch (error) {
+          resultDiv.innerHTML = `
+                    <p class="error">❌ CORS ERROR</p>
+                    <pre>${error.message}</pre>
+                    <p>De bucket blokkeert requests van deze origin.</p>
+                    <p><strong>Mogelijke oorzaken:</strong></p>
+                    <ul>
+                        <li>CORS configuratie niet correct opgeslagen</li>
+                        <li>Origin niet in AllowedOrigins lijst</li>
+                        <li>Cache (wacht 5 minuten en probeer opnieuw)</li>
+                    </ul>
+                `;
+        }
+      }
+
+      async function testImageFetch() {
+        const resultDiv = document.getElementById('test2-result');
+        const urlInput = document.getElementById('s3-url').value.trim();
+
+        // Use provided URL or construct a test URL
+        const testUrl = urlInput || BUCKET_URL + '/test-file.jpg';
+
+        resultDiv.innerHTML = '<p class="waiting">⏳ Testing file fetch...</p>';
+
+        try {
+          const response = await fetch(testUrl, {
+            method: 'GET',
+            mode: 'cors'
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          const blob = await response.blob();
+
+          resultDiv.innerHTML = `
+                    <p class="success">✅ SUCCESS! File fetched successfully</p>
+                    <p>URL: ${testUrl}</p>
+                    <p>Size: ${blob.size} bytes</p>
+                    <p>Type: ${blob.type || 'unknown'}</p>
+                    <p>CORS allows file downloads! 🎉</p>
+                `;
+        } catch (error) {
+          resultDiv.innerHTML = `
+                    <p class="error">❌ FETCH ERROR</p>
+                    <pre>${error.message}</pre>
+                    <p><strong>Mogelijke oorzaken:</strong></p>
+                    <ul>
+                        <li>CORS configuratie niet correct</li>
+                        <li>File bestaat niet op S3</li>
+                        <li>Incorrect URL format</li>
+                    </ul>
+                `;
+        }
+      }
+
+      async function testCorsHeaders() {
+        const resultDiv = document.getElementById('test3-result');
+        resultDiv.innerHTML =
+          '<p class="waiting">⏳ Checking CORS headers...</p>';
+
+        try {
+          const response = await fetch(BUCKET_URL, {
+            method: 'OPTIONS',
+            headers: {
+              Origin: window.location.origin,
+              'Access-Control-Request-Method': 'GET'
+            }
+          });
+
+          const headers = {};
+          response.headers.forEach((value, key) => {
+            if (key.toLowerCase().includes('access-control')) {
+              headers[key] = value;
+            }
+          });
+
+          resultDiv.innerHTML = `
+                    <p class="success">✅ CORS Headers Found:</p>
+                    <pre>${JSON.stringify(headers, null, 2)}</pre>
+                    <p><strong>Current Origin:</strong> ${window.location.origin}</p>
+                `;
+        } catch (error) {
+          resultDiv.innerHTML = `
+                    <p class="error">❌ Could not check headers</p>
+                    <pre>${error.message}</pre>
+                `;
+        }
+      }
+
+      // Auto-run Test 1 on page load
+      window.addEventListener('load', () => {
+        console.log('S3 CORS Test page loaded');
+        console.log('Bucket:', BUCKET_URL);
+        console.log('Current origin:', window.location.origin);
+      });
+    </script>
+  </body>
+</html>
