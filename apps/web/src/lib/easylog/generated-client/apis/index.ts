@@ -11,6 +11,7 @@ export * from './FollowUpCategoriesApi';
 export * from './FollowUpEntriesApi';
 export * from './FollowUpsApi';
 export * from './FormsApi';
+export * from './MediaApi';
 export * from './PlanningApi';
 export * from './PlanningPhasesApi';
 export * from './ReportsApi';

@@ -63,11 +63,9 @@ export class FollowUpCategoriesApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/follow-ups/categories`;
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/follow-ups/categories`,
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -122,15 +120,12 @@ export class FollowUpCategoriesApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/follow-ups/categories/{category}`;
-    urlPath = urlPath.replace(
-      `{${'category'}}`,
-      encodeURIComponent(String(requestParameters['category']))
-    );
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/follow-ups/categories/{category}`.replace(
+          `{${'category'}}`,
+          encodeURIComponent(String(requestParameters['category']))
+        ),
         method: 'GET',
         headers: headerParameters,
         query: queryParameters

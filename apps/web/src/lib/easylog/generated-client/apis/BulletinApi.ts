@@ -39,11 +39,9 @@ export class BulletinApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/bulletin-items`;
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/bulletin-items`,
         method: 'GET',
         headers: headerParameters,
         query: queryParameters

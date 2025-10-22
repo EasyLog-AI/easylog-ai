@@ -38,11 +38,9 @@ export class ConfigurationApi extends runtime.BaseAPI {
       );
     }
 
-    let urlPath = `/v2/configuration`;
-
     const response = await this.request(
       {
-        path: urlPath,
+        path: `/v2/configuration`,
         method: 'GET',
         headers: headerParameters,
         query: queryParameters

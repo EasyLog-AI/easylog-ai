@@ -62,6 +62,7 @@ import toolShowFollowUpCategory from '@/app/_chats/tools/easylog-backend/toolSho
 import toolShowFollowUpEntry from '@/app/_chats/tools/easylog-backend/toolShowFollowUpEntry';
 import toolShowForm from '@/app/_chats/tools/easylog-backend/toolShowForm';
 import toolShowSubmission from '@/app/_chats/tools/easylog-backend/toolShowSubmission';
+import toolShowSubmissionMedia from '@/app/_chats/tools/easylog-backend/toolShowSubmissionMedia';
 import toolUpdateFollowUp from '@/app/_chats/tools/easylog-backend/toolUpdateFollowUp';
 import toolUpdateFollowUpEntry from '@/app/_chats/tools/easylog-backend/toolUpdateFollowUpEntry';
 import toolUpdateForm from '@/app/_chats/tools/easylog-backend/toolUpdateForm';
@@ -268,6 +269,7 @@ export const POST = async (
         updateSubmission: toolUpdateSubmission(user.id),
         deleteSubmission: toolDeleteSubmission(user.id),
         listSubmissionMedia: toolListSubmissionMedia(user.id),
+        showSubmissionMedia: toolShowSubmissionMedia(user.id),
         prepareSubmission: toolPrepareSubmission(user.id),
         uploadSubmissionMedia: toolUploadSubmissionMedia(user.id),
         executeSql: toolExecuteSQL(writer),

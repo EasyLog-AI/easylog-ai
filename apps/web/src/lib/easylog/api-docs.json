@@ -1748,6 +1748,60 @@
                 }
             }
         },
+        "/v2/media/{media}": {
+            "get": {
+                "tags": [
+                    "Media"
+                ],
+                "summary": "Show media file",
+                "description": "Get media file details including presigned download URL (valid for 1 hour) and available image conversions. Supports both numeric ID and UUID.",
+                "operationId": "showMedia",
+                "parameters": [
+                    {
+                        "name": "media",
+                        "in": "path",
+                        "description": "Media ID (numeric) or UUID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "789 or 550e8400-e29b-41d4-a716-446655440000"
+                        }
+                    },
+                    {
+                        "name": "conversion",
+                        "in": "query",
+                        "description": "Request specific image conversion (preview, detail, max-height-300px, max-height-380px, max-height-850px, max-height-1000px)",
+                        "schema": {
+                            "type": "string",
+                            "example": "detail"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Media details with presigned download URLs",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MediaDetailResource"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - not authorized to view this media"
+                    },
+                    "404": {
+                        "description": "Media not found or has no associated model"
+                    }
+                },
+                "security": [
+                    {
+                        "passport": []
+                    }
+                ]
+            }
+        },
         "/v2/{clientId}/pdf/{slug}": {
             "get": {
                 "tags": [
@@ -2812,7 +2866,7 @@
                     {
                         "name": "issuer_id",
                         "in": "query",
-                        "description": "Filter by issuer user ID (requires ViewAllSubmissions permission)",
+                        "description": "Filter by issuer user ID (requires ViewAllSubmissions permission or see_other_submissions access)",
                         "schema": {
                             "type": "integer",
                             "format": "int64"
@@ -4434,6 +4488,99 @@
                 },
                 "type": "object"
             },
+            "MediaDetailResource": {
+                "description": "Detailed media resource with presigned S3 URLs",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "uuid": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "name": {
+                        "description": "Display name",
+                        "type": "string"
+                    },
+                    "file_name": {
+                        "description": "Original filename",
+                        "type": "string"
+                    },
+                    "mime_type": {
+                        "type": "string",
+                        "example": "image/jpeg"
+                    },
+                    "size": {
+                        "description": "File size in bytes",
+                        "type": "integer"
+                    },
+                    "url": {
+                        "description": "Presigned S3 URL for original file (expires in 1 hour)",
+                        "type": "string"
+                    },
+                    "conversions": {
+                        "description": "Available image conversions with presigned URLs",
+                        "properties": {
+                            "preview": {
+                                "description": "150x150px thumbnail",
+                                "type": "string"
+                            },
+                            "detail": {
+                                "description": "550px height",
+                                "type": "string"
+                            },
+                            "max-height-300px": {
+                                "type": "string"
+                            },
+                            "max-height-380px": {
+                                "type": "string"
+                            },
+                            "max-height-850px": {
+                                "type": "string"
+                            },
+                            "max-height-1000px": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "dimensions": {
+                        "properties": {
+                            "width": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "height": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "type": [
+                            "object",
+                            "null"
+                        ]
+                    },
+                    "expires_at": {
+                        "description": "When presigned URLs expire",
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
             "MediaResource": {
                 "properties": {
                     "id": {
@@ -5452,8 +5599,8 @@
                 "description": "Laravel passport oauth2 security.",
                 "flows": {
                     "password": {
-                        "tokenUrl": "http://localhost/oauth/token",
-                        "refreshUrl": "http://localhost/token/refresh",
+                        "tokenUrl": "http://localhost:8080/oauth/token",
+                        "refreshUrl": "http://localhost:8080/token/refresh",
                         "scopes": {
                             "openid": "OpenID Connect scope"
                         }
@@ -5482,6 +5629,10 @@
         {
             "name": "Forms",
             "description": "Manage forms and form schemas"
+        },
+        {
+            "name": "Media",
+            "description": "Manage media files"
         },
         {
             "name": "Submissions",
