@@ -313,12 +313,6 @@ export const scratchpadMessages = pgTable('scratchpad_messages', {
   ...timestamps
 });
 
-export const anthropicRequestTypeEnum = pgEnum('anthropic_request_type_enum', [
-  'api_request',
-  'usage',
-  'error'
-]);
-
 /**
  * Anthropic API Logs Table
  *
