@@ -203,8 +203,8 @@ export class SubmissionsApi extends runtime.BaseAPI {
   }
 
   /**
-   * List all submissions for the current user. Regular users only see their
-   * own submissions. Users with ViewAllSubmissions permission can see all
+   * List all submissions for the current user. Regular users only see their own
+   * submissions. Users with ViewAllSubmissions permission can see all
    * submissions in their client and filter by issuer_id. List submissions
    * (paginated)
    */
@@ -274,8 +274,8 @@ export class SubmissionsApi extends runtime.BaseAPI {
   }
 
   /**
-   * List all submissions for the current user. Regular users only see their
-   * own submissions. Users with ViewAllSubmissions permission can see all
+   * List all submissions for the current user. Regular users only see their own
+   * submissions. Users with ViewAllSubmissions permission can see all
    * submissions in their client and filter by issuer_id. List submissions
    * (paginated)
    */
@@ -445,8 +445,8 @@ export class SubmissionsApi extends runtime.BaseAPI {
   }
 
   /**
-   * Display a specific submission. Users can only view submissions they
-   * created or if they have ViewAllSubmissions permission. Show submission
+   * Display a specific submission. Users can only view submissions they created
+   * or if they have ViewAllSubmissions permission. Show submission
    */
   async showSubmissionRaw(
     requestParameters: ShowSubmissionRequest,
@@ -493,8 +493,8 @@ export class SubmissionsApi extends runtime.BaseAPI {
   }
 
   /**
-   * Display a specific submission. Users can only view submissions they
-   * created or if they have ViewAllSubmissions permission. Show submission
+   * Display a specific submission. Users can only view submissions they created
+   * or if they have ViewAllSubmissions permission. Show submission
    */
   async showSubmission(
     requestParameters: ShowSubmissionRequest,
