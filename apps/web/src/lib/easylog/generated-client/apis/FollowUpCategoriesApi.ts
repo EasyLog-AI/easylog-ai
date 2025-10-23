@@ -35,9 +35,9 @@ export class FollowUpCategoriesApi extends runtime.BaseAPI {
   /**
    * List all follow-up categories for the current client. Categories are
    * filtered by user group membership unless the user has the
-   * FollowUpOverrideGroups permission. Users will only see categories that
-   * are either assigned to their groups or have no group assignment
-   * (ungrouped). List follow-up categories (paginated)
+   * FollowUpOverrideGroups permission. Users will only see categories that are
+   * either assigned to their groups or have no group assignment (ungrouped).
+   * List follow-up categories (paginated)
    */
   async listFollowUpCategoriesRaw(
     requestParameters: ListFollowUpCategoriesRequest,
@@ -81,9 +81,9 @@ export class FollowUpCategoriesApi extends runtime.BaseAPI {
   /**
    * List all follow-up categories for the current client. Categories are
    * filtered by user group membership unless the user has the
-   * FollowUpOverrideGroups permission. Users will only see categories that
-   * are either assigned to their groups or have no group assignment
-   * (ungrouped). List follow-up categories (paginated)
+   * FollowUpOverrideGroups permission. Users will only see categories that are
+   * either assigned to their groups or have no group assignment (ungrouped).
+   * List follow-up categories (paginated)
    */
   async listFollowUpCategories(
     requestParameters: ListFollowUpCategoriesRequest = {},
