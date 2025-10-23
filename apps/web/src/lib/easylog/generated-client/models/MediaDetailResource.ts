@@ -171,10 +171,16 @@ export function MediaDetailResourceToJSONTyped(
     conversions: MediaDetailResourceConversionsToJSON(value['conversions']),
     dimensions: MediaDetailResourceDimensionsToJSON(value['dimensions']),
     expires_at:
-      value['expiresAt'] == null ? undefined : value['expiresAt'].toISOString(),
+      value['expiresAt'] == null
+        ? value['expiresAt']
+        : value['expiresAt'].toISOString(),
     created_at:
-      value['createdAt'] == null ? undefined : value['createdAt'].toISOString(),
+      value['createdAt'] == null
+        ? value['createdAt']
+        : value['createdAt'].toISOString(),
     updated_at:
-      value['updatedAt'] == null ? undefined : value['updatedAt'].toISOString()
+      value['updatedAt'] == null
+        ? value['updatedAt']
+        : value['updatedAt'].toISOString()
   };
 }

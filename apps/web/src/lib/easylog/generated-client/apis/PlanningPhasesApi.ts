@@ -73,12 +73,15 @@ export class PlanningPhasesApi extends runtime.BaseAPI {
 
     headerParameters['Content-Type'] = 'application/json';
 
+    let urlPath = `/v2/datasources/project/{project}/phases`;
+    urlPath = urlPath.replace(
+      `{${'project'}}`,
+      encodeURIComponent(String(requestParameters['project']))
+    );
+
     const response = await this.request(
       {
-        path: `/v2/datasources/project/{project}/phases`.replace(
-          `{${'project'}}`,
-          encodeURIComponent(String(requestParameters['project']))
-        ),
+        path: urlPath,
         method: 'POST',
         headers: headerParameters,
         query: queryParameters,
@@ -120,12 +123,15 @@ export class PlanningPhasesApi extends runtime.BaseAPI {
 
     const headerParameters: runtime.HTTPHeaders = {};
 
+    let urlPath = `/v2/datasources/phases/{phase}`;
+    urlPath = urlPath.replace(
+      `{${'phase'}}`,
+      encodeURIComponent(String(requestParameters['phase']))
+    );
+
     const response = await this.request(
       {
-        path: `/v2/datasources/phases/{phase}`.replace(
-          `{${'phase'}}`,
-          encodeURIComponent(String(requestParameters['phase']))
-        ),
+        path: urlPath,
         method: 'DELETE',
         headers: headerParameters,
         query: queryParameters
@@ -160,12 +166,15 @@ export class PlanningPhasesApi extends runtime.BaseAPI {
 
     const headerParameters: runtime.HTTPHeaders = {};
 
+    let urlPath = `/v2/datasources/project/{project}/phases`;
+    urlPath = urlPath.replace(
+      `{${'project'}}`,
+      encodeURIComponent(String(requestParameters['project']))
+    );
+
     const response = await this.request(
       {
-        path: `/v2/datasources/project/{project}/phases`.replace(
-          `{${'project'}}`,
-          encodeURIComponent(String(requestParameters['project']))
-        ),
+        path: urlPath,
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -206,12 +215,15 @@ export class PlanningPhasesApi extends runtime.BaseAPI {
 
     const headerParameters: runtime.HTTPHeaders = {};
 
+    let urlPath = `/v2/datasources/phases/{phase}`;
+    urlPath = urlPath.replace(
+      `{${'phase'}}`,
+      encodeURIComponent(String(requestParameters['phase']))
+    );
+
     const response = await this.request(
       {
-        path: `/v2/datasources/phases/{phase}`.replace(
-          `{${'phase'}}`,
-          encodeURIComponent(String(requestParameters['phase']))
-        ),
+        path: urlPath,
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -261,12 +273,15 @@ export class PlanningPhasesApi extends runtime.BaseAPI {
 
     headerParameters['Content-Type'] = 'application/json';
 
+    let urlPath = `/v2/datasources/phases/{phase}`;
+    urlPath = urlPath.replace(
+      `{${'phase'}}`,
+      encodeURIComponent(String(requestParameters['phase']))
+    );
+
     const response = await this.request(
       {
-        path: `/v2/datasources/phases/{phase}`.replace(
-          `{${'phase'}}`,
-          encodeURIComponent(String(requestParameters['phase']))
-        ),
+        path: urlPath,
         method: 'PATCH',
         headers: headerParameters,
         query: queryParameters,

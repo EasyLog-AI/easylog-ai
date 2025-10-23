@@ -126,8 +126,9 @@ export function EntityAllocationUpdateBulkPayloadAllocationsInnerToJSONTyped(
 
   return {
     id: value['id'],
-    start: value['start'] == null ? undefined : value['start'].toISOString(),
-    end: value['end'] == null ? undefined : value['end'].toISOString(),
+    start:
+      value['start'] == null ? value['start'] : value['start'].toISOString(),
+    end: value['end'] == null ? value['end'] : value['end'].toISOString(),
     type: value['type'],
     comment: value['comment'],
     parent_id: value['parentId'],

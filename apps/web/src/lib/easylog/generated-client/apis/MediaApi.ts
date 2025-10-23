@@ -11,10 +11,10 @@
  */
 
 import * as runtime from '../runtime';
-import type { MediaDetailResource } from '../models/index';
+import type { ShowMedia200Response } from '../models/index';
 import {
-  MediaDetailResourceFromJSON,
-  MediaDetailResourceToJSON
+  ShowMedia200ResponseFromJSON,
+  ShowMedia200ResponseToJSON
 } from '../models/index';
 
 export interface ShowMediaRequest {
@@ -31,7 +31,7 @@ export class MediaApi extends runtime.BaseAPI {
   async showMediaRaw(
     requestParameters: ShowMediaRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction
-  ): Promise<runtime.ApiResponse<MediaDetailResource>> {
+  ): Promise<runtime.ApiResponse<ShowMedia200Response>> {
     if (requestParameters['media'] == null) {
       throw new runtime.RequiredError(
         'media',
@@ -55,12 +55,15 @@ export class MediaApi extends runtime.BaseAPI {
       );
     }
 
+    let urlPath = `/v2/media/{media}`;
+    urlPath = urlPath.replace(
+      `{${'media'}}`,
+      encodeURIComponent(String(requestParameters['media']))
+    );
+
     const response = await this.request(
       {
-        path: `/v2/media/{media}`.replace(
-          `{${'media'}}`,
-          encodeURIComponent(String(requestParameters['media']))
-        ),
+        path: urlPath,
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -69,7 +72,7 @@ export class MediaApi extends runtime.BaseAPI {
     );
 
     return new runtime.JSONApiResponse(response, (jsonValue) =>
-      MediaDetailResourceFromJSON(jsonValue)
+      ShowMedia200ResponseFromJSON(jsonValue)
     );
   }
 
@@ -81,7 +84,7 @@ export class MediaApi extends runtime.BaseAPI {
   async showMedia(
     requestParameters: ShowMediaRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction
-  ): Promise<MediaDetailResource> {
+  ): Promise<ShowMedia200Response> {
     const response = await this.showMediaRaw(requestParameters, initOverrides);
     return await response.value();
   }

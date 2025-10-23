@@ -15,7 +15,7 @@ const toolShowSubmissionMedia = (
     execute: async ({ mediaId, size = 'detail' }, opts) => {
       const client = await getEasylogClient(userId);
 
-      const [media, apiError] = await tryCatch(
+      const [response, apiError] = await tryCatch(
         client.media.showMedia({
           media: String(mediaId),
           conversion: size === 'original' ? undefined : size
@@ -28,10 +28,12 @@ const toolShowSubmissionMedia = (
         return `Error fetching media: ${apiError.message}`;
       }
 
-      if (!media) {
+      if (!response || !response.data) {
         console.error('❌ Media not found:', mediaId);
         return `Media ${mediaId} not found`;
       }
+
+      const media = response.data;
 
       console.log('✅ Media fetched successfully:', {
         id: media.id,

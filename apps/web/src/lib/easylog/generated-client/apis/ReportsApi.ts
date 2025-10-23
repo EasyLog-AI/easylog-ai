@@ -70,17 +70,19 @@ export class ReportsApi extends runtime.BaseAPI {
       );
     }
 
+    let urlPath = `/v2/{clientId}/pdf/{slug}`;
+    urlPath = urlPath.replace(
+      `{${'clientId'}}`,
+      encodeURIComponent(String(requestParameters['clientId']))
+    );
+    urlPath = urlPath.replace(
+      `{${'slug'}}`,
+      encodeURIComponent(String(requestParameters['slug']))
+    );
+
     const response = await this.request(
       {
-        path: `/v2/{clientId}/pdf/{slug}`
-          .replace(
-            `{${'clientId'}}`,
-            encodeURIComponent(String(requestParameters['clientId']))
-          )
-          .replace(
-            `{${'slug'}}`,
-            encodeURIComponent(String(requestParameters['slug']))
-          ),
+        path: urlPath,
         method: 'GET',
         headers: headerParameters,
         query: queryParameters

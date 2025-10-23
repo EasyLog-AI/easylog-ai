@@ -103,10 +103,8 @@ export function AllocationTypeToJSONTyped(
     label: value['label'],
     slug: value['slug'],
     start:
-      value['start'] == null
-        ? undefined
-        : (value['start'] as any).toISOString(),
-    end: value['end'] == null ? undefined : (value['end'] as any).toISOString(),
+      value['start'] == null ? value['start'] : value['start'].toISOString(),
+    end: value['end'] == null ? value['end'] : value['end'].toISOString(),
     is_staged: value['isStaged']
   };
 }

@@ -113,11 +113,11 @@ export function PrepareSubmission200ResponseFilesInnerToJSONTyped(
     uri: value['uri'],
     uploadable_till:
       value['uploadableTill'] == null
-        ? undefined
+        ? value['uploadableTill']
         : value['uploadableTill'].toISOString(),
     postable_till:
       value['postableTill'] == null
-        ? undefined
+        ? value['postableTill']
         : value['postableTill'].toISOString()
   };
 }

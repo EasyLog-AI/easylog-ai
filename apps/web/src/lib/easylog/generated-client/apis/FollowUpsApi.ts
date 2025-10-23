@@ -77,9 +77,11 @@ export class FollowUpsApi extends runtime.BaseAPI {
       );
     }
 
+    let urlPath = `/v2/follow-ups`;
+
     const response = await this.request(
       {
-        path: `/v2/follow-ups`,
+        path: urlPath,
         method: 'POST',
         headers: headerParameters,
         query: queryParameters,
@@ -129,12 +131,15 @@ export class FollowUpsApi extends runtime.BaseAPI {
       );
     }
 
+    let urlPath = `/v2/follow-ups/{followUp}`;
+    urlPath = urlPath.replace(
+      `{${'followUp'}}`,
+      encodeURIComponent(String(requestParameters['followUp']))
+    );
+
     const response = await this.request(
       {
-        path: `/v2/follow-ups/{followUp}`.replace(
-          `{${'followUp'}}`,
-          encodeURIComponent(String(requestParameters['followUp']))
-        ),
+        path: urlPath,
         method: 'DELETE',
         headers: headerParameters,
         query: queryParameters
@@ -183,9 +188,11 @@ export class FollowUpsApi extends runtime.BaseAPI {
       );
     }
 
+    let urlPath = `/v2/follow-ups`;
+
     const response = await this.request(
       {
-        path: `/v2/follow-ups`,
+        path: urlPath,
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -239,12 +246,15 @@ export class FollowUpsApi extends runtime.BaseAPI {
       );
     }
 
+    let urlPath = `/v2/follow-ups/{followUp}`;
+    urlPath = urlPath.replace(
+      `{${'followUp'}}`,
+      encodeURIComponent(String(requestParameters['followUp']))
+    );
+
     const response = await this.request(
       {
-        path: `/v2/follow-ups/{followUp}`.replace(
-          `{${'followUp'}}`,
-          encodeURIComponent(String(requestParameters['followUp']))
-        ),
+        path: urlPath,
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -302,12 +312,15 @@ export class FollowUpsApi extends runtime.BaseAPI {
       );
     }
 
+    let urlPath = `/v2/follow-ups/{followUp}`;
+    urlPath = urlPath.replace(
+      `{${'followUp'}}`,
+      encodeURIComponent(String(requestParameters['followUp']))
+    );
+
     const response = await this.request(
       {
-        path: `/v2/follow-ups/{followUp}`.replace(
-          `{${'followUp'}}`,
-          encodeURIComponent(String(requestParameters['followUp']))
-        ),
+        path: urlPath,
         method: 'PATCH',
         headers: headerParameters,
         query: queryParameters,

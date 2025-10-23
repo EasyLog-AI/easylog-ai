@@ -37,12 +37,15 @@ export class CalendarApi extends runtime.BaseAPI {
 
     const headerParameters: runtime.HTTPHeaders = {};
 
+    let urlPath = `/v2/calendar/{token}/ics`;
+    urlPath = urlPath.replace(
+      `{${'token'}}`,
+      encodeURIComponent(String(requestParameters['token']))
+    );
+
     const response = await this.request(
       {
-        path: `/v2/calendar/{token}/ics`.replace(
-          `{${'token'}}`,
-          encodeURIComponent(String(requestParameters['token']))
-        ),
+        path: urlPath,
         method: 'GET',
         headers: headerParameters,
         query: queryParameters

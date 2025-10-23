@@ -158,11 +158,11 @@ export function EntityAllocationToJSONTyped(
         : (value['children'] as Array<any>).map(EntityAllocationToJSON),
     created_at:
       value['createdAt'] == null
-        ? undefined
-        : (value['createdAt'] as any).toISOString(),
+        ? value['createdAt']
+        : value['createdAt'].toISOString(),
     updated_at:
       value['updatedAt'] == null
-        ? undefined
-        : (value['updatedAt'] as any).toISOString()
+        ? value['updatedAt']
+        : value['updatedAt'].toISOString()
   };
 }

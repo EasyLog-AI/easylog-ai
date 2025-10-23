@@ -83,12 +83,15 @@ export class FollowUpEntriesApi extends runtime.BaseAPI {
       );
     }
 
+    let urlPath = `/v2/follow-ups/{followUp}/entries`;
+    urlPath = urlPath.replace(
+      `{${'followUp'}}`,
+      encodeURIComponent(String(requestParameters['followUp']))
+    );
+
     const response = await this.request(
       {
-        path: `/v2/follow-ups/{followUp}/entries`.replace(
-          `{${'followUp'}}`,
-          encodeURIComponent(String(requestParameters['followUp']))
-        ),
+        path: urlPath,
         method: 'POST',
         headers: headerParameters,
         query: queryParameters,
@@ -138,12 +141,15 @@ export class FollowUpEntriesApi extends runtime.BaseAPI {
       );
     }
 
+    let urlPath = `/v2/entries/{entry}`;
+    urlPath = urlPath.replace(
+      `{${'entry'}}`,
+      encodeURIComponent(String(requestParameters['entry']))
+    );
+
     const response = await this.request(
       {
-        path: `/v2/entries/{entry}`.replace(
-          `{${'entry'}}`,
-          encodeURIComponent(String(requestParameters['entry']))
-        ),
+        path: urlPath,
         method: 'DELETE',
         headers: headerParameters,
         query: queryParameters
@@ -194,12 +200,15 @@ export class FollowUpEntriesApi extends runtime.BaseAPI {
       );
     }
 
+    let urlPath = `/v2/follow-ups/{followUp}/entries`;
+    urlPath = urlPath.replace(
+      `{${'followUp'}}`,
+      encodeURIComponent(String(requestParameters['followUp']))
+    );
+
     const response = await this.request(
       {
-        path: `/v2/follow-ups/{followUp}/entries`.replace(
-          `{${'followUp'}}`,
-          encodeURIComponent(String(requestParameters['followUp']))
-        ),
+        path: urlPath,
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -248,12 +257,15 @@ export class FollowUpEntriesApi extends runtime.BaseAPI {
       );
     }
 
+    let urlPath = `/v2/entries/{entry}`;
+    urlPath = urlPath.replace(
+      `{${'entry'}}`,
+      encodeURIComponent(String(requestParameters['entry']))
+    );
+
     const response = await this.request(
       {
-        path: `/v2/entries/{entry}`.replace(
-          `{${'entry'}}`,
-          encodeURIComponent(String(requestParameters['entry']))
-        ),
+        path: urlPath,
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -311,12 +323,15 @@ export class FollowUpEntriesApi extends runtime.BaseAPI {
       );
     }
 
+    let urlPath = `/v2/entries/{entry}`;
+    urlPath = urlPath.replace(
+      `{${'entry'}}`,
+      encodeURIComponent(String(requestParameters['entry']))
+    );
+
     const response = await this.request(
       {
-        path: `/v2/entries/{entry}`.replace(
-          `{${'entry'}}`,
-          encodeURIComponent(String(requestParameters['entry']))
-        ),
+        path: urlPath,
         method: 'PATCH',
         headers: headerParameters,
         query: queryParameters,

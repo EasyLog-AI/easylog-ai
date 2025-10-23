@@ -128,15 +128,15 @@ export function FormToJSONTyped(
     has_actions: value['hasActions'],
     created_at:
       value['createdAt'] == null
-        ? undefined
-        : (value['createdAt'] as any).toISOString(),
+        ? value['createdAt']
+        : value['createdAt'].toISOString(),
     updated_at:
       value['updatedAt'] == null
-        ? undefined
-        : (value['updatedAt'] as any).toISOString(),
+        ? value['updatedAt']
+        : value['updatedAt'].toISOString(),
     accessed_at:
       value['accessedAt'] == null
-        ? undefined
-        : (value['accessedAt'] as any).toISOString()
+        ? value['accessedAt']
+        : value['accessedAt'].toISOString()
   };
 }

@@ -54,9 +54,11 @@ export class AnnouncementsApi extends runtime.BaseAPI {
       );
     }
 
+    let urlPath = `/v2/announcements`;
+
     const response = await this.request(
       {
-        path: `/v2/announcements`,
+        path: urlPath,
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -107,12 +109,15 @@ export class AnnouncementsApi extends runtime.BaseAPI {
       );
     }
 
+    let urlPath = `/v2/announcements/{announcement}`;
+    urlPath = urlPath.replace(
+      `{${'announcement'}}`,
+      encodeURIComponent(String(requestParameters['announcement']))
+    );
+
     const response = await this.request(
       {
-        path: `/v2/announcements/{announcement}`.replace(
-          `{${'announcement'}}`,
-          encodeURIComponent(String(requestParameters['announcement']))
-        ),
+        path: urlPath,
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -177,12 +182,15 @@ export class AnnouncementsApi extends runtime.BaseAPI {
       );
     }
 
+    let urlPath = `/v2/announcements/{announcement}/status`;
+    urlPath = urlPath.replace(
+      `{${'announcement'}}`,
+      encodeURIComponent(String(requestParameters['announcement']))
+    );
+
     const response = await this.request(
       {
-        path: `/v2/announcements/{announcement}/status`.replace(
-          `{${'announcement'}}`,
-          encodeURIComponent(String(requestParameters['announcement']))
-        ),
+        path: urlPath,
         method: 'POST',
         headers: headerParameters,
         query: queryParameters,

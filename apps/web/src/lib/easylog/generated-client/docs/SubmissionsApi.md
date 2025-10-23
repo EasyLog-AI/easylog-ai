@@ -176,7 +176,7 @@ async function example() {
     page: 56,
     // number | Filter by project form ID (optional)
     projectFormId: 789,
-    // number | Filter by issuer user ID (requires ViewAllSubmissions permission) (optional)
+    // number | Filter by issuer user ID (requires ViewAllSubmissions permission or see_other_submissions access) (optional)
     issuerId: 789,
     // Date | Filter submissions created from this date (optional)
     from: 2013 - 10 - 20,
@@ -204,15 +204,15 @@ example().catch(console.error);
 
 ### Parameters
 
-| Name              | Type     | Description                                                                      | Notes                                |
-| ----------------- | -------- | -------------------------------------------------------------------------------- | ------------------------------------ |
-| **page**          | `number` | Page number                                                                      | [Optional] [Defaults to `1`]         |
-| **projectFormId** | `number` | Filter by project form ID                                                        | [Optional] [Defaults to `undefined`] |
-| **issuerId**      | `number` | Filter by issuer user ID (requires ViewAllSubmissions permission)                | [Optional] [Defaults to `undefined`] |
-| **from**          | `Date`   | Filter submissions created from this date                                        | [Optional] [Defaults to `undefined`] |
-| **to**            | `Date`   | Filter submissions created until this date                                       | [Optional] [Defaults to `undefined`] |
-| **\_with**        | `string` | Comma-separated list of relationships to eager load (projectForm, issuer, media) | [Optional] [Defaults to `undefined`] |
-| **perPage**       | `number` | Number of items per page (1-100)                                                 | [Optional] [Defaults to `25`]        |
+| Name              | Type     | Description                                                                                       | Notes                                |
+| ----------------- | -------- | ------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| **page**          | `number` | Page number                                                                                       | [Optional] [Defaults to `1`]         |
+| **projectFormId** | `number` | Filter by project form ID                                                                         | [Optional] [Defaults to `undefined`] |
+| **issuerId**      | `number` | Filter by issuer user ID (requires ViewAllSubmissions permission or see_other_submissions access) | [Optional] [Defaults to `undefined`] |
+| **from**          | `Date`   | Filter submissions created from this date                                                         | [Optional] [Defaults to `undefined`] |
+| **to**            | `Date`   | Filter submissions created until this date                                                        | [Optional] [Defaults to `undefined`] |
+| **\_with**        | `string` | Comma-separated list of relationships to eager load (projectForm, issuer, media)                  | [Optional] [Defaults to `undefined`] |
+| **perPage**       | `number` | Number of items per page (1-100)                                                                  | [Optional] [Defaults to `25`]        |
 
 ### Return type
 

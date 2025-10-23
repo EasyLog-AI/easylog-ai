@@ -154,12 +154,10 @@ export function ProjectFormToJSONTyped(
     category_id: value['categoryId'],
     from_date:
       value['fromDate'] == null
-        ? undefined
-        : (value['fromDate'] as any).toISOString(),
+        ? value['fromDate']
+        : value['fromDate'].toISOString(),
     to_date:
-      value['toDate'] == null
-        ? undefined
-        : (value['toDate'] as any).toISOString(),
+      value['toDate'] == null ? value['toDate'] : value['toDate'].toISOString(),
     email_to_submitter: value['emailToSubmitter'],
     email_primary: value['emailPrimary'],
     email_secondary: value['emailSecondary'],

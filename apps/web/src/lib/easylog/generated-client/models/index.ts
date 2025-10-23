@@ -77,6 +77,7 @@ export * from './Resource';
 export * from './ResourceCollection';
 export * from './ShowDatasource200Response';
 export * from './ShowDatasourceEntry200Response';
+export * from './ShowMedia200Response';
 export * from './ShowResourceByGroup200Response';
 export * from './StoreCategoryInput';
 export * from './StoreFollowUpInput';

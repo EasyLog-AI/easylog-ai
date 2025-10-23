@@ -114,12 +114,15 @@ export class SubmissionsApi extends runtime.BaseAPI {
       );
     }
 
+    let urlPath = `/v2/submissions/{submission}`;
+    urlPath = urlPath.replace(
+      `{${'submission'}}`,
+      encodeURIComponent(String(requestParameters['submission']))
+    );
+
     const response = await this.request(
       {
-        path: `/v2/submissions/{submission}`.replace(
-          `{${'submission'}}`,
-          encodeURIComponent(String(requestParameters['submission']))
-        ),
+        path: urlPath,
         method: 'DELETE',
         headers: headerParameters,
         query: queryParameters
@@ -166,12 +169,15 @@ export class SubmissionsApi extends runtime.BaseAPI {
       );
     }
 
+    let urlPath = `/v2/submissions/{submission}/media`;
+    urlPath = urlPath.replace(
+      `{${'submission'}}`,
+      encodeURIComponent(String(requestParameters['submission']))
+    );
+
     const response = await this.request(
       {
-        path: `/v2/submissions/{submission}/media`.replace(
-          `{${'submission'}}`,
-          encodeURIComponent(String(requestParameters['submission']))
-        ),
+        path: urlPath,
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -250,9 +256,11 @@ export class SubmissionsApi extends runtime.BaseAPI {
       );
     }
 
+    let urlPath = `/v2/submissions`;
+
     const response = await this.request(
       {
-        path: `/v2/submissions`,
+        path: urlPath,
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -319,12 +327,15 @@ export class SubmissionsApi extends runtime.BaseAPI {
       );
     }
 
+    let urlPath = `/v2/submissions/{project_form}/persist`;
+    urlPath = urlPath.replace(
+      `{${'project_form'}}`,
+      encodeURIComponent(String(requestParameters['projectForm']))
+    );
+
     const response = await this.request(
       {
-        path: `/v2/submissions/{project_form}/persist`.replace(
-          `{${'project_form'}}`,
-          encodeURIComponent(String(requestParameters['projectForm']))
-        ),
+        path: urlPath,
         method: 'POST',
         headers: headerParameters,
         query: queryParameters,
@@ -393,12 +404,15 @@ export class SubmissionsApi extends runtime.BaseAPI {
       );
     }
 
+    let urlPath = `/v2/submissions/{project_form}/prepare`;
+    urlPath = urlPath.replace(
+      `{${'project_form'}}`,
+      encodeURIComponent(String(requestParameters['projectForm']))
+    );
+
     const response = await this.request(
       {
-        path: `/v2/submissions/{project_form}/prepare`.replace(
-          `{${'project_form'}}`,
-          encodeURIComponent(String(requestParameters['projectForm']))
-        ),
+        path: urlPath,
         method: 'POST',
         headers: headerParameters,
         query: queryParameters,
@@ -457,12 +471,15 @@ export class SubmissionsApi extends runtime.BaseAPI {
       );
     }
 
+    let urlPath = `/v2/submissions/{submission}`;
+    urlPath = urlPath.replace(
+      `{${'submission'}}`,
+      encodeURIComponent(String(requestParameters['submission']))
+    );
+
     const response = await this.request(
       {
-        path: `/v2/submissions/{submission}`.replace(
-          `{${'submission'}}`,
-          encodeURIComponent(String(requestParameters['submission']))
-        ),
+        path: urlPath,
         method: 'GET',
         headers: headerParameters,
         query: queryParameters
@@ -527,12 +544,15 @@ export class SubmissionsApi extends runtime.BaseAPI {
       );
     }
 
+    let urlPath = `/v2/submissions/{submission}`;
+    urlPath = urlPath.replace(
+      `{${'submission'}}`,
+      encodeURIComponent(String(requestParameters['submission']))
+    );
+
     const response = await this.request(
       {
-        path: `/v2/submissions/{submission}`.replace(
-          `{${'submission'}}`,
-          encodeURIComponent(String(requestParameters['submission']))
-        ),
+        path: urlPath,
         method: 'PATCH',
         headers: headerParameters,
         query: queryParameters,
@@ -618,12 +638,15 @@ export class SubmissionsApi extends runtime.BaseAPI {
       formParams.append('file', requestParameters['file'] as any);
     }
 
+    let urlPath = `/v2/submissions/{submission}/media`;
+    urlPath = urlPath.replace(
+      `{${'submission'}}`,
+      encodeURIComponent(String(requestParameters['submission']))
+    );
+
     const response = await this.request(
       {
-        path: `/v2/submissions/{submission}/media`.replace(
-          `{${'submission'}}`,
-          encodeURIComponent(String(requestParameters['submission']))
-        ),
+        path: urlPath,
         method: 'POST',
         headers: headerParameters,
         query: queryParameters,

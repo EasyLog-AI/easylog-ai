@@ -154,12 +154,12 @@ export function FollowUpToJSONTyped(
     can_use_json_table: value['canUseJsonTable'],
     created_at:
       value['createdAt'] == null
-        ? undefined
-        : (value['createdAt'] as any).toISOString(),
+        ? value['createdAt']
+        : value['createdAt'].toISOString(),
     updated_at:
       value['updatedAt'] == null
-        ? undefined
-        : (value['updatedAt'] as any).toISOString(),
+        ? value['updatedAt']
+        : value['updatedAt'].toISOString(),
     entries_count: value['entriesCount']
   };
 }
