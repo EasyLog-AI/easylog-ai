@@ -9,6 +9,7 @@ import PieChart from '@/app/_charts/components/PieChart';
 import StackedBarChart from '@/app/_charts/components/StackedBarChart';
 
 import ChatMessageAssistant from './ChatMessageAssistant';
+import ChatMessageAssistantImage from './ChatMessageAssistantImage';
 import ChatMessageAssistantMarkdownContent from './ChatMessageAssistantMarkdownContent';
 import ChatMessageAssistantMultipleChoice from './ChatMessageAssistantMultipleChoice';
 import ChatMessageAssistantReasoning from './ChatMessageAssistantReasoning';
@@ -128,6 +129,11 @@ const ChatHistory = () => {
                         multipleChoiceQuestionId={part.data.id}
                         chatId={id}
                         messageId={message.id}
+                      />
+                    ) : part.type === 'data-media-image' ? (
+                      <ChatMessageAssistantImage
+                        key={`${message.id}-${i}`}
+                        data={part.data}
                       />
                     ) : part.type === 'file' ? (
                       <ChatMessageFileContent

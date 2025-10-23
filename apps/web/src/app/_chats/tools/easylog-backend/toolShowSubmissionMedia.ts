@@ -1,15 +1,18 @@
 import * as Sentry from '@sentry/nextjs';
-import { tool } from 'ai';
+import { UIMessageStreamWriter, tool } from 'ai';
 
 import tryCatch from '@/utils/try-catch';
 
 import { showSubmissionMediaConfig } from './config';
 import getEasylogClient from './utils/getEasylogClient';
 
-const toolShowSubmissionMedia = (userId: string) => {
+const toolShowSubmissionMedia = (
+  userId: string,
+  messageStreamWriter: UIMessageStreamWriter
+) => {
   return tool({
     ...showSubmissionMediaConfig,
-    execute: async ({ mediaId, size = 'detail' }) => {
+    execute: async ({ mediaId, size = 'detail' }, opts) => {
       const client = await getEasylogClient(userId);
 
       const [media, apiError] = await tryCatch(
@@ -43,7 +46,7 @@ const toolShowSubmissionMedia = (userId: string) => {
         imageUrl = (conversions as Record<string, string | undefined>)[size];
       }
 
-      // Return media details with public URL for agent to use
+      // Helper function to format bytes
       const formatBytes = (bytes: number) => {
         if (bytes === 0) return '0 Bytes';
         const k = 1024;
@@ -54,7 +57,7 @@ const toolShowSubmissionMedia = (userId: string) => {
         );
       };
 
-      const result = {
+      const mediaData = {
         id: media.id,
         uuid: media.uuid,
         name: media.name,
@@ -66,7 +69,14 @@ const toolShowSubmissionMedia = (userId: string) => {
         expiresAt: media.expiresAt
       };
 
-      return JSON.stringify(result, null, 2);
+      // Stream the image data to UI for rendering
+      messageStreamWriter.write({
+        type: 'data-media-image',
+        id: opts.toolCallId,
+        data: mediaData
+      });
+
+      return `Image displayed: ${media.fileName} (${formatBytes(media.size || 0)})`;
     }
   });
 };

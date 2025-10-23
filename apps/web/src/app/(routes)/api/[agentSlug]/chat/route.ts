@@ -13,6 +13,7 @@ import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 
 import getCurrentUser from '@/app/_auth/data/getCurrentUser';
+import mediaImageSchema from '@/app/_chats/schemas/mediaImageSchema';
 import multipleChoiceSchema from '@/app/_chats/schemas/multipleChoiceSchema';
 import researchSchema from '@/app/_chats/schemas/researchSchema';
 import {
@@ -140,7 +141,8 @@ export const POST = async (
       'stacked-bar-chart': stackedBarChartSchema,
       'pie-chart': pieChartSchema,
       research: researchSchema,
-      'multiple-choice': multipleChoiceSchema
+      'multiple-choice': multipleChoiceSchema,
+      'media-image': mediaImageSchema
     }
     // TODO: Add tool calls to the messages
   });
@@ -269,7 +271,7 @@ export const POST = async (
         updateSubmission: toolUpdateSubmission(user.id),
         deleteSubmission: toolDeleteSubmission(user.id),
         listSubmissionMedia: toolListSubmissionMedia(user.id),
-        showSubmissionMedia: toolShowSubmissionMedia(user.id),
+        showSubmissionMedia: toolShowSubmissionMedia(user.id, writer),
         prepareSubmission: toolPrepareSubmission(user.id),
         uploadSubmissionMedia: toolUploadSubmissionMedia(user.id),
         executeSql: toolExecuteSQL(writer),

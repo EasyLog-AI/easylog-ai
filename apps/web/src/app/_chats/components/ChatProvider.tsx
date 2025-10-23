@@ -9,6 +9,7 @@ import useTRPC from '@/lib/trpc/browser';
 import lastAssistantMessageIsCompleteWithToolCalls from '@/utils/lastAssistantMessageIsCompleteWithToolCalls';
 
 import useChatMode from '../hooks/useChatMode';
+import mediaImageSchema from '../schemas/mediaImageSchema';
 import multipleChoiceSchema from '../schemas/multipleChoiceSchema';
 import researchSchema from '../schemas/researchSchema';
 import {
@@ -61,7 +62,8 @@ const ChatProvider = ({
       'stacked-bar-chart': stackedBarChartSchema,
       'pie-chart': pieChartSchema,
       research: researchSchema,
-      'multiple-choice': multipleChoiceSchema
+      'multiple-choice': multipleChoiceSchema,
+      'media-image': mediaImageSchema
     },
     sendAutomaticallyWhen: (args) => {
       return lastAssistantMessageIsCompleteWithToolCalls(args);
