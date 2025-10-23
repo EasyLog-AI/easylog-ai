@@ -12,6 +12,11 @@ const ChatMessageAssistantImage = ({
 }: ChatMessageAssistantImageProps) => {
   const { url, name, fileName } = data;
 
+  // Don't render if URL is empty or invalid
+  if (!url || url.trim() === '') {
+    return null;
+  }
+
   return (
     <div className="max-w-sm overflow-hidden rounded-xl">
       <Image

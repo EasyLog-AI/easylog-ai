@@ -24,12 +24,23 @@ const toolShowSubmissionMedia = (
 
       if (apiError) {
         Sentry.captureException(apiError);
+        console.error('❌ Media API error:', apiError);
         return `Error fetching media: ${apiError.message}`;
       }
 
       if (!media) {
+        console.error('❌ Media not found:', mediaId);
         return `Media ${mediaId} not found`;
       }
+
+      console.log('✅ Media fetched successfully:', {
+        id: media.id,
+        uuid: media.uuid,
+        fileName: media.fileName,
+        url: media.url,
+        urlLength: media.url?.length || 0,
+        conversions: Object.keys(media.conversions || {})
+      });
 
       // Determine which URL to use based on requested size
       const conversions = media.conversions ?? {};
