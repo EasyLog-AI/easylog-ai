@@ -65,44 +65,25 @@ const ChatHistory = () => {
     >
       <div className="mx-auto w-full max-w-4xl">
         <AnimatePresence>
-          {messages.map((message) => {
-            /** Helper to check if message only contains hidden MC answers */
-            const isHiddenMultipleChoiceAnswer = (msg: typeof message) => {
-              if (msg.role !== 'user') return false;
-
-              const hasNonHiddenContent = msg.parts.some((part) => {
-                if (part.type === 'file') return true;
-                if (part.type === 'text') {
-                  return !(
-                    part.text.startsWith('[') && part.text.endsWith(']')
-                  );
-                }
-                return false;
-              });
-
-              return !hasNonHiddenContent;
-            };
-
-            return message.role === 'user' ? (
-              isHiddenMultipleChoiceAnswer(message) ? null : (
-                <div key={message.id} style={{ overflowAnchor: 'none' }}>
-                  <ChatMessageUser>
-                    {message.parts.map((part, i) =>
-                      part.type === 'text' ? (
-                        <ChatMessageUserTextContent
-                          key={`${message.id}-${i}`}
-                          text={part.text}
-                        />
-                      ) : part.type === 'file' ? (
-                        <ChatMessageFileContent
-                          key={`${message.id}-${i}`}
-                          file={part}
-                        />
-                      ) : null
-                    )}
-                  </ChatMessageUser>
-                </div>
-              )
+          {messages.map((message) =>
+            message.role === 'user' ? (
+              <div key={message.id} style={{ overflowAnchor: 'none' }}>
+                <ChatMessageUser>
+                  {message.parts.map((part, i) =>
+                    part.type === 'text' ? (
+                      <ChatMessageUserTextContent
+                        key={`${message.id}-${i}`}
+                        text={part.text}
+                      />
+                    ) : part.type === 'file' ? (
+                      <ChatMessageFileContent
+                        key={`${message.id}-${i}`}
+                        file={part}
+                      />
+                    ) : null
+                  )}
+                </ChatMessageUser>
+              </div>
             ) : message.role === 'assistant' ? (
               <div key={message.id} style={{ overflowAnchor: 'none' }}>
                 <ChatMessageAssistant>
@@ -163,8 +144,8 @@ const ChatHistory = () => {
                   )}
                 </ChatMessageAssistant>
               </div>
-            ) : null;
-          })}
+            ) : null
+          )}
 
           {status === 'submitted' ||
             (status === 'streaming' ? (
