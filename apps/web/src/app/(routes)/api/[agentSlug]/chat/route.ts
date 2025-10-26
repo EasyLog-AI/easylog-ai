@@ -94,18 +94,27 @@ export const POST = async (
   req: NextRequest,
   { params }: { params: Promise<{ agentSlug: string }> }
 ) => {
-  const { agentSlug } = await params;
+  try {
+    const { agentSlug } = await params;
 
-  const user = await getCurrentUser(req.headers);
+    const user = await getCurrentUser(req.headers);
 
-  if (!user) {
-    return new NextResponse('Unauthorized', { status: 401 });
-  }
+    if (!user) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
 
-  const { message, id } = (await req.json()) as {
-    message: ChatMessage;
-    id: string;
-  };
+    const { message, id } = (await req.json()) as {
+      message: ChatMessage;
+      id: string;
+    };
+
+    console.log('[CHAT API] Request received:', {
+      agentSlug,
+      userId: user.id,
+      chatId: id,
+      messageRole: message.role,
+      messagePartsCount: message.parts?.length
+    });
 
   const chat = await db.query.chats.findFirst({
     where: {
@@ -350,11 +359,28 @@ export const POST = async (
         .where(eq(chats.id, id));
     },
     onError: (error) => {
-      console.error(error);
+      console.error('[CHAT API] Stream error:', error);
       Sentry.captureException(error);
       return 'An error occurred';
     }
   });
 
-  return createUIMessageStreamResponse({ stream });
+    return createUIMessageStreamResponse({ stream });
+  } catch (error) {
+    console.error('[CHAT API] Uncaught error:', error);
+    console.error('[CHAT API] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    Sentry.captureException(error);
+    
+    return new NextResponse(
+      JSON.stringify({ 
+        error: 'Internal server error', 
+        message: error instanceof Error ? error.message : 'Unknown error',
+        details: process.env.NODE_ENV === 'development' ? error : undefined
+      }), 
+      { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
+  }
 };
