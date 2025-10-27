@@ -9,7 +9,6 @@ import { changeRoleConfig } from './config';
 interface Role {
   id: string;
   name: string;
-  autoStartMessage: string | null;
 }
 
 const toolChangeRole = (chatId: string, roles: Role[]) =>
@@ -29,11 +28,6 @@ const toolChangeRole = (chatId: string, roles: Role[]) =>
           activeRoleId: role.id
         })
         .where(eq(chats.id, chatId));
-
-      // If the role has an autoStartMessage, signal to continue immediately
-      if (role.autoStartMessage) {
-        return `Role changed to ${role.name}. The user says: "${role.autoStartMessage}". Continue immediately as ${role.name} and respond to this message.`;
-      }
 
       return `Role changed to ${role.name}`;
     }
