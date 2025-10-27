@@ -116,50 +116,50 @@ export const POST = async (
       messagePartsCount: message.parts?.length
     });
 
-  const chat = await db.query.chats.findFirst({
-    where: {
-      id,
-      userId: user.id
-    },
-    with: {
-      agent: {
-        with: {
-          roles: true
-        }
+    const chat = await db.query.chats.findFirst({
+      where: {
+        id,
+        userId: user.id
       },
-      activeRole: true
+      with: {
+        agent: {
+          with: {
+            roles: true
+          }
+        },
+        activeRole: true
+      }
+    });
+
+    if (
+      !chat ||
+      (isUUID(agentSlug) && chat.agentId !== agentSlug) ||
+      (!isUUID(agentSlug) && chat.agent.slug !== agentSlug)
+    ) {
+      return new NextResponse('Chat not found', { status: 404 });
     }
-  });
 
-  if (
-    !chat ||
-    (isUUID(agentSlug) && chat.agentId !== agentSlug) ||
-    (!isUUID(agentSlug) && chat.agent.slug !== agentSlug)
-  ) {
-    return new NextResponse('Chat not found', { status: 404 });
-  }
+    const existingMessages = chat.messages as ChatMessage[];
+    const combinedMessages: ChatMessage[] = [...existingMessages, message];
 
-  const existingMessages = chat.messages as ChatMessage[];
-  const combinedMessages: ChatMessage[] = [...existingMessages, message];
+    const validatedMessages = await validateUIMessages<ChatMessage>({
+      messages: combinedMessages,
+      dataSchemas: {
+        'bar-chart': barChartSchema,
+        'line-chart': lineChartSchema,
+        'stacked-bar-chart': stackedBarChartSchema,
+        'pie-chart': pieChartSchema,
+        research: researchSchema,
+        'multiple-choice': multipleChoiceSchema,
+        'media-image': mediaImageSchema
+      }
+      // TODO: Add tool calls to the messages
+    });
 
-  const validatedMessages = await validateUIMessages<ChatMessage>({
-    messages: combinedMessages,
-    dataSchemas: {
-      'bar-chart': barChartSchema,
-      'line-chart': lineChartSchema,
-      'stacked-bar-chart': stackedBarChartSchema,
-      'pie-chart': pieChartSchema,
-      research: researchSchema,
-      'multiple-choice': multipleChoiceSchema,
-      'media-image': mediaImageSchema
-    }
-    // TODO: Add tool calls to the messages
-  });
+    const activeRole =
+      chat.activeRole ?? chat.agent.roles.find((r) => r.isDefault);
 
-  const activeRole =
-    chat.activeRole ?? chat.agent.roles.find((r) => r.isDefault);
-
-  const masterTemplate = `
+    const masterTemplate = `
   # SYSTEM INSTRUCTIONS
   
   ## 1. CONTEXT
@@ -214,170 +214,174 @@ export const POST = async (
       </start_of_core_prompt>
 `;
 
-  const promptWithContext = masterTemplate
-    .replaceAll('{{user.name}}', user.name ?? 'Unknown')
-    .replaceAll('{{agent.name}}', chat.agent.name)
-    .replaceAll('{{role.name}}', activeRole?.name ?? 'default')
-    .replaceAll('{{role.instructions}}', activeRole?.instructions ?? '')
-    .replaceAll('{{role.model}}', activeRole?.model ?? 'gpt-5')
-    .replaceAll('{{now}}', new Date().toISOString());
+    const promptWithContext = masterTemplate
+      .replaceAll('{{user.name}}', user.name ?? 'Unknown')
+      .replaceAll('{{agent.name}}', chat.agent.name)
+      .replaceAll('{{role.name}}', activeRole?.name ?? 'default')
+      .replaceAll('{{role.instructions}}', activeRole?.instructions ?? '')
+      .replaceAll('{{role.model}}', activeRole?.model ?? 'gpt-5')
+      .replaceAll('{{now}}', new Date().toISOString());
 
-  const model = activeRole?.model ?? chat.agent.defaultModel;
-  const provider = activeRole?.provider ?? chat.agent.defaultProvider;
+    const model = activeRole?.model ?? chat.agent.defaultModel;
+    const provider = activeRole?.provider ?? chat.agent.defaultProvider;
 
-  const reasoning = {
-    enabled: activeRole?.reasoning ?? chat.agent.defaultReasoning,
-    effort: activeRole?.reasoningEffort ?? chat.agent.defaultReasoningEffort
-  };
+    const reasoning = {
+      enabled: activeRole?.reasoning ?? chat.agent.defaultReasoning,
+      effort: activeRole?.reasoningEffort ?? chat.agent.defaultReasoningEffort
+    };
 
-  const cacheControl = {
-    enabled: activeRole?.cacheControl ?? chat.agent.defaultCacheControl
-  };
+    const cacheControl = {
+      enabled: activeRole?.cacheControl ?? chat.agent.defaultCacheControl
+    };
 
-  const stream = createUIMessageStream<ChatMessage>({
-    execute: async ({ writer }) => {
-      const allTools = {
-        createBarChart: toolCreateBarChart(writer),
-        createLineChart: toolCreateLineChart(writer),
-        createPieChart: toolCreatePieChart(writer),
-        createStackedBarChart: toolCreateStackedBarChart(writer),
-        getDatasources: toolGetDataSources(user.id),
-        getPlanningProjects: toolGetPlanningProjects(user.id),
-        getPlanningProject: toolGetPlanningProject(user.id),
-        createPlanningProject: toolCreatePlanningProject(user.id),
-        updatePlanningProject: toolUpdatePlanningProject(user.id),
-        getPlanningPhases: toolGetPlanningPhases(user.id),
-        getPlanningPhase: toolGetPlanningPhase(user.id),
-        updatePlanningPhase: toolUpdatePlanningPhase(user.id),
-        createPlanningPhase: toolCreatePlanningPhase(user.id),
-        getResources: toolGetResources(user.id),
-        getProjectsOfResource: toolGetProjectsOfResource(user.id),
-        getResourceGroups: toolGetResourceGroups(user.id),
-        createMultipleAllocations: toolCreateMultipleAllocations(user.id),
-        updateMultipleAllocations: toolUpdateMultipleAllocations(user.id),
-        deleteAllocation: toolDeleteAllocation(user.id),
-        listFollowUps: toolListFollowUps(user.id),
-        showFollowUp: toolShowFollowUp(user.id),
-        createFollowUp: toolCreateFollowUp(user.id),
-        updateFollowUp: toolUpdateFollowUp(user.id),
-        deleteFollowUp: toolDeleteFollowUp(user.id),
-        listFollowUpEntries: toolListFollowUpEntries(user.id),
-        showFollowUpEntry: toolShowFollowUpEntry(user.id),
-        createFollowUpEntry: toolCreateFollowUpEntry(user.id),
-        updateFollowUpEntry: toolUpdateFollowUpEntry(user.id),
-        deleteFollowUpEntry: toolDeleteFollowUpEntry(user.id),
-        listFollowUpCategories: toolListFollowUpCategories(user.id),
-        showFollowUpCategory: toolShowFollowUpCategory(user.id),
-        listForms: toolListForms(user.id),
-        showForm: toolShowForm(user.id),
-        listProjectForms: toolListProjectForms(user.id),
-        createForm: toolCreateForm(user.id),
-        updateForm: toolUpdateForm(user.id),
-        deleteForm: toolDeleteForm(user.id),
-        listSubmissions: toolListSubmissions(user.id),
-        showSubmission: toolShowSubmission(user.id),
-        createSubmission: toolCreateSubmission(user.id),
-        updateSubmission: toolUpdateSubmission(user.id),
-        deleteSubmission: toolDeleteSubmission(user.id),
-        listSubmissionMedia: toolListSubmissionMedia(user.id),
-        showSubmissionMedia: toolShowSubmissionMedia(user.id, writer),
-        prepareSubmission: toolPrepareSubmission(user.id),
-        uploadSubmissionMedia: toolUploadSubmissionMedia(user.id),
-        executeSql: toolExecuteSQL(writer),
-        searchKnowledgeBase: toolSearchKnowledgeBase(
-          {
-            agentId: chat.agentId
-          },
-          writer
-        ),
-        loadDocument: toolLoadDocument(),
-        clearChat: toolClearChat(chat.id, chat.agentId, user.id),
-        changeRole: toolChangeRole(chat.id, chat.agent.roles),
-        createMemory: toolCreateMemory(user.id),
-        deleteMemory: toolDeleteMemory(),
-        createMultipleChoice: toolCreateMultipleChoice(
-          {
+    const stream = createUIMessageStream<ChatMessage>({
+      execute: async ({ writer }) => {
+        const allTools = {
+          createBarChart: toolCreateBarChart(writer),
+          createLineChart: toolCreateLineChart(writer),
+          createPieChart: toolCreatePieChart(writer),
+          createStackedBarChart: toolCreateStackedBarChart(writer),
+          getDatasources: toolGetDataSources(user.id),
+          getPlanningProjects: toolGetPlanningProjects(user.id),
+          getPlanningProject: toolGetPlanningProject(user.id),
+          createPlanningProject: toolCreatePlanningProject(user.id),
+          updatePlanningProject: toolUpdatePlanningProject(user.id),
+          getPlanningPhases: toolGetPlanningPhases(user.id),
+          getPlanningPhase: toolGetPlanningPhase(user.id),
+          updatePlanningPhase: toolUpdatePlanningPhase(user.id),
+          createPlanningPhase: toolCreatePlanningPhase(user.id),
+          getResources: toolGetResources(user.id),
+          getProjectsOfResource: toolGetProjectsOfResource(user.id),
+          getResourceGroups: toolGetResourceGroups(user.id),
+          createMultipleAllocations: toolCreateMultipleAllocations(user.id),
+          updateMultipleAllocations: toolUpdateMultipleAllocations(user.id),
+          deleteAllocation: toolDeleteAllocation(user.id),
+          listFollowUps: toolListFollowUps(user.id),
+          showFollowUp: toolShowFollowUp(user.id),
+          createFollowUp: toolCreateFollowUp(user.id),
+          updateFollowUp: toolUpdateFollowUp(user.id),
+          deleteFollowUp: toolDeleteFollowUp(user.id),
+          listFollowUpEntries: toolListFollowUpEntries(user.id),
+          showFollowUpEntry: toolShowFollowUpEntry(user.id),
+          createFollowUpEntry: toolCreateFollowUpEntry(user.id),
+          updateFollowUpEntry: toolUpdateFollowUpEntry(user.id),
+          deleteFollowUpEntry: toolDeleteFollowUpEntry(user.id),
+          listFollowUpCategories: toolListFollowUpCategories(user.id),
+          showFollowUpCategory: toolShowFollowUpCategory(user.id),
+          listForms: toolListForms(user.id),
+          showForm: toolShowForm(user.id),
+          listProjectForms: toolListProjectForms(user.id),
+          createForm: toolCreateForm(user.id),
+          updateForm: toolUpdateForm(user.id),
+          deleteForm: toolDeleteForm(user.id),
+          listSubmissions: toolListSubmissions(user.id),
+          showSubmission: toolShowSubmission(user.id),
+          createSubmission: toolCreateSubmission(user.id),
+          updateSubmission: toolUpdateSubmission(user.id),
+          deleteSubmission: toolDeleteSubmission(user.id),
+          listSubmissionMedia: toolListSubmissionMedia(user.id),
+          showSubmissionMedia: toolShowSubmissionMedia(user.id, writer),
+          prepareSubmission: toolPrepareSubmission(user.id),
+          uploadSubmissionMedia: toolUploadSubmissionMedia(user.id),
+          executeSql: toolExecuteSQL(writer),
+          searchKnowledgeBase: toolSearchKnowledgeBase(
+            {
+              agentId: chat.agentId
+            },
+            writer
+          ),
+          loadDocument: toolLoadDocument(),
+          clearChat: toolClearChat(chat.id, chat.agentId, user.id),
+          changeRole: toolChangeRole(chat.id, chat.agent.roles),
+          createMemory: toolCreateMemory(user.id),
+          deleteMemory: toolDeleteMemory(),
+          createMultipleChoice: toolCreateMultipleChoice(
+            {
+              chatId: chat.id
+            },
+            writer
+          ),
+          answerMultipleChoice: toolAnswerMultipleChoice({
             chatId: chat.id
-          },
-          writer
-        ),
-        answerMultipleChoice: toolAnswerMultipleChoice({
-          chatId: chat.id
-        }),
-        getAuditSubmissions: toolGetAuditSubmissions(),
-        getAuditTrends: toolGetAuditTrends(),
-        getObservationsAnalysis: toolGetObservationsAnalysis(),
-        getVehicleRanking: toolGetVehicleRanking()
-      };
+          }),
+          getAuditSubmissions: toolGetAuditSubmissions(),
+          getAuditTrends: toolGetAuditTrends(),
+          getObservationsAnalysis: toolGetObservationsAnalysis(),
+          getVehicleRanking: toolGetVehicleRanking()
+        };
 
-      // Filter tools based on agent capabilities if specified
-      const allowedToolNames = getToolNamesFromCapabilities(
-        chat.agent.capabilities
-      );
+        // Filter tools based on agent capabilities if specified
+        const allowedToolNames = getToolNamesFromCapabilities(
+          chat.agent.capabilities
+        );
 
-      const tools =
-        allowedToolNames.length > 0
-          ? Object.fromEntries(
-              Object.entries(allTools).filter(([name]) =>
-                allowedToolNames.includes(name)
+        const tools =
+          allowedToolNames.length > 0
+            ? Object.fromEntries(
+                Object.entries(allTools).filter(([name]) =>
+                  allowedToolNames.includes(name)
+                )
               )
-            )
-          : allTools; // Fallback: all tools if no capabilities specified
+            : allTools; // Fallback: all tools if no capabilities specified
 
-      const result = streamText({
-        ...createModel(provider, model, {
-          reasoning,
-          cacheControl,
-          contextManagement: {
-            enabled: true
-          }
-        }),
-        system: promptWithContext,
-        messages: convertToModelMessages(validatedMessages),
-        tools,
-        stopWhen: [
-          stepCountIs(20),
-          hasToolCall('createMultipleChoice'),
-          hasToolCall('clearChat')
-        ]
-      });
+        const result = streamText({
+          ...createModel(provider, model, {
+            reasoning,
+            cacheControl,
+            contextManagement: {
+              enabled: true
+            }
+          }),
+          system: promptWithContext,
+          messages: convertToModelMessages(validatedMessages),
+          tools,
+          stopWhen: [
+            stepCountIs(20),
+            hasToolCall('createMultipleChoice'),
+            hasToolCall('clearChat'),
+            hasToolCall('changeRole')
+          ]
+        });
 
-      writer.write({
-        type: 'start',
-        messageId: generateId()
-      });
+        writer.write({
+          type: 'start',
+          messageId: generateId()
+        });
 
-      writer.merge(result.toUIMessageStream({ sendStart: false }));
-    },
-    originalMessages: combinedMessages,
-    onFinish: async ({ messages: finishedMessages }) => {
-      await db
-        .update(chats)
-        .set({
-          messages: finishedMessages
-        })
-        .where(eq(chats.id, id));
-    },
-    onError: (error) => {
-      console.error('[CHAT API] Stream error:', error);
-      Sentry.captureException(error);
-      return 'An error occurred';
-    }
-  });
+        writer.merge(result.toUIMessageStream({ sendStart: false }));
+      },
+      originalMessages: combinedMessages,
+      onFinish: async ({ messages: finishedMessages }) => {
+        await db
+          .update(chats)
+          .set({
+            messages: finishedMessages
+          })
+          .where(eq(chats.id, id));
+      },
+      onError: (error) => {
+        console.error('[CHAT API] Stream error:', error);
+        Sentry.captureException(error);
+        return 'An error occurred';
+      }
+    });
 
     return createUIMessageStreamResponse({ stream });
   } catch (error) {
     console.error('[CHAT API] Uncaught error:', error);
-    console.error('[CHAT API] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error(
+      '[CHAT API] Error stack:',
+      error instanceof Error ? error.stack : 'No stack trace'
+    );
     Sentry.captureException(error);
-    
+
     return new NextResponse(
-      JSON.stringify({ 
-        error: 'Internal server error', 
+      JSON.stringify({
+        error: 'Internal server error',
         message: error instanceof Error ? error.message : 'Unknown error',
         details: process.env.NODE_ENV === 'development' ? error : undefined
-      }), 
-      { 
+      }),
+      {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
       }
