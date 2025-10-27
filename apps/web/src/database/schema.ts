@@ -242,6 +242,7 @@ export const agentRoles = pgTable('agent_roles', {
     .notNull()
     .default('medium'),
   cacheControl: boolean('cache_control').notNull().default(false),
+  autoStartMessage: text('auto_start_message'),
   ...timestamps
 });
 
