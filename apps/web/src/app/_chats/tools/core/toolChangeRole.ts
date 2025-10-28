@@ -9,6 +9,7 @@ import { changeRoleConfig } from './config';
 interface Role {
   id: string;
   name: string;
+  instructions: string;
   autoStartMessage: string | null;
 }
 
@@ -32,7 +33,8 @@ const toolChangeRole = (chatId: string, roles: Role[]) =>
       console.log('[CHANGEROLE] ✅ Role found:', {
         id: role.id,
         name: role.name,
-        autoStartMessage: role.autoStartMessage
+        autoStartMessage: role.autoStartMessage,
+        hasInstructions: !!role.instructions
       });
 
       await db
@@ -47,21 +49,27 @@ const toolChangeRole = (chatId: string, roles: Role[]) =>
         role.id
       );
 
-      // If the role has an autoStartMessage, signal to continue immediately
+      // Build the response with the new role's instructions
+      let response = `Role successfully changed to ${role.name}.\n\n`;
+      
+      // Add the new role instructions so the AI knows how to behave
+      response += `## YOUR NEW ROLE INSTRUCTIONS AS ${role.name.toUpperCase()}:\n\n`;
+      response += role.instructions;
+      response += '\n\n---\n\n';
+      
+      // If the role has an autoStartMessage, add it as an immediate prompt
       if (role.autoStartMessage) {
-        const response = `Role changed to ${role.name}. The user says: "${role.autoStartMessage}". Continue immediately as ${role.name} and respond to this message.`;
-        console.log(
-          '[CHANGEROLE] 🚀 Returning with autoStartMessage:',
-          response
-        );
-        return response;
+        response += `The user immediately says: "${role.autoStartMessage}".\n\n`;
+        response += `IMPORTANT: You MUST now respond as ${role.name} following the instructions above. `;
+        response += `Process the message "${role.autoStartMessage}" according to your new role instructions and respond appropriately.`;
+        
+        console.log('[CHANGEROLE] 🚀 Returning with autoStartMessage and instructions');
+      } else {
+        response += `You are now operating as ${role.name}. Wait for the next user message and respond according to your new role instructions above.`;
+        console.log('[CHANGEROLE] ⏸️  Returning with instructions but WITHOUT autoStartMessage');
       }
-
-      const response = `Role changed to ${role.name}`;
-      console.log(
-        '[CHANGEROLE] ⏸️  Returning WITHOUT autoStartMessage:',
-        response
-      );
+      
+      console.log('[CHANGEROLE] 📋 Response length:', response.length);
       return response;
     }
   });
