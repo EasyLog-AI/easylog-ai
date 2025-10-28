@@ -133,8 +133,10 @@ const externalJWTPlugin = (options: ExternalJWTPluginOptions) => {
   /**
    * Cache for JWKS configuration (resolved once at startup)
    * This prevents repeated discovery document fetches and JWKS creation
+   * 
+   * Note: Cache persists for the lifetime of the server process. If the IdP
+   * changes their JWKS URI or userinfo endpoint, a redeploy is required.
    */
-  let cachedJwksUri: string | URL | null = null;
   let cachedUserinfoEndpoint: string | URL | undefined = undefined;
   let cachedJwksSet: ReturnType<typeof createRemoteJWKSet> | null = null;
   let cacheInitialized = false;
@@ -287,7 +289,6 @@ const externalJWTPlugin = (options: ExternalJWTPluginOptions) => {
               }
 
               /** Cache the configuration and create JWKS set once */
-              cachedJwksUri = jwksUri;
               cachedUserinfoEndpoint = userinfoEndpoint;
               cachedJwksSet = createRemoteJWKSet(new URL(jwksUri), {
                 cacheMaxAge: 600_000, // Cache JWKS for 10 minutes
