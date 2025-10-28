@@ -13,7 +13,17 @@ interface Role {
   autoStartMessage: string | null;
 }
 
-const toolChangeRole = (chatId: string, roles: Role[]) =>
+interface User {
+  id: string;
+  name: string | null;
+}
+
+interface Agent {
+  id: string;
+  name: string;
+}
+
+const toolChangeRole = (chatId: string, roles: Role[], user: User, agent: Agent) =>
   tool({
     description: changeRoleConfig.description,
     inputSchema: changeRoleConfig.inputSchema,
@@ -52,9 +62,18 @@ const toolChangeRole = (chatId: string, roles: Role[]) =>
       // Build the response with the new role's instructions
       let response = `Role successfully changed to ${role.name}.\n\n`;
       
+      // Replace template tokens in instructions (same as in main route)
+      const processedInstructions = role.instructions
+        .replaceAll('{{user.name}}', user.name ?? 'Unknown')
+        .replaceAll('{{agent.name}}', agent.name)
+        .replaceAll('{{role.name}}', role.name)
+        .replaceAll('{{role.instructions}}', '') // This would be recursive, leave empty
+        .replaceAll('{{role.model}}', 'gpt-5') // Default model placeholder
+        .replaceAll('{{now}}', new Date().toISOString());
+      
       // Add the new role instructions so the AI knows how to behave
       response += `## YOUR NEW ROLE INSTRUCTIONS AS ${role.name.toUpperCase()}:\n\n`;
-      response += role.instructions;
+      response += processedInstructions;
       response += '\n\n---\n\n';
       
       // If the role has an autoStartMessage, add it as an immediate prompt
@@ -70,6 +89,7 @@ const toolChangeRole = (chatId: string, roles: Role[]) =>
       }
       
       console.log('[CHANGEROLE] 📋 Response length:', response.length);
+      console.log('[CHANGEROLE] 🔧 Template tokens replaced');
       return response;
     }
   });
