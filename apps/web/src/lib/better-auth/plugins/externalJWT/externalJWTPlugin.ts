@@ -413,6 +413,7 @@ const externalJWTPlugin = (options: ExternalJWTPluginOptions) => {
               });
             }
 
+            /** Create external-jwt account for authentication */
             if (
               !accounts.some((account) => account.providerId === 'external-jwt')
             ) {
@@ -420,6 +421,45 @@ const externalJWTPlugin = (options: ExternalJWTPluginOptions) => {
                 userId: user.id,
                 accountId: sub,
                 providerId: 'external-jwt'
+              });
+            }
+
+            /**
+             * Create or update easylog provider account for tool access
+             * This allows tools to use getAccessToken() to access staging2 API
+             * The JWT token is stored as accessToken for API calls
+             * We update the token on every request to keep it fresh
+             */
+            const easylogAccount = accounts.find(
+              (account) => account.providerId === 'easylog'
+            );
+
+            if (!easylogAccount) {
+              console.log(
+                '[externalJWT] Creating easylog provider account for tool access'
+              );
+              await c.context.internalAdapter.createAccount({
+                userId: user.id,
+                accountId: sub,
+                providerId: 'easylog',
+                accessToken: token,
+                accessTokenExpiresAt: payload.exp
+                  ? new Date(payload.exp * 1000)
+                  : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+              });
+            } else {
+              /**
+               * Update the access token on every request
+               * This ensures tools always have a valid token for staging2 API
+               */
+              console.log(
+                '[externalJWT] Updating easylog provider account token'
+              );
+              await c.context.internalAdapter.updateAccount(easylogAccount.id, {
+                accessToken: token,
+                accessTokenExpiresAt: payload.exp
+                  ? new Date(payload.exp * 1000)
+                  : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
               });
             }
 
