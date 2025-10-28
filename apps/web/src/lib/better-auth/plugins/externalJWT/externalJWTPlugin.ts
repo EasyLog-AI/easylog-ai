@@ -131,9 +131,9 @@ export type ExternalJWTPluginOptions = {
  */
 const externalJWTPlugin = (options: ExternalJWTPluginOptions) => {
   /**
-   * Cache for JWKS configuration (resolved once at startup)
-   * This prevents repeated discovery document fetches and JWKS creation
-   * 
+   * Cache for JWKS configuration (resolved once at startup) This prevents
+   * repeated discovery document fetches and JWKS creation
+   *
    * Note: Cache persists for the lifetime of the server process. If the IdP
    * changes their JWKS URI or userinfo endpoint, a redeploy is required.
    */
@@ -215,8 +215,8 @@ const externalJWTPlugin = (options: ExternalJWTPluginOptions) => {
             console.log('[externalJWT] Step 1: Resolving JWKS URI...');
 
             /**
-             * Use cached JWKS configuration if available
-             * This prevents repeated discovery document fetches on every request
+             * Use cached JWKS configuration if available This prevents repeated
+             * discovery document fetches on every request
              */
             if (!cacheInitialized) {
               console.log('[externalJWT] Initializing JWKS cache...');
@@ -285,7 +285,10 @@ const externalJWTPlugin = (options: ExternalJWTPluginOptions) => {
                 jwksUri = parseResult.data.jwks_uri;
                 userinfoEndpoint = parseResult.data.userinfo_endpoint;
                 console.log('[externalJWT] JWKS URI:', jwksUri);
-                console.log('[externalJWT] Userinfo endpoint:', userinfoEndpoint);
+                console.log(
+                  '[externalJWT] Userinfo endpoint:',
+                  userinfoEndpoint
+                );
               }
 
               /** Cache the configuration and create JWKS set once */
@@ -425,10 +428,10 @@ const externalJWTPlugin = (options: ExternalJWTPluginOptions) => {
             }
 
             /**
-             * Create or update easylog provider account for tool access
-             * This allows tools to use getAccessToken() to access staging2 API
-             * The JWT token is stored as accessToken for API calls
-             * We update the token on every request to keep it fresh
+             * Create or update easylog provider account for tool access This
+             * allows tools to use getAccessToken() to access staging2 API The
+             * JWT token is stored as accessToken for API calls We update the
+             * token on every request to keep it fresh
              */
             const easylogAccount = accounts.find(
               (account) => account.providerId === 'easylog'
@@ -447,13 +450,13 @@ const externalJWTPlugin = (options: ExternalJWTPluginOptions) => {
                   ? new Date(payload.exp * 1000)
                   : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
               });
-            } else {
+            } else if (easylogAccount.accessToken !== token) {
               /**
-               * Update the access token on every request
-               * This ensures tools always have a valid token for staging2 API
+               * Update the access token only if it changed
+               * This reduces database write load while ensuring tools have a valid token
                */
               console.log(
-                '[externalJWT] Updating easylog provider account token'
+                '[externalJWT] Updating easylog provider account with new token'
               );
               await c.context.internalAdapter.updateAccount(easylogAccount.id, {
                 accessToken: token,
@@ -461,6 +464,10 @@ const externalJWTPlugin = (options: ExternalJWTPluginOptions) => {
                   ? new Date(payload.exp * 1000)
                   : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
               });
+            } else {
+              console.log(
+                '[externalJWT] Token unchanged, skipping account update'
+              );
             }
 
             /**
