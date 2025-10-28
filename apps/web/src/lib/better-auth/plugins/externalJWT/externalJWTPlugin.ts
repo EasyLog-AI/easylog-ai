@@ -130,6 +130,15 @@ export type ExternalJWTPluginOptions = {
  * @returns A Better Auth plugin
  */
 const externalJWTPlugin = (options: ExternalJWTPluginOptions) => {
+  /**
+   * Cache for JWKS configuration (resolved once at startup)
+   * This prevents repeated discovery document fetches and JWKS creation
+   */
+  let cachedJwksUri: string | URL | null = null;
+  let cachedUserinfoEndpoint: string | URL | undefined = undefined;
+  let cachedJwksSet: ReturnType<typeof createRemoteJWKSet> | null = null;
+  let cacheInitialized = false;
+
   return {
     id: 'external-jwt',
     hooks: {
@@ -202,75 +211,96 @@ const externalJWTPlugin = (options: ExternalJWTPluginOptions) => {
 
             /** Step 1: Resolve JWKS URI and userinfo endpoint from configuration */
             console.log('[externalJWT] Step 1: Resolving JWKS URI...');
-            let jwksUri: string | URL;
-            let userinfoEndpoint: string | URL | undefined;
 
-            if ('jwksUri' in options) {
-              /** Direct JWKS configuration */
-              console.log('[externalJWT] Using direct JWKS URI');
-              jwksUri = options.jwksUri;
-              userinfoEndpoint = options.userinfoEndpoint;
+            /**
+             * Use cached JWKS configuration if available
+             * This prevents repeated discovery document fetches on every request
+             */
+            if (!cacheInitialized) {
+              console.log('[externalJWT] Initializing JWKS cache...');
+              let jwksUri: string | URL;
+              let userinfoEndpoint: string | URL | undefined;
+
+              if ('jwksUri' in options) {
+                /** Direct JWKS configuration */
+                console.log('[externalJWT] Using direct JWKS URI');
+                jwksUri = options.jwksUri;
+                userinfoEndpoint = options.userinfoEndpoint;
+              } else {
+                /** OpenID Connect discovery flow */
+                console.log(
+                  '[externalJWT] Fetching discovery document from:',
+                  options.discoveryUrl
+                );
+                const [discoveryResponse, discoveryError] = await tryCatch(
+                  fetch(options.discoveryUrl)
+                );
+
+                if (discoveryError || !discoveryResponse.ok) {
+                  console.error(
+                    '[externalJWT] Discovery fetch failed:',
+                    discoveryError
+                  );
+                  throw new APIError('BAD_REQUEST', {
+                    message: 'Failed to fetch OpenID discovery document',
+                    code: 'DISCOVERY_FAILED'
+                  });
+                }
+
+                console.log(
+                  '[externalJWT] Discovery document fetched successfully'
+                );
+
+                const [discoveryJson, jsonError] = await tryCatch(
+                  discoveryResponse.json()
+                );
+
+                if (jsonError) {
+                  console.error(
+                    '[externalJWT] Failed to parse discovery JSON:',
+                    jsonError
+                  );
+                  throw new APIError('BAD_REQUEST', {
+                    message: 'Invalid OpenID discovery document format',
+                    code: 'INVALID_DISCOVERY_DOCUMENT'
+                  });
+                }
+
+                const parseResult =
+                  openIDDiscoverySchema.safeParse(discoveryJson);
+
+                if (!parseResult.success) {
+                  console.error(
+                    '[externalJWT] Discovery schema validation failed:',
+                    parseResult.error
+                  );
+                  throw new APIError('BAD_REQUEST', {
+                    message: 'OpenID discovery document validation failed',
+                    code: 'INVALID_DISCOVERY_SCHEMA'
+                  });
+                }
+
+                jwksUri = parseResult.data.jwks_uri;
+                userinfoEndpoint = parseResult.data.userinfo_endpoint;
+                console.log('[externalJWT] JWKS URI:', jwksUri);
+                console.log('[externalJWT] Userinfo endpoint:', userinfoEndpoint);
+              }
+
+              /** Cache the configuration and create JWKS set once */
+              cachedJwksUri = jwksUri;
+              cachedUserinfoEndpoint = userinfoEndpoint;
+              cachedJwksSet = createRemoteJWKSet(new URL(jwksUri), {
+                cacheMaxAge: 600_000, // Cache JWKS for 10 minutes
+                cooldownDuration: 30_000 // Wait 30s between refetches
+              });
+              cacheInitialized = true;
+              console.log('[externalJWT] JWKS cache initialized successfully');
             } else {
-              /** OpenID Connect discovery flow */
-              console.log(
-                '[externalJWT] Fetching discovery document from:',
-                options.discoveryUrl
-              );
-              const [discoveryResponse, discoveryError] = await tryCatch(
-                fetch(options.discoveryUrl)
-              );
-
-              if (discoveryError || !discoveryResponse.ok) {
-                console.error(
-                  '[externalJWT] Discovery fetch failed:',
-                  discoveryError
-                );
-                throw new APIError('BAD_REQUEST', {
-                  message: 'Failed to fetch OpenID discovery document',
-                  code: 'DISCOVERY_FAILED'
-                });
-              }
-
-              console.log(
-                '[externalJWT] Discovery document fetched successfully'
-              );
-
-              const [discoveryJson, jsonError] = await tryCatch(
-                discoveryResponse.json()
-              );
-
-              if (jsonError) {
-                console.error(
-                  '[externalJWT] Failed to parse discovery JSON:',
-                  jsonError
-                );
-                throw new APIError('BAD_REQUEST', {
-                  message: 'Invalid OpenID discovery document format',
-                  code: 'INVALID_DISCOVERY_DOCUMENT'
-                });
-              }
-
-              const parseResult =
-                openIDDiscoverySchema.safeParse(discoveryJson);
-
-              if (!parseResult.success) {
-                console.error(
-                  '[externalJWT] Discovery schema validation failed:',
-                  parseResult.error
-                );
-                throw new APIError('BAD_REQUEST', {
-                  message: 'OpenID discovery document validation failed',
-                  code: 'INVALID_DISCOVERY_SCHEMA'
-                });
-              }
-
-              jwksUri = parseResult.data.jwks_uri;
-              userinfoEndpoint = parseResult.data.userinfo_endpoint;
-              console.log('[externalJWT] JWKS URI:', jwksUri);
-              console.log('[externalJWT] Userinfo endpoint:', userinfoEndpoint);
+              console.log('[externalJWT] Using cached JWKS configuration');
             }
 
-            const jwksCache = createRemoteJWKSet(new URL(jwksUri));
+            const jwksCache = cachedJwksSet!;
+            const userinfoEndpoint = cachedUserinfoEndpoint;
 
             /**
              * Step 2: Validate JWT token against JWKS (with caching for
