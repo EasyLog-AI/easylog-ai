@@ -78,11 +78,12 @@ const ChatProvider = ({
         console.log('[clearChat] Clearing chat and reloading page...');
         setDidStartChat(false);
         await refetch();
-        
+
         /**
          * Full page reload is required after clearChat because:
-         * 1. toolClearChat creates a NEW chat in the database
-         * 2. useChat's id prop doesn't update when dbChat.id changes
+         *
+         * 1. ToolClearChat creates a NEW chat in the database
+         * 2. UseChat's id prop doesn't update when dbChat.id changes
          * 3. This causes a state mismatch between the old chat ID and new chat
          * 4. Reload ensures ChatProvider re-initializes with the new chat ID
          */
