@@ -437,6 +437,10 @@ const externalJWTPlugin = (options: ExternalJWTPluginOptions) => {
               (account) => account.providerId === 'easylog'
             );
 
+            const accessTokenExpiresAt = payload.exp
+              ? new Date(payload.exp * 1000)
+              : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
             if (!easylogAccount) {
               console.log(
                 '[externalJWT] Creating easylog provider account for tool access'
@@ -446,11 +450,13 @@ const externalJWTPlugin = (options: ExternalJWTPluginOptions) => {
                 accountId: sub,
                 providerId: 'easylog',
                 accessToken: token,
-                accessTokenExpiresAt: payload.exp
-                  ? new Date(payload.exp * 1000)
-                  : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                accessTokenExpiresAt
               });
-            } else if (easylogAccount.accessToken !== token) {
+            } else if (easylogAccount.accessToken === token) {
+              console.log(
+                '[externalJWT] Token unchanged, skipping account update'
+              );
+            } else {
               /**
                * Update the access token only if it changed This reduces
                * database write load while ensuring tools have a valid token
@@ -460,14 +466,8 @@ const externalJWTPlugin = (options: ExternalJWTPluginOptions) => {
               );
               await c.context.internalAdapter.updateAccount(easylogAccount.id, {
                 accessToken: token,
-                accessTokenExpiresAt: payload.exp
-                  ? new Date(payload.exp * 1000)
-                  : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                accessTokenExpiresAt
               });
-            } else {
-              console.log(
-                '[externalJWT] Token unchanged, skipping account update'
-              );
             }
 
             /**
