@@ -178,6 +178,7 @@ export type AgentCapabilities = {
   planning?: boolean;
   sql?: boolean;
   knowledgeBase?: boolean;
+  loadDocument?: boolean;
   core?: boolean;
   memories?: boolean;
   multipleChoice?: boolean;
