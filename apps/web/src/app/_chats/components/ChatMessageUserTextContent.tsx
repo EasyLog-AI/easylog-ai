@@ -2,12 +2,10 @@ import Typography from '@/app/_ui/components/Typography/Typography';
 
 export interface ChatMessageUserTextContentProps {
   text: string;
-  isHidden?: boolean;
 }
 
 const ChatMessageUserTextContent = ({
-  text,
-  isHidden = false
+  text
 }: ChatMessageUserTextContentProps) => {
   return (
     <div className="flex w-full justify-end">
