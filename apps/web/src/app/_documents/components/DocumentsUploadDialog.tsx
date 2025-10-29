@@ -11,13 +11,10 @@ import Typography from '@/app/_ui/components/Typography/Typography';
 
 import DocumentsDropzone from './DocumentsDropzone';
 
-export interface DocumentsUploadDialogProps {
-  agentSlug: string;
-}
+export interface DocumentsUploadDialogProps {}
 
 const DocumentsUploadDialog = ({
-  children,
-  agentSlug
+  children
 }: React.PropsWithChildren<DocumentsUploadDialogProps>) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -28,10 +25,7 @@ const DocumentsUploadDialog = ({
         <DialogHeader>
           <DialogTitle>Upload Documents</DialogTitle>
         </DialogHeader>
-        <DocumentsDropzone
-          onUploadSuccess={() => setIsOpen(false)}
-          agentSlug={agentSlug}
-        >
+        <DocumentsDropzone onUploadSuccess={() => setIsOpen(false)}>
           <DialogBody>
             <div className="border-border-primary hover:bg-surface-primary-hover active:bg-surface-primary-active flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed p-4 transition-all">
               <Typography>

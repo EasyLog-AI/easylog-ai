@@ -167,8 +167,27 @@ export const documents = pgTable('documents', {
   content: jsonb('content'),
   analysis: jsonb('analysis').notNull().default({}),
   status: documentStatusEnum('status').notNull().default('pending'),
+  ...timestamps
+});
+
+export const documentAgents = pgTable('document_agents', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  documentId: uuid('document_id')
+    .references(() => documents.id, { onDelete: 'cascade' })
+    .notNull(),
   agentId: uuid('agent_id')
     .references(() => agents.id, { onDelete: 'cascade' })
+    .notNull(),
+  ...timestamps
+});
+
+export const documentRoles = pgTable('document_roles', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  documentId: uuid('document_id')
+    .references(() => documents.id, { onDelete: 'cascade' })
+    .notNull(),
+  roleId: uuid('role_id')
+    .references(() => agentRoles.id, { onDelete: 'cascade' })
     .notNull(),
   ...timestamps
 });

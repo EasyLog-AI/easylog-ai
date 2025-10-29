@@ -7,7 +7,7 @@ export interface ChatMessageUserTextContentProps {
 
 const ChatMessageUserTextContent = ({
   text,
-  isHidden = false
+  _isHidden = false
 }: ChatMessageUserTextContentProps) => {
   return (
     <div className="flex w-full justify-end">

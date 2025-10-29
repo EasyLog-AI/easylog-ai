@@ -1,30 +1,31 @@
 import * as Sentry from '@sentry/nextjs';
 import { type HandleUploadBody, handleUpload } from '@vercel/blob/client';
 import { eq } from 'drizzle-orm';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import getCurrentUser from '@/app/_auth/data/getCurrentUser';
 import db from '@/database/client';
-import { documents } from '@/database/schema';
+import { documentAgents, documentRoles, documents } from '@/database/schema';
 import { ingestDocumentJob } from '@/jobs/ingest-document/ingest-document-job';
-import isUUID from '@/utils/is-uuid';
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ agentSlug: string }> }
-) {
-  const { agentSlug } = await params;
+const querySchema = z.object({
+  agentIds: z
+    .string()
+    .transform((val) => val?.split(',').filter((id) => id.trim()))
+    .optional()
+    .default(''),
+  roleIds: z
+    .string()
+    .transform((val) => val?.split(',').filter((id) => id.trim()))
+    .optional()
+    .default('')
+});
 
-  const agent = await db.query.agents.findFirst({
-    where: {
-      [isUUID(agentSlug) ? 'id' : 'slug']: agentSlug
-    }
-  });
-
-  if (!agent) {
-    return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
-  }
+export async function POST(request: NextRequest) {
+  const { agentIds, roleIds } = querySchema.parse(
+    Object.fromEntries(request.nextUrl.searchParams.entries())
+  );
 
   const body = (await request.json()) as HandleUploadBody;
 
@@ -44,11 +45,48 @@ export async function POST(
           .insert(documents)
           .values({
             name: pathname.split('/').pop() ?? 'unknown',
-            agentId: agent.id,
             type: 'unknown',
             status: 'pending'
           })
           .returning();
+
+        const [agents, roles] = await Promise.all([
+          db.query.agents.findMany({
+            where: {
+              id: {
+                in: agentIds
+              }
+            }
+          }),
+          db.query.agentRoles.findMany({
+            where: {
+              id: {
+                in: roleIds
+              }
+            }
+          })
+        ]);
+
+        // Create agent associations
+        const agentAssociations = agents.map((agent) => ({
+          documentId: document.id,
+          agentId: agent.id
+        }));
+
+        const roleAssociations = roles.map((role) => ({
+          documentId: document.id,
+          roleId: role.id
+        }));
+
+        // Insert associations in parallel
+        await Promise.all([
+          agentAssociations.length > 0
+            ? db.insert(documentAgents).values(agentAssociations)
+            : Promise.resolve(),
+          roleAssociations.length > 0
+            ? db.insert(documentRoles).values(roleAssociations)
+            : Promise.resolve()
+        ]);
 
         return {
           allowedContentTypes: [
