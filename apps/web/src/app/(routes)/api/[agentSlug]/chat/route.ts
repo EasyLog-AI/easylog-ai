@@ -286,11 +286,15 @@ export const POST = async (
           executeSql: toolExecuteSQL(writer),
           searchKnowledgeBase: toolSearchKnowledgeBase(
             {
-              agentId: chat.agentId
+              agentId: chat.agentId,
+              roleId: activeRole?.id
             },
             writer
           ),
-          loadDocument: toolLoadDocument(),
+          loadDocument: toolLoadDocument({
+            agentId: chat.agentId,
+            roleId: activeRole?.id
+          }),
           clearChat: toolClearChat(chat.id, chat.agentId, user.id),
           changeRole: toolChangeRole(
             chat.id,

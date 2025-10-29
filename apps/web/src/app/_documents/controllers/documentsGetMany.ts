@@ -1,17 +1,16 @@
-import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
-import agentMiddleware from '@/app/_agents/middleware/agentMiddleware';
 import db from '@/database/client';
 import { documents } from '@/database/schema';
+import { protectedProcedure } from '@/lib/trpc/procedures';
 
-const documentsGetMany = agentMiddleware
+const documentsGetMany = protectedProcedure
   .meta({
     route: {
       method: 'GET',
       path: '/api/orpc/documents',
       tags: ['Documents'],
-      summary: 'List documents for an agent'
+      summary: 'List all documents'
     }
   })
   .input(
@@ -20,19 +19,20 @@ const documentsGetMany = agentMiddleware
       limit: z.number().min(1).max(100).default(10)
     })
   )
-  .query(async ({ input, ctx }) => {
+  .query(async ({ input }) => {
     const [data, total] = await Promise.all([
       db.query.documents.findMany({
-        limit: input.limit,
-        offset: input.cursor,
         orderBy: {
           createdAt: 'desc'
         },
-        where: {
-          agentId: ctx.agent.id
+        limit: input.limit,
+        offset: input.cursor,
+        with: {
+          agents: true,
+          roles: true
         }
       }),
-      db.$count(documents, eq(documents.agentId, ctx.agent.id))
+      db.$count(documents)
     ]);
 
     return {

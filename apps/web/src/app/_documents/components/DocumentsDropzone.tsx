@@ -11,13 +11,11 @@ import useTRPC from '@/lib/trpc/browser';
 
 interface DocumentsDropzoneProps extends DropzoneOptions {
   onUploadSuccess?: () => void;
-  agentSlug: string;
 }
 
 const DocumentsDropzone = ({
   children,
   onUploadSuccess,
-  agentSlug,
   ...props
 }: React.PropsWithChildren<DocumentsDropzoneProps>) => {
   const queryClient = useQueryClient();
@@ -29,7 +27,7 @@ const DocumentsDropzone = ({
         files.map(async (file) => {
           const uploadResult = await upload(`${uuidv4()}/${file.name}`, file, {
             access: 'public',
-            handleUploadUrl: `/api/${agentSlug}/documents/upload`
+            handleUploadUrl: `/api/documents/upload`
           });
 
           return uploadResult;
@@ -38,9 +36,7 @@ const DocumentsDropzone = ({
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({
-        queryKey: api.documents.getMany.queryKey({
-          agentId: agentSlug
-        })
+        queryKey: api.documents.getMany.queryKey({})
       });
 
       toast.success('Files uploaded');
