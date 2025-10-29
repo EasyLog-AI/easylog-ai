@@ -146,7 +146,7 @@ const ChatInput = () => {
         }
       }}
     >
-      <div className="bg-surface-primary shadow-short mx-auto w-full max-w-4xl overflow-clip rounded-2xl bg-clip-padding contain-inline-size">
+      <div className="bg-surface-primary shadow-short mx-auto w-full max-w-4xl space-y-2.5 overflow-clip rounded-2xl bg-clip-padding contain-inline-size">
         <div className="space-y-5 px-5 pt-5">
           {watchedFiles && watchedFiles.length > 0 && (
             <div className="flex flex-wrap gap-2">
