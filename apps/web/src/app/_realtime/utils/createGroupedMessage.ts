@@ -31,10 +31,12 @@ const createGroupedMessage = (
       return textContent;
     })
     .filter(Boolean)
-    .map((text): TextPart => ({
-      type: 'text',
-      text
-    }));
+    .map(
+      (text): TextPart => ({
+        type: 'text',
+        text
+      })
+    );
 
   if (parts.length === 0) return null;
 

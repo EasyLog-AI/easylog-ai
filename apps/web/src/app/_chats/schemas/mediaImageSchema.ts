@@ -1,8 +1,6 @@
 import z from 'zod';
 
-/**
- * Schema for media image data streamed to the UI
- */
+/** Schema for media image data streamed to the UI */
 const mediaImageSchema = z.object({
   id: z.number().describe('Media ID'),
   uuid: z.string().describe('Media UUID'),

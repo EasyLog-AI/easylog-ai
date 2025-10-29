@@ -10,7 +10,7 @@ import Typography from '../Typography/Typography';
 export const dropdownMenuCheckboxItemStyles = tv({
   slots: {
     wrapper:
-      'outline-hidden data-disabled:pointer-events-none data-disabled:opacity-50 relative flex cursor-pointer select-none items-center gap-1.5 rounded-lg bg-fill-primary px-2.5 py-1.5 transition-colors hover:brightness-95 focus:text-text-primary focus:brightness-95 active:brightness-90',
+      'outline-hidden data-disabled:pointer-events-none data-disabled:opacity-50 bg-fill-primary focus:text-text-primary relative flex cursor-pointer select-none items-center gap-1.5 rounded-lg px-2.5 py-1.5 transition-colors hover:brightness-95 focus:brightness-95 active:brightness-90',
     indicatorWrapper: 'flex size-3.5 items-center justify-center'
   },
   variants: {

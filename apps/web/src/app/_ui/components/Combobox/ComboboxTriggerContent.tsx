@@ -11,7 +11,7 @@ const comboboxTriggerContentStyles = tv({
   variants: {
     isActive: {
       true: '',
-      false: 'font-normal text-text-muted'
+      false: 'text-text-muted font-normal'
     }
   },
   defaultVariants: {

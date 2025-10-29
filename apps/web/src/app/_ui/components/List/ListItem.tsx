@@ -1,7 +1,7 @@
 import { VariantProps, tv } from 'tailwind-variants';
 
 export const listItemStyles = tv({
-  base: 'not-last:border-b border-x border-border-primary bg-surface-primary first:rounded-t-lg first:border-t last:rounded-b-lg last:border-b'
+  base: 'not-last:border-b border-border-primary bg-surface-primary border-x first:rounded-t-lg first:border-t last:rounded-b-lg last:border-b'
 });
 
 export interface ListItemProps

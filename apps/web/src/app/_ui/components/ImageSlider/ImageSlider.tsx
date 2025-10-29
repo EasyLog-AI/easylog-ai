@@ -22,9 +22,9 @@ const imageSliderStyles = tv({
     image:
       'flex w-full shrink-0 items-center justify-center overflow-hidden transition-all duration-150',
     counter:
-      'absolute bottom-4 right-4 z-10 flex items-center rounded-md bg-fill-primary bg-opacity-75 px-1.5 py-0.5 transition-opacity md:opacity-0 md:group-hover:opacity-100',
+      'bg-fill-primary absolute bottom-4 right-4 z-10 flex items-center rounded-md bg-opacity-75 px-1.5 py-0.5 transition-opacity md:opacity-0 md:group-hover:opacity-100',
     dots: 'absolute bottom-4 left-1/2 z-10 flex w-min -translate-x-1/2 items-center transition-opacity md:opacity-0 md:group-hover:opacity-100',
-    dot: 'overflow-hidden rounded-full bg-fill-primary opacity-50 transition-all duration-150',
+    dot: 'bg-fill-primary overflow-hidden rounded-full opacity-50 transition-all duration-150',
     leftControl:
       'absolute left-4 top-1/2 z-10 -translate-y-1/2 scale-100 transition-opacity duration-75',
     rightControl:

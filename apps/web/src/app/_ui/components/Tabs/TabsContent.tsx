@@ -4,7 +4,7 @@ import * as TabsPrimitive from '@radix-ui/react-tabs';
 import { VariantProps, tv } from 'tailwind-variants';
 
 const tabsContentStyles = tv({
-  base: 'focus-visible:outline-hidden ring-offset-white focus-visible:ring-2 focus-visible:ring-border-primary focus-visible:ring-offset-2'
+  base: 'focus-visible:outline-hidden focus-visible:ring-border-primary ring-offset-white focus-visible:ring-2 focus-visible:ring-offset-2'
 });
 
 export interface TabsContentProps

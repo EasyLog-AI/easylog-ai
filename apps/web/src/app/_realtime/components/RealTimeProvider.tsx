@@ -113,8 +113,8 @@ const RealTimeProvider = ({
 
   const agent = useMemo(() => {
     /**
-     * Only create agent if voice chat is enabled
-     * This prevents OpenAI tool parsing errors when voice chat is disabled
+     * Only create agent if voice chat is enabled This prevents OpenAI tool
+     * parsing errors when voice chat is disabled
      */
     if (!isEnabled) {
       return null;
@@ -155,7 +155,12 @@ const RealTimeProvider = ({
     });
     // eslint-disable-next-line react-compiler/react-compiler
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dbChat.agent.name, dbChat.agent.prompt, dbChat.agent.voiceChatVoice, isEnabled]);
+  }, [
+    dbChat.agent.name,
+    dbChat.agent.prompt,
+    dbChat.agent.voiceChatVoice,
+    isEnabled
+  ]);
 
   const session = useMemo(() => {
     if (isEnabled && agent) {

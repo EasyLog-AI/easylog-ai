@@ -8,7 +8,7 @@ import ResizableHandle, {
 import useSidebar from './hooks/useSidebarContext';
 
 export const sidebarHandleStyles = tv({
-  base: 'my-2 hidden h-[calc(100dvh-2rem)] w-0.5 rounded-full bg-background-muted transition-all md:block',
+  base: 'bg-background-muted my-2 hidden h-[calc(100dvh-2rem)] w-0.5 rounded-full transition-all md:block',
   variants: {
     isCollapsed: {
       true: 'w-0! overflow-hidden opacity-0',

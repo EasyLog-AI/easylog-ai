@@ -7,7 +7,7 @@ const formFieldLabelStyles = tv({
   base: 'cursor-pointer',
   variants: {
     isDisabled: {
-      true: 'cursor-not-allowed text-text-muted'
+      true: 'text-text-muted cursor-not-allowed'
     }
   }
 });

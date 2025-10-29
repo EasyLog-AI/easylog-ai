@@ -11,7 +11,7 @@ const createOpenRouterProvider = (transformsConfig?: TransformsConfig) => {
   const defaultTransforms = ['middle-out'];
   const transforms =
     transformsConfig?.enabled !== false
-      ? transformsConfig?.transforms ?? defaultTransforms
+      ? (transformsConfig?.transforms ?? defaultTransforms)
       : undefined;
 
   return createOpenRouter({

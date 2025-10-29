@@ -13,8 +13,10 @@ async function querySuperAgents() {
     orderBy: (superAgents, { desc }) => [desc(superAgents.createdAt)],
     limit: 10
   });
-  
+
   console.log(JSON.stringify(superAgents, null, 2));
 }
 
-querySuperAgents().catch(console.error).finally(() => process.exit());
+querySuperAgents()
+  .catch(console.error)
+  .finally(() => process.exit());

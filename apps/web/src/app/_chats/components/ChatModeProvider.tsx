@@ -2,7 +2,11 @@
 
 import { createContext, useState } from 'react';
 
-export type ChatMode = 'chat' | 'awaiting-tool-call' | 'chat-finished' | 'realtime';
+export type ChatMode =
+  | 'chat'
+  | 'awaiting-tool-call'
+  | 'chat-finished'
+  | 'realtime';
 
 interface ChatModeContextType {
   mode: ChatMode;

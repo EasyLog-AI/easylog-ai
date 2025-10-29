@@ -6,7 +6,7 @@ import Typography, { TypographyProps } from '../Typography/Typography';
 
 const formFieldErrorStyles = tv({
   slots: {
-    wrapper: 'flex items-center gap-1 text-text-danger',
+    wrapper: 'text-text-danger flex items-center gap-1',
     icon: '-translate-y-px'
   }
 });

@@ -1,7 +1,7 @@
 import { VariantProps, tv } from 'tailwind-variants';
 
 const skeletonStyles = tv({
-  base: 'animate-pulse rounded-lg bg-gradient-to-tr from-fill-muted/50 to-fill-muted/25 brightness-90'
+  base: 'from-fill-muted/50 to-fill-muted/25 animate-pulse rounded-lg bg-gradient-to-tr brightness-90'
 });
 
 export interface SkeletonProps

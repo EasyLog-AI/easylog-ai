@@ -1,7 +1,7 @@
 import { VariantProps, tv } from 'tailwind-variants';
 
 export const tableCaptionStyles = tv({
-  base: 'mt-4 text-sm text-text-muted'
+  base: 'text-text-muted mt-4 text-sm'
 });
 
 export interface TableCaptionProps

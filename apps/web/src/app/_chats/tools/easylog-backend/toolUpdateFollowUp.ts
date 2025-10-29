@@ -9,7 +9,16 @@ import getEasylogClient from './utils/getEasylogClient';
 const toolUpdateFollowUp = (userId: string) => {
   return tool({
     ...updateFollowUpConfig,
-    execute: async ({ followUpId, name, slug, description, followUpCategoryId, icon, scheme, canUseJsonTable }) => {
+    execute: async ({
+      followUpId,
+      name,
+      slug,
+      description,
+      followUpCategoryId,
+      icon,
+      scheme,
+      canUseJsonTable
+    }) => {
       const client = await getEasylogClient(userId);
 
       const [followUp, error] = await tryCatch(

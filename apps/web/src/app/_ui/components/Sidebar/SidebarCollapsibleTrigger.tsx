@@ -20,7 +20,7 @@ const SidebarCollapsibleTrigger = ({
 }: React.PropsWithChildren<SidebarCollapsibleTriggerProps>) => {
   return (
     <CollapsibleTrigger asChild>
-      <SidebarMenuButton className="group w-full grow text-xs text-text-muted">
+      <SidebarMenuButton className="text-text-muted group w-full grow text-xs">
         <SidebarMenuButtonContent
           contentRight={contentRight}
           contentLeft={

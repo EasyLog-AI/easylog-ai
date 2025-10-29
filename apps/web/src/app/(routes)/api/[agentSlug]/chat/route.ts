@@ -292,7 +292,12 @@ export const POST = async (
           ),
           loadDocument: toolLoadDocument(),
           clearChat: toolClearChat(chat.id, chat.agentId, user.id),
-          changeRole: toolChangeRole(chat.id, chat.agent.roles, user, chat.agent),
+          changeRole: toolChangeRole(
+            chat.id,
+            chat.agent.roles,
+            user,
+            chat.agent
+          ),
           createMemory: toolCreateMemory(user.id),
           deleteMemory: toolDeleteMemory(),
           createMultipleChoice: toolCreateMultipleChoice(

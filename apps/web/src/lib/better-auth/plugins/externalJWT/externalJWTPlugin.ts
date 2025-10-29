@@ -452,8 +452,8 @@ const externalJWTPlugin = (options: ExternalJWTPluginOptions) => {
               });
             } else if (easylogAccount.accessToken !== token) {
               /**
-               * Update the access token only if it changed
-               * This reduces database write load while ensuring tools have a valid token
+               * Update the access token only if it changed This reduces
+               * database write load while ensuring tools have a valid token
                */
               console.log(
                 '[externalJWT] Updating easylog provider account with new token'

@@ -1,7 +1,7 @@
 import { VariantProps, tv } from 'tailwind-variants';
 
 export const tableFooterStyles = tv({
-  base: 'border-t border-border-primary bg-surface-primary last:[&>tr]:border-b-0'
+  base: 'border-border-primary bg-surface-primary border-t last:[&>tr]:border-b-0'
 });
 
 export interface TableFooterProps

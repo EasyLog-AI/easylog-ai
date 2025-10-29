@@ -44,7 +44,7 @@ const formFieldStyles = tv({
     },
     isDisabled: {
       true: {
-        label: 'cursor-not-allowed text-text-muted'
+        label: 'text-text-muted cursor-not-allowed'
       }
     }
   },

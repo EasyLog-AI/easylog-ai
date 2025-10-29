@@ -119,13 +119,12 @@ const appertoServerPlugin = (
             }
 
             // Get all accounts for this user
-            const accounts =
-              await ctx.context.internalAdapter.findAccounts(user.user.id);
+            const accounts = await ctx.context.internalAdapter.findAccounts(
+              user.user.id
+            );
 
             // Create account if it doesn't exist
-            if (
-              !accounts.some((account) => account.providerId === 'apperto')
-            ) {
+            if (!accounts.some((account) => account.providerId === 'apperto')) {
               await ctx.context.internalAdapter.createAccount({
                 userId: user.user.id,
                 accountId: userInfoResult.data.sub.toString(),

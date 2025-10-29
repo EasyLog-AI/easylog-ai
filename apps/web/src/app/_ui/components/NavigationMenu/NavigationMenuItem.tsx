@@ -12,7 +12,7 @@ import { Link, usePathname } from '@/i18n/routing';
 export const navigationMenuItemStyles = tv({
   slots: {
     wrapper: 'not-last:group-data-[dir=vertical]/nav:pb-2 group',
-    link: 'relative z-10 flex w-full items-center text-text-muted transition-colors group-hover:text-text-primary'
+    link: 'text-text-muted group-hover:text-text-primary relative z-10 flex w-full items-center transition-colors'
   },
   variants: {
     size: {

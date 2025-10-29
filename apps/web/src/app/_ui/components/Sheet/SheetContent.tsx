@@ -7,12 +7,12 @@ import SheetOverlay from './SheetOverlay';
 import SheetPortal from './SheetPortal';
 
 export const sheetContentStyles = tv({
-  base: 'fixed z-50 gap-4 border-border-primary bg-surface-primary transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out',
+  base: 'border-border-primary bg-surface-primary data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 gap-4 transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-300',
   variants: {
     side: {
-      left: 'inset-y-0 left-0 h-full w-3/4 border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm',
+      left: 'data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left inset-y-0 left-0 h-full w-3/4 border-r sm:max-w-sm',
       right:
-        'inset-y-0 right-0 h-full w-3/4 border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm'
+        'data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right inset-y-0 right-0 h-full w-3/4 border-l sm:max-w-sm'
     }
   },
   defaultVariants: {

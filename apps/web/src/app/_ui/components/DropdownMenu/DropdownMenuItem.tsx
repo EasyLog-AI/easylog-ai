@@ -6,7 +6,7 @@ import { VariantProps, tv } from 'tailwind-variants';
 import Typography from '../Typography/Typography';
 
 export const dropdownMenuItemStyles = tv({
-  base: 'outline-hidden data-disabled:pointer-events-none data-disabled:opacity-50 relative flex cursor-pointer select-none items-center gap-1.5 rounded-lg bg-fill-primary px-2.5 py-1.5 text-sm transition-colors hover:bg-fill-muted active:bg-fill-muted active:brightness-active',
+  base: 'outline-hidden data-disabled:pointer-events-none data-disabled:opacity-50 bg-fill-primary hover:bg-fill-muted active:bg-fill-muted active:brightness-active relative flex cursor-pointer select-none items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm transition-colors',
   variants: {
     colorRole: {
       primary: 'text-text-primary',

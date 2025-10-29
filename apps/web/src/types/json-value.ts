@@ -15,8 +15,8 @@ const jsonValueSchema: z.ZodType<JSONValue> = z.lazy(() =>
     z.number(),
     z.boolean(),
     z.record(z.string(), jsonValueSchema),
-    z.array(jsonValueSchema),
-  ]),
+    z.array(jsonValueSchema)
+  ])
 );
 
 export { jsonValueSchema };

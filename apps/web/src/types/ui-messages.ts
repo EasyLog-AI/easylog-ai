@@ -17,7 +17,8 @@ export interface ToolCall<NAME extends string = string, INPUT = unknown> {
 export type ToolSet = Record<string, Tool>;
 
 /**
-The data types that can be used in the UI message for the UI message data parts.
+ * The data types that can be used in the UI message for the UI message data
+ * parts.
  */
 export type UIDataTypes = Record<string, unknown>;
 
@@ -26,16 +27,15 @@ export type UITool = {
   output: unknown | undefined;
 };
 
-/**
- * Infer the input and output types of a tool so it can be used as a UI tool.
- */
+/** Infer the input and output types of a tool so it can be used as a UI tool. */
 export type InferUITool<_TOOL extends Tool> = {
   input: unknown;
   output: unknown;
 };
 
 /**
- * Infer the input and output types of a tool set so it can be used as a UI tool set.
+ * Infer the input and output types of a tool set so it can be used as a UI tool
+ * set.
  */
 export type InferUITools<TOOLS extends ToolSet> = {
   [NAME in keyof TOOLS & string]: InferUITool<TOOLS[NAME]>;
@@ -44,44 +44,40 @@ export type InferUITools<TOOLS extends ToolSet> = {
 export type UITools = Record<string, UITool>;
 
 /**
-AI SDK UI Messages. They are used in the client and to communicate between the frontend and the API routes.
+ * AI SDK UI Messages. They are used in the client and to communicate between
+ * the frontend and the API routes.
  */
 export interface UIMessage<
   METADATA = unknown,
   DATA_PARTS extends UIDataTypes = UIDataTypes,
-  TOOLS extends UITools = UITools,
+  TOOLS extends UITools = UITools
 > {
-  /**
-A unique identifier for the message.
-   */
+  /** A unique identifier for the message. */
   id: string;
 
-  /**
-The role of the message.
-   */
+  /** The role of the message. */
   role: 'system' | 'user' | 'assistant';
 
-  /**
-The metadata of the message.
-   */
+  /** The metadata of the message. */
   metadata?: METADATA;
 
   /**
-The parts of the message. Use this for rendering the message in the UI.
-
-System messages should be avoided (set the system prompt on the server instead).
-They can have text parts.
-
-User messages can have text parts and file parts.
-
-Assistant messages can have text, reasoning, tool invocation, and file parts.
+   * The parts of the message. Use this for rendering the message in the UI.
+   *
+   * System messages should be avoided (set the system prompt on the server
+   * instead). They can have text parts.
+   *
+   * User messages can have text parts and file parts.
+   *
+   * Assistant messages can have text, reasoning, tool invocation, and file
+   * parts.
    */
   parts: Array<UIMessagePart<DATA_PARTS, TOOLS>>;
 }
 
 export type UIMessagePart<
   DATA_TYPES extends UIDataTypes,
-  TOOLS extends UITools,
+  TOOLS extends UITools
 > =
   | TextUIPart
   | ReasoningUIPart
@@ -93,53 +89,35 @@ export type UIMessagePart<
   | DataUIPart<DATA_TYPES>
   | StepStartUIPart;
 
-/**
- * A text part of a message.
- */
+/** A text part of a message. */
 export type TextUIPart = {
   type: 'text';
 
-  /**
-   * The text content.
-   */
+  /** The text content. */
   text: string;
 
-  /**
-   * The state of the text part.
-   */
+  /** The state of the text part. */
   state?: 'streaming' | 'done';
 
-  /**
-   * The provider metadata.
-   */
+  /** The provider metadata. */
   providerMetadata?: ProviderMetadata;
 };
 
-/**
- * A reasoning part of a message.
- */
+/** A reasoning part of a message. */
 export type ReasoningUIPart = {
   type: 'reasoning';
 
-  /**
-   * The reasoning text.
-   */
+  /** The reasoning text. */
   text: string;
 
-  /**
-   * The state of the reasoning part.
-   */
+  /** The state of the reasoning part. */
   state?: 'streaming' | 'done';
 
-  /**
-   * The provider metadata.
-   */
+  /** The provider metadata. */
   providerMetadata?: ProviderMetadata;
 };
 
-/**
- * A source part of a message.
- */
+/** A source part of a message. */
 export type SourceUrlUIPart = {
   type: 'source-url';
   sourceId: string;
@@ -148,9 +126,7 @@ export type SourceUrlUIPart = {
   providerMetadata?: ProviderMetadata;
 };
 
-/**
- * A document source part of a message.
- */
+/** A document source part of a message. */
 export type SourceDocumentUIPart = {
   type: 'source-document';
   sourceId: string;
@@ -160,9 +136,7 @@ export type SourceDocumentUIPart = {
   providerMetadata?: ProviderMetadata;
 };
 
-/**
- * A file part of a message.
- */
+/** A file part of a message. */
 export type FileUIPart = {
   type: 'file';
 
@@ -173,26 +147,20 @@ export type FileUIPart = {
    */
   mediaType: string;
 
-  /**
-   * Optional filename of the file.
-   */
+  /** Optional filename of the file. */
   filename?: string;
 
   /**
-   * The URL of the file.
-   * It can either be a URL to a hosted file or a [Data URL](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URLs).
+   * The URL of the file. It can either be a URL to a hosted file or a [Data
+   * URL](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URLs).
    */
   url: string;
 
-  /**
-   * The provider metadata.
-   */
+  /** The provider metadata. */
   providerMetadata?: ProviderMetadata;
 };
 
-/**
- * A step boundary part of a message.
- */
+/** A step boundary part of a message. */
 export type StepStartUIPart = {
   type: 'step-start';
 };
@@ -210,9 +178,9 @@ type asUITool<TOOL extends UITool | Tool> = TOOL extends Tool
   : TOOL;
 
 /**
- * A UI tool invocation contains all the information needed to render a tool invocation in the UI.
- * It can be derived from a tool without knowing the tool name, and can be used to define
- * UI components for the tool.
+ * A UI tool invocation contains all the information needed to render a tool
+ * invocation in the UI. It can be derived from a tool without knowing the tool
+ * name, and can be used to define UI components for the tool.
  */
 export type UIToolInvocation<TOOL extends UITool | Tool> = {
   toolCallId: string;
@@ -294,31 +262,31 @@ export type DynamicToolUIPart = {
 );
 
 export function isToolUIPart<TOOLS extends UITools>(
-  part: UIMessagePart<UIDataTypes, TOOLS>,
+  part: UIMessagePart<UIDataTypes, TOOLS>
 ): part is ToolUIPart<TOOLS> {
   return part.type.startsWith('tool-');
 }
 
 export function isDynamicToolUIPart(
-  part: UIMessagePart<UIDataTypes, UITools>,
+  part: UIMessagePart<UIDataTypes, UITools>
 ): part is DynamicToolUIPart {
   return part.type === 'dynamic-tool';
 }
 
 export function isToolOrDynamicToolUIPart<TOOLS extends UITools>(
-  part: UIMessagePart<UIDataTypes, TOOLS>,
+  part: UIMessagePart<UIDataTypes, TOOLS>
 ): part is ToolUIPart<TOOLS> | DynamicToolUIPart {
   return isToolUIPart(part) || isDynamicToolUIPart(part);
 }
 
 export function getToolName<TOOLS extends UITools>(
-  part: ToolUIPart<TOOLS>,
+  part: ToolUIPart<TOOLS>
 ): keyof TOOLS {
   return part.type.split('-').slice(1).join('-') as keyof TOOLS;
 }
 
 export function getToolOrDynamicToolName(
-  part: ToolUIPart<UITools> | DynamicToolUIPart,
+  part: ToolUIPart<UITools> | DynamicToolUIPart
 ): string {
   return isDynamicToolUIPart(part) ? part.toolName : getToolName(part);
 }

@@ -11,6 +11,7 @@ interface Role {
   name: string;
   instructions: string;
   autoStartMessage: string | null;
+  model: string | null;
 }
 
 interface User {
@@ -21,9 +22,15 @@ interface User {
 interface Agent {
   id: string;
   name: string;
+  defaultModel: string | null;
 }
 
-const toolChangeRole = (chatId: string, roles: Role[], user: User, agent: Agent) =>
+const toolChangeRole = (
+  chatId: string,
+  roles: Role[],
+  user: User,
+  agent: Agent
+) =>
   tool({
     description: changeRoleConfig.description,
     inputSchema: changeRoleConfig.inputSchema,
@@ -61,33 +68,38 @@ const toolChangeRole = (chatId: string, roles: Role[], user: User, agent: Agent)
 
       // Build the response with the new role's instructions
       let response = `Role successfully changed to ${role.name}.\n\n`;
-      
+
       // Replace template tokens in instructions (same as in main route)
+      const roleModel = role.model ?? agent.defaultModel ?? 'gpt-5';
       const processedInstructions = role.instructions
         .replaceAll('{{user.name}}', user.name ?? 'Unknown')
         .replaceAll('{{agent.name}}', agent.name)
         .replaceAll('{{role.name}}', role.name)
         .replaceAll('{{role.instructions}}', '') // This would be recursive, leave empty
-        .replaceAll('{{role.model}}', 'gpt-5') // Default model placeholder
+        .replaceAll('{{role.model}}', roleModel)
         .replaceAll('{{now}}', new Date().toISOString());
-      
+
       // Add the new role instructions so the AI knows how to behave
       response += `## YOUR NEW ROLE INSTRUCTIONS AS ${role.name.toUpperCase()}:\n\n`;
       response += processedInstructions;
       response += '\n\n---\n\n';
-      
+
       // If the role has an autoStartMessage, add it as an immediate prompt
       if (role.autoStartMessage) {
         response += `The user immediately says: "${role.autoStartMessage}".\n\n`;
         response += `IMPORTANT: You MUST now respond as ${role.name} following the instructions above. `;
         response += `Process the message "${role.autoStartMessage}" according to your new role instructions and respond appropriately.`;
-        
-        console.log('[CHANGEROLE] 🚀 Returning with autoStartMessage and instructions');
+
+        console.log(
+          '[CHANGEROLE] 🚀 Returning with autoStartMessage and instructions'
+        );
       } else {
         response += `You are now operating as ${role.name}. Wait for the next user message and respond according to your new role instructions above.`;
-        console.log('[CHANGEROLE] ⏸️  Returning with instructions but WITHOUT autoStartMessage');
+        console.log(
+          '[CHANGEROLE] ⏸️  Returning with instructions but WITHOUT autoStartMessage'
+        );
       }
-      
+
       console.log('[CHANGEROLE] 📋 Response length:', response.length);
       console.log('[CHANGEROLE] 🔧 Template tokens replaced');
       return response;

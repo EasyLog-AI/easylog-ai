@@ -9,9 +9,9 @@ const navigationMenuStyles = tv({
     rootWrapper: 'relative flex gap-1',
     itemsWrapper: 'relative flex',
     hoverElement:
-      'pointer-events-none absolute left-0 top-0 z-0 h-full rounded-lg bg-fill-muted transition-all',
+      'bg-fill-muted pointer-events-none absolute left-0 top-0 z-0 h-full rounded-lg transition-all',
     activeElement:
-      'absolute left-0 z-20 rounded-full bg-text-primary transition-all'
+      'bg-text-primary absolute left-0 z-20 rounded-full transition-all'
   },
   variants: {
     direction: {

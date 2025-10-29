@@ -3,7 +3,7 @@
 import { VariantProps, tv } from 'tailwind-variants';
 
 export const dialogFooterStyles = tv({
-  base: 'flex shrink-0 items-center justify-end gap-2 border-t border-border-muted bg-surface-muted p-2'
+  base: 'border-border-muted bg-surface-muted flex shrink-0 items-center justify-end gap-2 border-t p-2'
 });
 
 export interface DialogFooterProps

@@ -5,7 +5,7 @@ export const iconTypingStyles = tv({
     wrapper:
       'flex h-1/4 translate-y-1/4 items-center gap-0.5 transition-opacity',
     dotWrapper: 'flex h-full animate-bounce items-center duration-700',
-    dot: 'size-1 rounded-full bg-text-muted'
+    dot: 'bg-text-muted size-1 rounded-full'
   },
   variants: {
     isTyping: {

@@ -10,7 +10,7 @@ import Typography from '../Typography/Typography';
 export const dropdownMenuSubTriggerStyles = tv({
   slots: {
     wrapper:
-      'outline-hidden flex cursor-pointer select-none items-center gap-1.5 rounded-lg bg-fill-primary px-2.5 py-1.5 focus:bg-fill-muted data-[state=open]:bg-fill-muted',
+      'outline-hidden bg-fill-primary focus:bg-fill-muted data-[state=open]:bg-fill-muted flex cursor-pointer select-none items-center gap-1.5 rounded-lg px-2.5 py-1.5',
     chevron: 'ml-auto'
   },
   variants: {

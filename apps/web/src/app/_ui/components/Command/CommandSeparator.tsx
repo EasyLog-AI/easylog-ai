@@ -2,7 +2,7 @@ import { Command as CommandPrimitive } from 'cmdk';
 import { VariantProps, tv } from 'tailwind-variants';
 
 export const commandSeparatorStyles = tv({
-  base: '-mx-1 h-px bg-border-primary'
+  base: 'bg-border-primary -mx-1 h-px'
 });
 
 export interface CommandSeparatorProps

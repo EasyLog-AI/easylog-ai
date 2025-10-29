@@ -1,7 +1,7 @@
 import { VariantProps, tv } from 'tailwind-variants';
 
 export const cardFooterStyles = tv({
-  base: 'flex flex-row justify-between border-t border-border-primary',
+  base: 'border-border-primary flex flex-row justify-between border-t',
   variants: {
     size: {
       md: 'px-6 py-3',
