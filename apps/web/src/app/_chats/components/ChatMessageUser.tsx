@@ -1,6 +1,17 @@
 import { motion } from 'motion/react';
 
-const ChatMessageUser = ({ children }: React.PropsWithChildren) => {
+export interface ChatMessageUserProps {
+  isHidden?: boolean;
+}
+
+const ChatMessageUser = ({
+  children,
+  isHidden = false
+}: React.PropsWithChildren<ChatMessageUserProps>) => {
+  if (isHidden) {
+    return null;
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10, filter: 'blur(5px)' }}

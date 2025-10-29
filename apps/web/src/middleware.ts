@@ -12,8 +12,6 @@ export const middleware = async (request: NextRequest) => {
     getSessionCookie(request) !== null ||
     request.headers.get('Authorization') !== null;
 
-  console.log('hasSession', hasSession);
-
   if (protectedRoutes.some((route) => route.test(pathname)) && !hasSession) {
     return NextResponse.redirect(new URL('/sign-in', request.url));
   }

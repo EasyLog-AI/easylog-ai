@@ -2,15 +2,13 @@ import Typography from '@/app/_ui/components/Typography/Typography';
 
 export interface ChatMessageUserTextContentProps {
   text: string;
+  isHidden?: boolean;
 }
 
 const ChatMessageUserTextContent = ({
-  text
+  text,
+  isHidden = false
 }: ChatMessageUserTextContentProps) => {
-  if (text.startsWith('[') && text.endsWith(']')) {
-    return null;
-  }
-
   return (
     <div className="flex w-full justify-end">
       <div className="inline-flex max-w-2xl">

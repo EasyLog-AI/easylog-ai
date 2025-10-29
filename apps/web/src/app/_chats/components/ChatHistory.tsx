@@ -18,6 +18,7 @@ import ChatMessageFileContent from './ChatMessageFileContent';
 import ChatMessageUser from './ChatMessageUser';
 import ChatMessageUserTextContent from './ChatMessageUserTextContent';
 import useChatContext from '../hooks/useChatContext';
+import isHiddenText from '../utils/isHiddenText';
 
 const BOTTOM_THRESHOLD_PX = 56;
 
@@ -68,12 +69,17 @@ const ChatHistory = () => {
           {messages.map((message) =>
             message.role === 'user' ? (
               <div key={message.id} style={{ overflowAnchor: 'none' }}>
-                <ChatMessageUser>
+                <ChatMessageUser
+                  isHidden={message.parts.every(
+                    (part) => part.type === 'text' && isHiddenText(part.text)
+                  )}
+                >
                   {message.parts.map((part, i) =>
                     part.type === 'text' ? (
                       <ChatMessageUserTextContent
                         key={`${message.id}-${i}`}
                         text={part.text}
+                        isHidden={isHiddenText(part.text)}
                       />
                     ) : part.type === 'file' ? (
                       <ChatMessageFileContent
