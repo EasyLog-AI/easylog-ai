@@ -278,8 +278,8 @@ Silently monitor and analyze conversations, storing insights in your scratchpad.
               return 'Message will be written to chat when the super agent is finished.';
             }
           }),
-          createMemory: toolCreateMemory(userId),
-          deleteMemory: toolDeleteMemory(),
+          createMemory: toolCreateMemory(userId, chat.agentId),
+          deleteMemory: toolDeleteMemory(userId, chat.agentId),
           executeSql: toolExecuteSQL(),
           searchKnowledgeBase: toolSearchKnowledgeBase({
             agentId: chat.agentId
