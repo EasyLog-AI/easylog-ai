@@ -87,6 +87,9 @@ export const memories = pgTable('memories', {
   userId: uuid('user_id')
     .references(() => users.id, { onDelete: 'cascade' })
     .notNull(),
+  agentId: uuid('agent_id')
+    .references(() => agents.id, { onDelete: 'cascade' })
+    .notNull(),
   content: text('content').notNull(),
   ...timestamps
 });

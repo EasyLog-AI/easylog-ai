@@ -55,6 +55,11 @@ const relations = defineRelations(schema, (r) => ({
       from: r.memories.userId,
       to: r.users.id,
       optional: false
+    }),
+    agent: r.one.agents({
+      from: r.memories.agentId,
+      to: r.agents.id,
+      optional: false
     })
   },
   agents: {
@@ -73,6 +78,10 @@ const relations = defineRelations(schema, (r) => ({
     superAgents: r.many.superAgents({
       from: r.agents.id,
       to: r.superAgents.agentId
+    }),
+    memories: r.many.memories({
+      from: r.agents.id,
+      to: r.memories.agentId
     })
   },
   agentRoles: {

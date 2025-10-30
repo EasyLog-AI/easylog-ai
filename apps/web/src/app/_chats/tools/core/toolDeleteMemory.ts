@@ -1,17 +1,25 @@
 import { tool } from 'ai';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import db from '@/database/client';
 import { memories } from '@/database/schema';
 
 import { deleteMemoryConfig } from './config';
 
-const toolDeleteMemory = () =>
+const toolDeleteMemory = (userId: string, agentId: string) =>
   tool({
     description: deleteMemoryConfig.description,
     inputSchema: deleteMemoryConfig.inputSchema,
     execute: async (input) => {
-      await db.delete(memories).where(eq(memories.id, input.memoryId));
+      await db
+        .delete(memories)
+        .where(
+          and(
+            eq(memories.id, input.memoryId),
+            eq(memories.userId, userId),
+            eq(memories.agentId, agentId)
+          )
+        );
 
       return 'Memory deleted';
     }

@@ -139,6 +139,16 @@ export const POST = async (
       return new NextResponse('Chat not found', { status: 404 });
     }
 
+    // Re-fetch user with agent-specific memories
+    const userWithAgentMemories = await getCurrentUser(
+      req.headers,
+      chat.agentId
+    );
+
+    if (!userWithAgentMemories) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
     const existingMessages = chat.messages as ChatMessage[];
     const combinedMessages: ChatMessage[] = [...existingMessages, message];
 
@@ -163,15 +173,16 @@ export const POST = async (
   # SYSTEM INSTRUCTIONS
   
   ## 1. CONTEXT
-  - User: ${user.name ?? 'Unknown'}
+  - User: ${userWithAgentMemories.name ?? 'Unknown'}
   - Timestamp: ${new Date().toISOString()}
   
   ## 2. USER MEMORIES
   This is the information you have stored about the user. Use it to personalize your responses.
   
   ${
-    user.memories && user.memories.length > 0
-      ? user.memories
+    userWithAgentMemories.memories &&
+    userWithAgentMemories.memories.length > 0
+      ? userWithAgentMemories.memories
           .map((mem) => `- [ID: ${mem.id}] ${mem.content}`)
           .join('\n')
       : 'You have not stored any memories about this user yet.'
@@ -298,8 +309,8 @@ export const POST = async (
             user,
             chat.agent
           ),
-          createMemory: toolCreateMemory(user.id),
-          deleteMemory: toolDeleteMemory(),
+          createMemory: toolCreateMemory(user.id, chat.agentId),
+          deleteMemory: toolDeleteMemory(user.id, chat.agentId),
           createMultipleChoice: toolCreateMultipleChoice(
             {
               chatId: chat.id
