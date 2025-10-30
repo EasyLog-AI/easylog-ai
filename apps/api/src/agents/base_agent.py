@@ -1,9 +1,10 @@
-import inspect
+import asyncio
+import io
 import json
 import logging
-import os
+import uuid
 from abc import abstractmethod
-from collections.abc import AsyncGenerator, Callable, Coroutine, Generator
+from collections.abc import AsyncGenerator, Callable, Iterable, Sequence
 from types import UnionType
 from typing import (
     Any,
@@ -13,48 +14,62 @@ from typing import (
     get_args,
 )
 
-import pymysql
-from prisma.models import processed_pdfs, threads
-from pydantic import BaseModel
+from openai import AsyncStream
+from openai.types.chat.chat_completion import ChatCompletion
+from openai.types.chat.chat_completion_chunk import ChatCompletionChunk
+from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
+from PIL import Image
+from prisma import Json
+from prisma.models import documents, threads
+from pydantic import BaseModel, Field
+from weaviate.classes.query import Filter, MetadataQuery
+from weaviate.collections.classes.types import Properties
+from weaviate.collections.collection import CollectionAsync
 
+from src.agents.tools.base_tools import BaseTools
+from src.lib.openai import openai_client
 from src.lib.prisma import prisma
+from src.lib.supabase import create_supabase
+from src.lib.weaviate import weaviate_client
 from src.logger import logger
-from src.models.messages import Message, MessageContent, TextContent
-from src.services.easylog_backend.backend_service import BackendService
-from src.services.easylog_backend.easylog_sql_service import EasylogSqlService
-from src.settings import settings
+from src.models.chart_widget import ChartWidget
+from src.models.image_widget import ImageWidget
+from src.models.messages import MessageContent, TextContent, TextDeltaContent, ToolResultContent, ToolUseContent
+from src.models.multiple_choice_widget import MultipleChoiceWidget
+from src.models.stream_tool_call import StreamToolCall
+from src.services.one_signal.one_signal_service import OneSignalService
+from src.utils.image_to_base64 import image_to_base64
 
 TConfig = TypeVar("TConfig", bound=BaseModel)
+
+
+class SuperAgentConfig(BaseModel, Generic[TConfig]):
+    agent_config: TConfig
+    cron_expression: str = Field(default="* * * * *")
+    headers: dict = Field(default_factory=dict)
 
 
 class BaseAgent(Generic[TConfig]):
     """Base class for all agents."""
 
     _thread: threads | None = None
+    _metadata: dict | None = None
+    _onesignal_api_key: str | None = None
 
-    def __init__(self, thread_id: str, backend: BackendService, **kwargs: dict[str, Any]) -> None:
-        self._thread_id = thread_id
+    def __init__(self, thread_id: str, request_headers: dict, **kwargs: dict[str, Any]) -> None:
         self._raw_config = kwargs
-        self._thread = None
+        self.thread_id = thread_id
+        self.request_headers = request_headers
 
-        self.easylog_backend = backend
-        self.easylog_sql_service = EasylogSqlService(
-            ssh_key_path=settings.EASYLOG_SSH_KEY_PATH,
-            ssh_host=settings.EASYLOG_SSH_HOST,
-            ssh_username=settings.EASYLOG_SSH_USERNAME,
-            db_host=settings.EASYLOG_DB_HOST,
-            db_port=settings.EASYLOG_DB_PORT,
-            db_user=settings.EASYLOG_DB_USER,
-            db_name=settings.EASYLOG_DB_NAME,
-            db_password=settings.EASYLOG_DB_PASSWORD,
-        )
+        # Initialize the client
+        self.client = openai_client
+
+        self.on_init()
 
         logger.info(f"Initialized agent: {self.__class__.__name__}")
-        logger.info(f"Using database: {settings.EASYLOG_DB_NAME}")
 
     def __init_subclass__(cls) -> None:
         cls._config_type = get_args(cls.__orig_bases__[0])[0]  # type: ignore
-
         logger.info(f"Initialized subclass: {cls.__name__}")
 
     @property
@@ -66,96 +81,244 @@ class BaseAgent(Generic[TConfig]):
         return logger
 
     @property
-    def easylog_db(self) -> pymysql.Connection:
-        if not self.easylog_sql_service.db:
-            raise ValueError("Easylog database connection not initialized")
-
-        return self.easylog_sql_service.db
+    def documents_collection(self) -> CollectionAsync[Properties, None]:
+        return weaviate_client.collections.get("documents")
 
     @abstractmethod
-    def on_message(self, messages: list[Message]) -> AsyncGenerator[TextContent, None]:
+    async def on_message(
+        self,
+        messages: Iterable[ChatCompletionMessageParam],
+        retry_count: int = 0,
+    ) -> tuple[AsyncStream[ChatCompletionChunk] | ChatCompletion, list[Callable]]:
         raise NotImplementedError()
 
     @abstractmethod
-    def get_tools(
+    async def on_super_agent_call(
         self,
-    ) -> dict[str, Callable[[], Any] | Callable[[], Coroutine[Any, Any, Any]]]:
+        messages: Iterable[ChatCompletionMessageParam],
+    ) -> tuple[AsyncStream[ChatCompletionChunk] | ChatCompletion, list[Callable]] | None:
         raise NotImplementedError()
 
-    def get_env(self, key: str) -> str:
-        """A convenience method to get an environment variable."""
+    @abstractmethod
+    def on_init(self) -> None:
+        pass
 
-        env = os.getenv(key)
+    # ------------------------------------------------------------------
+    # OneSignal configuration
+    # ------------------------------------------------------------------
+    def configure_onesignal(self, api_key: str, app_id: str) -> None:
+        """Configure a dedicated OneSignal client for this agent instance."""
+        self.one_signal = OneSignalService(api_key, app_id)
 
-        if env is None:
-            raise ValueError(f"Environment variable {key} is not found. Make sure .env file exists and {key} is set.")
+    @staticmethod
+    def super_agent_config() -> SuperAgentConfig[TConfig] | None:
+        return None
 
-        return env
+    async def forward_message(
+        self, messages: Iterable[ChatCompletionMessageParam], retry_count: int = 0
+    ) -> AsyncGenerator[tuple[MessageContent, bool], None]:
+        result, tools = await self.on_message(messages, retry_count)
 
-    def forward(
-        self,
-        messages: list[Message],
-    ) -> AsyncGenerator[MessageContent, None]:
-        """
-        Forward the messages to the agent. Returns a generator of message contents.
+        async for chunk, should_stop in (
+            self._handle_stream(result, tools, messages, retry_count)
+            if isinstance(result, AsyncStream)
+            else self._handle_completion(result, tools, messages, retry_count)
+        ):
+            yield chunk, should_stop
 
-        Args:
-            messages: The messages to forward to the agent.
+    async def run_super_agent(
+        self, messages: Iterable[ChatCompletionMessageParam]
+    ) -> AsyncGenerator[tuple[MessageContent, bool], None]:
+        self.logger.info(f"Running super agent for {self.thread_id}")
 
-        Returns:
-            A generator of messages.
-        """
+        result = await self.on_super_agent_call(messages)
 
-        logger.info(f"Forwarding message to agent: {self.__class__.__name__}")
+        if result is None:
+            return
 
-        generator = self.on_message(messages)
+        result, tools = result
 
-        if not inspect.isasyncgen(generator):
-            if inspect.isgenerator(generator):
-                logger.warning("on_message returned a sync generator, converting to async generator")
-                generator = self._sync_to_async_generator(generator)
-            else:
-                raise ValueError("on_message must return either a sync or async generator")
+        async for chunk, should_stop in (
+            self._handle_stream(result, tools, messages)
+            if isinstance(result, AsyncStream)
+            else self._handle_completion(result, tools, messages)
+        ):
+            yield chunk, should_stop
 
-        return generator
+    async def get_metadata(self, key: str, default: Any | None = None) -> Any:
+        if self._metadata is None:
+            self._metadata = dict((await self._get_thread()).metadata) or {}
 
-    def get_metadata(self, key: str, default: Any | None = None) -> Any:
-        metadata: dict = json.loads((self._get_thread()).metadata or "{}")
+        return self._metadata.get(key, default)
 
-        return metadata.get(key, default)
+    async def set_metadata(self, key: str, value: Any) -> None:
+        if self._metadata is None:
+            self._metadata = dict((await self._get_thread()).metadata) or {}
 
-    def set_metadata(self, key: str, value: Any) -> None:
-        metadata: dict = json.loads((self._get_thread()).metadata or "{}")
-        metadata[key] = value
+        self._metadata[key] = value
 
-        prisma.threads.update(where={"id": self._thread_id}, data={"metadata": json.dumps(metadata)})
+        await prisma.threads.update(where={"id": self.thread_id}, data={"metadata": Json(self._metadata)})
 
-    def get_knowledge(self) -> list[processed_pdfs]:
-        return prisma.processed_pdfs.find_many(
-            include={"object": True},
+    async def get_document(self, document_path: str) -> dict:
+        document = await prisma.documents.find_first_or_raise(where={"path": document_path})
+
+        return dict(document.content)
+
+    async def search_documents(
+        self, search_query: str, subjects: Sequence[str] | None = None, limit: int = 5
+    ) -> list[documents]:
+        search_results = await self.documents_collection.query.hybrid(
+            query=search_query,
+            limit=limit,
+            alpha=0.5,
+            auto_limit=1,
+            return_metadata=MetadataQuery.full(),
+            filters=Filter.by_property("subject").contains_any(subjects) if subjects else None,
         )
 
-    def _get_thread(self) -> threads:
+        filenames = [
+            filename
+            for filename in (
+                result.properties.get("file_name", "")
+                for result in search_results.objects
+                if result.metadata and result.metadata.score and result.metadata.score > 0
+            )
+            if isinstance(filename, str)
+        ]
+
+        if not filenames:
+            return []
+
+        return await prisma.documents.find_many(where={"file_name": {"in": filenames}})
+
+    async def search_documents_with_summary(
+        self,
+        search_query: str,
+        subjects: Sequence[str] | None = None,
+        limit: int = 3,
+        filter_model: str = "google/gemini-2.5-flash",
+    ) -> str:
+        """Search documents and return AI-extracted relevant information from full contents.
+
+        This method uses a two-stage approach to minimize token usage:
+        1. Use Weaviate hybrid search to find top 3 most relevant documents
+        2. Use a cheap AI model to analyze FULL document contents and extract only relevant information
+
+        This reduces token usage by 70-80% compared to returning full documents to the main agent.
+
+        Args:
+            search_query: Natural language search query
+            subjects: Optional list of subject filters
+            limit: Maximum number of documents to analyze (default: 3)
+            filter_model: AI model to use for extraction (default: google/gemini-2.5-flash)
+
+        Returns:
+            str: Concise summary of relevant information extracted from full document contents
+        """
+        # Stage 1: Use Weaviate hybrid search to get top relevant documents
+        search_results = await self.documents_collection.query.hybrid(
+            query=search_query,
+            limit=limit,
+            alpha=0.5,
+            auto_limit=1,
+            return_metadata=MetadataQuery.full(),
+            filters=Filter.by_property("subject").contains_any(subjects) if subjects else None,
+        )
+
+        filenames = [
+            filename
+            for filename in (
+                result.properties.get("file_name", "")
+                for result in search_results.objects
+                if result.metadata and result.metadata.score and result.metadata.score > 0
+            )
+            if isinstance(filename, str)
+        ]
+
+        if not filenames:
+            return "No documents found in the knowledge base."
+
+        # Fetch full documents with contents
+        db_documents = await prisma.documents.find_many(
+            where={"file_name": {"in": filenames}},
+            take=limit,
+        )
+
+        if not db_documents:
+            return "No documents found in the knowledge base."
+
+        # Stage 2: Use AI to analyze full document contents and extract relevant information
+        documents_content = chr(10).join(
+            f"Document {i + 1}: {doc.file_name}\nContent: {json.dumps(doc.content, default=str)}\n"
+            for i, doc in enumerate(db_documents)
+        )
+
+        prompt = f"""You are a document analysis assistant. Analyze the FULL contents of these documents and extract \
+ONLY the information relevant to the user's question.
+
+User Question: "{search_query}"
+
+Documents to analyze:
+{documents_content}
+
+Instructions:
+1. Read through the full document contents carefully
+2. Extract ONLY the specific information that helps answer the user's question
+3. Be concise - summarize the relevant data points, don't return entire documents
+4. If no relevant information exists, return "No relevant information found"
+5. Focus on facts, data, and specific details that address the query
+6. If the document contents include images (URLs or base64) that are RELEVANT to the query, include ALL relevant images
+
+Return format:
+**Relevant Information:**
+- [Brief description of what was found and from which document]
+- ![description](image_url) - Include all images that help answer the user's question
+
+If nothing relevant: "No relevant information found in the knowledge base."""
+
+        try:
+            response = await self.client.chat.completions.create(
+                model=filter_model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are an expert information extraction assistant. "
+                        "Analyze full document contents and extract only relevant information.",
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    },
+                ],
+                max_tokens=1500,
+                temperature=0.1,
+            )
+
+            result = response.choices[0].message.content or "No relevant information found."
+
+            self.logger.debug(f"Document search result for '{search_query}': {result}")
+
+            return result
+
+        except Exception as e:
+            self.logger.error(f"Error in AI-powered document search: {e}")
+            # Fallback to summary list
+            return "\n".join([f"- {doc.file_name}: {doc.summary}" for doc in db_documents])
+
+    async def _get_thread(self) -> threads:
         """Get the thread for the agent."""
 
         if self._thread is None:
-            self._thread = prisma.threads.find_first_or_raise(where={"id": self._thread_id})
+            self._thread = await prisma.threads.find_first_or_raise(where={"id": self.thread_id})
 
         return self._thread
 
-    async def _sync_to_async_generator(self, sync_gen: Generator) -> AsyncGenerator:
-        for item in sync_gen:
-            yield item
-
     def _get_config(self, **kwargs: dict[str, Any]) -> TConfig:
         """Parse kwargs into the config type specified by the child class"""
-        # Get the generic parameters using typing.get_args
-        # Get the actual config type from the class's generic parameters
 
         if not self._config_type:
             raise ValueError("Could not determine config type from class definition")
 
-        # Handle Union types by trying each type until one works
         if (hasattr(self._config_type, "__origin__") and self._config_type.__origin__ is Union) or isinstance(
             self._config_type, UnionType
         ):
@@ -164,7 +327,282 @@ class BaseAgent(Generic[TConfig]):
                     return type_option(**kwargs)
                 except (ValueError, TypeError):
                     continue
+
             raise ValueError(f"None of the union types {self._config_type} could parse the config")
 
-        # Handle single type
         return self._config_type(**kwargs)
+
+    async def _handle_tool_call(
+        self, name: str, tool_call_id: str, arguments: dict[str, Any], tools: list[Callable]
+    ) -> tuple[ToolResultContent, bool]:
+        try:
+            tool = next(tool for tool in tools if tool.__name__ == name)
+        except StopIteration as e:
+            raise ValueError(f"Tool {name} not found") from e
+
+        try:
+            tool_call_result = await tool(**arguments) if asyncio.iscoroutinefunction(tool) else tool(**arguments)
+
+            logger.debug(f"Tool call result: {tool_call_result}")
+
+            if (
+                isinstance(tool_call_result, tuple)
+                and len(tool_call_result) == 2
+                and isinstance(tool_call_result[1], bool)
+            ):
+                result = tool_call_result[0]
+                should_stop = tool_call_result[1]
+            else:
+                result = tool_call_result
+                should_stop = False
+
+            if should_stop:
+                self.logger.debug(f"Tool {name} returned should_stop=True, cancelling agent call")
+
+            if isinstance(result, ImageWidget) and result.mode == "image_url" or isinstance(result, Image.Image):
+                supabase = await create_supabase()
+
+                image = result if isinstance(result, Image.Image) else Image.open(io.BytesIO(result.data))
+
+                if image.mode in ("RGBA", "LA", "P"):
+                    image = image.convert("RGB")
+
+                contents = io.BytesIO()
+                image.save(contents, format="JPEG")
+
+                result = await supabase.storage.from_("user-uploads").upload(
+                    f"{self.thread_id}/{str(uuid.uuid4())}.jpg",
+                    contents.getvalue(),
+                    file_options={"content-type": "image/jpeg"},
+                )
+
+                url = await supabase.storage.from_("user-uploads").get_public_url(result.path)
+
+                return (
+                    ToolResultContent(
+                        id=str(uuid.uuid4()),
+                        tool_use_id=tool_call_id,
+                        output=url,
+                        widget_type="image_url",
+                        is_error=False,
+                    ),
+                    should_stop,
+                )
+            elif isinstance(result, ImageWidget) and result.mode == "image":
+                return (
+                    ToolResultContent(
+                        id=str(uuid.uuid4()),
+                        tool_use_id=tool_call_id,
+                        output=image_to_base64(Image.open(io.BytesIO(result.data))),
+                        widget_type="image",
+                        is_error=False,
+                    ),
+                    should_stop,
+                )
+            elif isinstance(result, ChartWidget):
+                return (
+                    ToolResultContent(
+                        id=str(uuid.uuid4()),
+                        tool_use_id=tool_call_id,
+                        output=result.model_dump_json(),
+                        widget_type="chart",
+                        is_error=False,
+                    ),
+                    should_stop,
+                )
+            elif isinstance(result, MultipleChoiceWidget):
+                return (
+                    ToolResultContent(
+                        id=str(uuid.uuid4()),
+                        tool_use_id=tool_call_id,
+                        output=result.model_dump_json(),
+                        widget_type="multiple_choice",
+                        is_error=False,
+                    ),
+                    should_stop,
+                )
+            elif isinstance(result, str):
+                return (
+                    ToolResultContent(
+                        id=str(uuid.uuid4()),
+                        tool_use_id=tool_call_id,
+                        output=result,
+                        widget_type="text",
+                        is_error=False,
+                    ),
+                    should_stop,
+                )
+            else:
+                return (
+                    ToolResultContent(
+                        id=str(uuid.uuid4()),
+                        tool_use_id=tool_call_id,
+                        output=str(result),
+                        is_error=False,
+                    ),
+                    should_stop,
+                )
+        except Exception as e:
+            return (
+                ToolResultContent(
+                    id=str(uuid.uuid4()),
+                    tool_use_id=tool_call_id,
+                    output=f"Error: {e}",
+                    is_error=True,
+                ),
+                False,
+            )
+
+    async def _handle_stream(
+        self,
+        stream: AsyncStream[ChatCompletionChunk],
+        tools: list[Callable],
+        messages: Iterable[ChatCompletionMessageParam],
+        retry_count: int = 0,
+    ) -> AsyncGenerator[tuple[MessageContent, bool], None]:
+        final_tool_calls: dict[int, StreamToolCall] = {}
+        text_content: str | None = None
+        text_id = str(uuid.uuid4())
+        completion_id: str | None = None
+
+        try:
+            async for event in stream:
+                if completion_id is None:
+                    completion_id = event.id
+                    self.logger.info(f"CompletionId: {event.id}, ThreadId: {self.thread_id}")
+
+                if event.choices[0].delta.content is not None:
+                    text_content = (
+                        event.choices[0].delta.content
+                        if text_content is None
+                        else text_content + event.choices[0].delta.content
+                    )
+
+                    yield (
+                        TextDeltaContent(
+                            id=text_id,
+                            delta=event.choices[0].delta.content,
+                        ),
+                        False,
+                    )
+
+                for tool_call in event.choices[0].delta.tool_calls or []:
+                    index = tool_call.index
+
+                    if tool_call.function is None or tool_call.function.arguments is None:
+                        self.logger.warning(f"Skipping tool call {tool_call} because it is invalid")
+                        continue
+
+                    if (
+                        index not in final_tool_calls
+                        and tool_call.function.name is not None
+                        and tool_call.id is not None
+                    ):
+                        final_tool_calls[index] = StreamToolCall(
+                            tool_call_id=tool_call.id,
+                            name=tool_call.function.name,
+                            arguments=tool_call.function.arguments,
+                        )
+                    else:
+                        final_tool_calls[index].arguments += tool_call.function.arguments
+
+            if text_content is not None:
+                yield (
+                    TextContent(
+                        id=text_id,
+                        text=text_content,
+                    ),
+                    False,
+                )
+
+            for _, tool_call in final_tool_calls.items():
+                if tool_call.name == BaseTools.tool_call_super_agent.__name__:
+                    async for chunk, should_stop in self.run_super_agent(messages):
+                        yield chunk, should_stop
+
+                    continue
+
+                input_data = json.loads(tool_call.arguments or "{}")
+
+                yield (
+                    ToolUseContent(
+                        id=str(uuid.uuid4()),
+                        tool_use_id=tool_call.tool_call_id,
+                        name=tool_call.name,
+                        input=input_data,
+                    ),
+                    False,
+                )
+
+                yield await self._handle_tool_call(tool_call.name, tool_call.tool_call_id, input_data, tools)
+
+            did_produce_content = len(final_tool_calls.items()) > 0 or (text_content and text_content.strip() != "")
+
+            if not did_produce_content and retry_count < 3:
+                self.logger.warning(f"No content produced, retrying {retry_count + 1} times")
+
+                async for chunk in self.forward_message(messages, retry_count + 1):
+                    yield chunk
+            elif not did_produce_content:
+                raise ValueError("The agent did not produce any content after 3 retries.")
+        except Exception as e:
+            self.logger.error(f"Error in _handle_stream: {e}")
+            raise e
+
+    async def _handle_completion(
+        self,
+        completion: ChatCompletion,
+        tools: list[Callable],
+        messages: Iterable[ChatCompletionMessageParam],
+        retry_count: int = 0,
+    ) -> AsyncGenerator[tuple[MessageContent, bool], None]:
+        self.logger.info(f"CompletionId: {completion.id}, ThreadId: {self.thread_id}")
+
+        if len(completion.choices or []) == 0:
+            raise ValueError(
+                "No choices found in completion, this usually means the messages weren't forwarded correctly"
+            )
+
+        choice = completion.choices[0]
+
+        if choice.message.content is not None:
+            yield (
+                TextContent(
+                    id=str(uuid.uuid4()),
+                    text=choice.message.content,
+                ),
+                False,
+            )
+
+        for tool_call in choice.message.tool_calls or []:
+            if tool_call.function.name == BaseTools.tool_call_super_agent.__name__:
+                async for chunk in self.run_super_agent(messages):
+                    yield chunk
+
+                continue
+
+            input_data = json.loads(tool_call.function.arguments or "{}")
+
+            yield (
+                ToolUseContent(
+                    id=str(uuid.uuid4()),
+                    tool_use_id=tool_call.id,
+                    name=tool_call.function.name,
+                    input=input_data,
+                ),
+                False,
+            )
+
+            yield await self._handle_tool_call(tool_call.function.name, tool_call.id, input_data, tools)
+
+        did_produce_content = len(choice.message.tool_calls or []) > 0 or (
+            choice.message.content and choice.message.content.strip() != ""
+        )
+
+        if not did_produce_content and retry_count < 3:
+            self.logger.warning(f"No content produced, retrying {retry_count + 1} times")
+
+            async for chunk, should_stop in self.forward_message(messages, retry_count + 1):
+                yield chunk, should_stop
+        elif not did_produce_content:
+            raise ValueError("The agent did not produce any content after 3 retries.")

@@ -1,0 +1,26 @@
+---
+description: ALWAYS search EasyLog instructions folder first for platform knowledge before other sources
+globs: **/*
+---
+
+# EasyLog Platform Instructions Rule
+
+## Context
+EasyLog platform has centralized documentation in a specific folder structure.
+
+## Requirements
+
+- **Primary Knowledge Source**: `/Users/ewoutdijck/Library/CloudStorage/GoogleDrive-ewout.van.dijck@easylog.nu/Gedeelde drives/easylog algemeen/ai cursor/Instructies/`
+- **Search Order**: 
+  1. Platform/ - General platform instructions
+  2. MCP/ - Database management and Model Context Protocol
+  3. Clients/ - Client-specific documentation
+  4. Development/ - Python and Web development instructions
+  5. Recovery/ - Backup and recovery procedures
+- **Before Other Sources**: Always consult this folder before using other knowledge sources for EasyLog questions
+
+## Examples
+
+✅ **Correct**: Search `Instructies/Platform/agent-development-guide.md` for agent questions
+✅ **Correct**: Check `Instructies/MCP/neon_mcp_instructie.md` for database operations
+❌ **Incorrect**: Use general web search for EasyLog-specific platform knowledge

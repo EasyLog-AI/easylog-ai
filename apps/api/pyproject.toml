@@ -11,7 +11,6 @@ dependencies = [
     "pydantic-settings>=2.6.1",
     "pydantic>=2.9.2",
     "python-dotenv>=1.0.1",
-    "anthropic>=0.42.0",
     "markdown>=3.7",
     "pypdf2>=3.0.1",
     "pytest-asyncio>=0.25.3",
@@ -23,15 +22,22 @@ dependencies = [
     "pandas>=2.2.3",
     "openpyxl>=3.1.5",
     "matplotlib>=3.10.0",
-    "supabase>=2.13.0",
+    "supabase>=2.15.1",
     "pymysql>=1.1.1",
     "sshtunnel>=0.4.0",
     "python-dateutil>=2.9.0.post0",
-    "openai>=1.65.1",
-    "google-genai>=1.4.0",
+    "openai>=1.82.0",
     "prefect>=3.2.12",
     "marvin>=2.3.8",
     "cairosvg>=2.7.1",
+    "graphiti-core>=0.10.4",
+    "mistralai>=1.7.0",
+    "weaviate-client>=4.14.1",
+    "python-slugify>=8.0.4",
+    "apscheduler>=3.11.0",
+    "onesignal-python-api>=2.0.2",
+    "reportlab>=4.2.5",
+    "pillow>=11.0.0",
 ]
 
 [tool.ruff]
@@ -39,6 +45,7 @@ line-length = 120
 extend-include = ["*.ipynb"]
 target-version = "py312"
 select = ["F", "E", "W", "I", "N", "UP", "ANN", "B", "A"]
+ignore = ["ANN401"]
 
 [tool.ruff.format]
 docstring-code-format = true
@@ -47,3 +54,11 @@ docstring-code-line-length = 120
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]  # Ignore unused imports in __init__.py
 "tests/*" = ["ANN"]  # Ignore missing annotations in tests
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"

@@ -1,0 +1,25 @@
+# Exclude large or generated content from CodeX context/edits
+node_modules/
+**/.next/
+**/dist/
+**/build/
+**/.turbo/
+**/.cache/
+**/.vercel/
+**/.pnpm-store/
+**/.pytest_cache/
+**/__pycache__/
+**/.ruff_cache/
+**/.mypy_cache/
+**/.venv/
+**/env/
+**/.env*
+**/*.log
+**/*.lock
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.pdf
+**/*.csv
+**/*.ipynb
+

@@ -1,5 +1,7 @@
 # Installation
 
+For contributor workflow guidelines and repo conventions, see [Repository Guidelines](AGENTS_EWOUT.md).
+
 ## Automatic Installation
 
 If you're running on MacOS, you can install the dependencies and virtual environment by running the following command:

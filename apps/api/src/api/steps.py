@@ -1,0 +1,326 @@
+import datetime
+import uuid
+from collections import defaultdict
+from datetime import time
+from typing import Annotated, Any
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+from fastapi import APIRouter, HTTPException, Query, Response
+from prisma.enums import health_data_point_type, health_data_unit, health_platform
+from prisma.types import (
+    _health_data_pointsWhereUnique_source_uuid_Input,
+    health_data_pointsCreateInput,
+    health_data_pointsUpdateInput,
+    health_data_pointsUpsertInput,
+    health_data_pointsWhereInput,
+    usersCreateInput,
+    usersWhereInput,
+)
+
+from src.lib.prisma import prisma
+from src.logger import logger
+from src.models.steps import AggregationType, GetStepsResponse, LastSyncedResponse, StepDataPoint, SyncStepsInput
+
+router = APIRouter()
+
+
+@router.get(
+    "/steps/last-synced", name="get_last_synced", description="Get the last synced date for steps", tags=["health"]
+)
+async def last_synced(
+    user_id: str,
+) -> LastSyncedResponse:
+    user = await prisma.users.find_first(where=usersWhereInput(external_id=user_id))
+    if user is None:
+        default_date = datetime.datetime.now() - datetime.timedelta(days=30)
+        logger.info(f"No user found for user {user_id}, returning las sync date {default_date}")
+        return LastSyncedResponse(last_synced=datetime.datetime.now() - datetime.timedelta(days=30))
+
+    last_synced = await prisma.health_data_points.find_first(
+        where=health_data_pointsWhereInput(user_id=user.id, type=health_data_point_type.steps),
+        order={"date_to": "desc"},
+    )
+
+    if last_synced is None:
+        default_date = datetime.datetime.now() - datetime.timedelta(days=30)
+        logger.info(f"No last synced date found for user {user_id}, returning las sync date {default_date}")
+        return LastSyncedResponse(last_synced=datetime.datetime.now() - datetime.timedelta(days=30))
+
+    logger.info(f"Last synced date found for user {user_id}, returning last sync date {last_synced.date_to}")
+    return LastSyncedResponse(last_synced=last_synced.date_to)
+
+
+@router.post("/steps/sync", name="sync_steps", description="Sync steps data", tags=["health"])
+async def sync_steps(
+    data: SyncStepsInput,
+) -> Response:
+    try:
+        logger.info(f"Syncing steps data for user {data.user_id} with {len(data.data_points)} data points")
+
+        for step_data in data.data_points:
+            if step_data.unit != health_data_unit.COUNT:
+                raise HTTPException(status_code=400, detail="Invalid unit")
+
+        user = await prisma.users.find_first(where=usersWhereInput(external_id=data.user_id))
+        user_id = user.id if user else None
+        if user is None:
+            user_create = await prisma.users.create(data=usersCreateInput(external_id=data.user_id))
+            user_id = user_create.id
+
+        if user_id is None:
+            # Cannot be None given the above...
+            raise HTTPException(status_code=500, detail="User not found")
+
+        batcher = prisma.batch_()
+        for step_data in data.data_points:
+            # Generate deterministic source_uuid if missing
+            source_uuid_value = step_data.source_uuid or str(
+                uuid.uuid5(
+                    uuid.NAMESPACE_DNS,
+                    f"{data.user_id}_{step_data.source_name}_{step_data.date_from.isoformat()}_{step_data.date_to.isoformat()}",
+                )
+            )
+
+            batcher.health_data_points.upsert(
+                where=_health_data_pointsWhereUnique_source_uuid_Input(source_uuid=source_uuid_value),
+                data=health_data_pointsUpsertInput(
+                    create=health_data_pointsCreateInput(
+                        user_id=user_id,
+                        type=health_data_point_type.steps,
+                        value=step_data.value,
+                        unit=health_data_unit(step_data.unit),
+                        date_from=step_data.date_from,
+                        date_to=step_data.date_to,
+                        source_uuid=source_uuid_value,
+                        health_platform=health_platform(step_data.health_platform),
+                        source_device_id=step_data.source_device_id,
+                        source_id=step_data.source_id,
+                        source_name=step_data.source_name,
+                    ),
+                    update=health_data_pointsUpdateInput(
+                        type=health_data_point_type.steps,
+                        value=step_data.value,
+                        unit=health_data_unit(step_data.unit),
+                        date_from=step_data.date_from,
+                        date_to=step_data.date_to,
+                        health_platform=health_platform(step_data.health_platform),
+                        source_device_id=step_data.source_device_id,
+                        source_id=step_data.source_id,
+                        source_name=step_data.source_name,
+                    ),
+                ),
+            )
+
+        await batcher.commit()
+        logger.info(f"Successfully synced {len(data.data_points)} steps for user {data.user_id}")
+        return Response(status_code=200)
+
+    except Exception as e:
+        logger.error(f"Error inserting steps data: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@router.get("/steps", name="get_steps", description="Get user's step data with optional aggregation", tags=["health"])
+async def get_steps(
+    user_id: str,
+    date_from: datetime.datetime,
+    date_to: datetime.datetime,
+    timezone: Annotated[str, Query(description="IANA timezone name")] = "Europe/Amsterdam",
+    aggregation: Annotated[AggregationType, Query(description="Aggregation type for the data")] = AggregationType.day,
+) -> GetStepsResponse:
+    """Retrieve a user's step counts with optional time aggregation.
+
+    Parameters:
+    - user_id: The external user ID
+    - date_from: Start date (inclusive) in ISO format
+    - date_to: End date (inclusive) in ISO format
+    - timezone: IANA timezone name for interpreting naive datetimes (default: Europe/Amsterdam)
+    - aggregation: Time aggregation level (quarter/hour/day, default: day)
+
+    Returns:
+    - List of step data points limited to 300 rows maximum
+    """
+    try:
+        logger.info(
+            f"get_steps called with user_id={user_id}, date_from={date_from}, "
+            f"date_to={date_to}, timezone={timezone}, aggregation={aggregation}"
+        )
+        # ------------------------------------------------------------------ #
+        # 1. Validate timezone                                               #
+        # ------------------------------------------------------------------ #
+        tz_name = timezone.strip()
+        if tz_name in {"CET", "CEST"}:
+            tz_name = "Europe/Amsterdam"
+
+        try:
+            tz = ZoneInfo(tz_name)
+        except ZoneInfoNotFoundError as e:
+            raise HTTPException(
+                status_code=400, detail=f"Invalid timezone '{timezone}'. Please provide a valid IANA name."
+            ) from e
+
+        utc = ZoneInfo("UTC")
+
+        # ------------------------------------------------------------------ #
+        # 2. Parse and validate date inputs                                  #
+        # ------------------------------------------------------------------ #
+        def _parse_input(dt: datetime.datetime) -> datetime.datetime:
+            """Attach timezone if naive."""
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=tz)
+            return dt
+
+        date_from_dt = _parse_input(date_from)
+        date_to_dt = _parse_input(date_to)
+
+        # Validate date range
+        if date_from_dt >= date_to_dt:
+            raise HTTPException(status_code=400, detail="date_from must be before date_to")
+
+        if date_from_dt.year < datetime.datetime.now().year - 1:
+            raise HTTPException(status_code=400, detail="date_from cannot be more than 1 year in the past")
+
+        # Expand whole-day range (00:00 → 23:59:59.999999)
+        if (
+            date_from_dt.date() == date_to_dt.date()
+            and date_from_dt.timetz() == time(0, tzinfo=tz)
+            and date_to_dt.timetz() == time(0, tzinfo=tz)
+        ):
+            date_to_dt = date_to_dt.replace(hour=23, minute=59, second=59, microsecond=999999)
+
+        # Convert to UTC for querying
+        date_from_utc = date_from_dt.astimezone(utc)
+        date_to_utc = date_to_dt.astimezone(utc)
+
+        # ------------------------------------------------------------------ #
+        # 3. Find user                                                       #
+        # ------------------------------------------------------------------ #
+        user = await prisma.users.find_first(where=usersWhereInput(external_id=user_id))
+        if user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # ------------------------------------------------------------------ #
+        # 4. Helper function for timezone conversion                         #
+        # ------------------------------------------------------------------ #
+        def _iso_local(val: str | datetime.datetime) -> str:
+            dt_obj = datetime.datetime.fromisoformat(val) if isinstance(val, str) else val
+            if dt_obj.tzinfo is None:  # DB can return naive UTC
+                dt_obj = dt_obj.replace(tzinfo=utc)
+            return dt_obj.astimezone(tz).isoformat()
+
+        # ------------------------------------------------------------------ #
+        # 5. Query based on aggregation type                                 #
+        # ------------------------------------------------------------------ #
+        if aggregation in {AggregationType.hour, AggregationType.day}:
+            # Use SQL aggregation for hour/day
+            rows: list[dict[str, Any]] = await prisma.query_raw(
+                f"""
+                WITH series AS (
+                    SELECT generate_series(
+                        date_trunc('{aggregation.value}', $2::timestamptz, '{tz_name}'),
+                        $3::timestamptz,
+                        '1 {aggregation.value}'::interval
+                    ) AS bucket
+                )
+                SELECT
+                    s.bucket AS bucket,
+                    COALESCE(SUM(hdp.value)::int, 0) AS total
+                FROM series s
+                LEFT JOIN health_data_points hdp
+                    ON date_trunc('{aggregation.value}', hdp.date_from, '{tz_name}') = s.bucket
+                    AND hdp.user_id = $1::uuid
+                    AND hdp.type = 'steps'
+                    AND hdp.date_from >= $2::timestamptz
+                    AND hdp.date_to <= $3::timestamptz
+                GROUP BY s.bucket
+                ORDER BY s.bucket
+                LIMIT 300
+                """,
+                user.id,
+                date_from_utc,
+                date_to_utc,
+            )
+
+            result_data = [
+                StepDataPoint(
+                    created_at=_iso_local(row["bucket"]),
+                    value=row["total"],
+                )
+                for row in rows
+            ]
+
+        elif aggregation == AggregationType.quarter:
+            # Get raw data for quarter-hour aggregation
+            steps_data = await prisma.health_data_points.find_many(
+                where=health_data_pointsWhereInput(
+                    user_id=user.id,
+                    type=health_data_point_type.steps,
+                    date_from={"gte": date_from_utc},
+                    date_to={"lte": date_to_utc},
+                ),
+                order={"created_at": "asc"},
+                take=300,
+            )
+
+            # --- Quarter-hour aggregation logic with padding ---
+            # 1. Generate all quarter-hour buckets in the time range.
+            all_buckets: dict[str, int] = {}
+            current_dt = date_from_dt.astimezone(tz)
+            floored_minute = (current_dt.minute // 15) * 15
+            current_dt = current_dt.replace(minute=floored_minute, second=0, microsecond=0)
+
+            date_to_local = date_to_dt.astimezone(tz)
+            
+            logger.info(f"Quarter aggregation - Generating buckets from {current_dt.isoformat()} to {date_to_local.isoformat()}")
+            
+            while current_dt < date_to_local:
+                all_buckets[current_dt.isoformat()] = 0
+                current_dt += datetime.timedelta(minutes=15)
+
+            logger.info(f"Generated {len(all_buckets)} empty buckets")
+
+            # 2. Populate with real data.
+            bucket_totals: dict[str, int] = defaultdict(int)
+            if steps_data:
+                logger.info(f"Processing {len(steps_data)} step data points from database")
+
+                def _parse_for_quarter(val: str | datetime.datetime) -> datetime.datetime:
+                    dt_obj = datetime.datetime.fromisoformat(val) if isinstance(val, str) else val
+                    if dt_obj.tzinfo is None:
+                        dt_obj = dt_obj.replace(tzinfo=utc)
+                    return dt_obj
+
+                for dp in steps_data:
+                    start_dt = _parse_for_quarter(dp.date_from)
+                    local_dt = start_dt.astimezone(tz)
+                    floored_minute = (local_dt.minute // 15) * 15
+                    bucket_dt = local_dt.replace(minute=floored_minute, second=0, microsecond=0)
+                    bucket_key = bucket_dt.isoformat()
+                    
+                    logger.debug(f"Data point: {dp.date_from} -> bucket: {bucket_key}, value: {dp.value}")
+                    
+                    bucket_totals[bucket_key] += dp.value
+
+                logger.info(f"Populated {len(bucket_totals)} buckets with actual data")
+
+            # 3. Merge real data into the complete set of buckets
+            all_buckets.update(bucket_totals)
+            
+            logger.info(f"Final bucket count after merge: {len(all_buckets)}")
+
+            # 4. Format for response
+            sorted_rows = sorted(all_buckets.items())[:300]
+            result_data = [StepDataPoint(created_at=key, value=total) for key, total in sorted_rows]
+
+        else:
+            # This shouldn't happen due to enum validation, but just in case
+            raise HTTPException(status_code=400, detail="Invalid aggregation type")
+
+        logger.info(f"get_steps response for user {user_id} ({len(result_data)} points): {result_data}")
+        return GetStepsResponse(data=result_data, total_count=len(result_data))
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error retrieving steps data: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) from e

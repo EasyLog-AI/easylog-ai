@@ -1,210 +1,159 @@
 generator client {
-    provider        = "prisma-client-py"
-    previewFeatures = ["multiSchema"]
-    interface       = "sync"
+    provider  = "prisma-client-py"
+    interface = "asyncio"
 }
 
 datasource db {
     provider = "postgresql"
     url      = env("DATABASE_URL")
-    schemas  = ["public", "storage"]
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model buckets {
-    id                         String                       @id
-    name                       String                       @unique(map: "bname")
-    owner                      String?                      @db.Uuid
-    created_at                 DateTime?                    @default(now()) @db.Timestamptz(6)
-    updated_at                 DateTime?                    @default(now()) @db.Timestamptz(6)
-    public                     Boolean?                     @default(false)
-    avif_autodetection         Boolean?                     @default(false)
-    file_size_limit            BigInt?
-    allowed_mime_types         String[]
-    owner_id                   String?
-    objects                    objects[]
-    s3_multipart_uploads       s3_multipart_uploads[]
-    s3_multipart_uploads_parts s3_multipart_uploads_parts[]
-
-    @@schema("storage")
+enum annotation_type {
+    url_citation
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model migrations {
-    id          Int       @id
-    name        String    @unique @db.VarChar(100)
-    hash        String    @db.VarChar(40)
-    executed_at DateTime? @default(now()) @db.Timestamp(6)
-
-    @@schema("storage")
-}
-
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model objects {
-    id                   String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-    bucket_id            String?
-    name                 String?
-    owner                String?               @db.Uuid
-    created_at           DateTime?             @default(now()) @db.Timestamptz(6)
-    updated_at           DateTime?             @default(now()) @db.Timestamptz(6)
-    last_accessed_at     DateTime?             @default(now()) @db.Timestamptz(6)
-    metadata             Json?
-    path_tokens          String[]              @default(dbgenerated("string_to_array(name, '/'::text)"))
-    version              String?
-    owner_id             String?
-    user_metadata        Json?
-    buckets              buckets?              @relation(fields: [bucket_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "objects_bucketId_fkey")
-    processed_pdfs       processed_pdfs?
-    processed_pdf_images processed_pdf_images?
-
-    @@unique([bucket_id, name], map: "bucketid_objname")
-    @@index([bucket_id, name], map: "idx_objects_bucket_id_name")
-    @@index([name], map: "name_prefix_search")
-    @@schema("storage")
-}
-
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model s3_multipart_uploads {
-    id                         String                       @id
-    in_progress_size           BigInt                       @default(0)
-    upload_signature           String
-    bucket_id                  String
-    key                        String
-    version                    String
-    owner_id                   String?
-    created_at                 DateTime                     @default(now()) @db.Timestamptz(6)
-    user_metadata              Json?
-    buckets                    buckets                      @relation(fields: [bucket_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-    s3_multipart_uploads_parts s3_multipart_uploads_parts[]
-
-    @@index([bucket_id, key, created_at], map: "idx_multipart_uploads_list")
-    @@schema("storage")
-}
-
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model s3_multipart_uploads_parts {
-    id                   String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-    upload_id            String
-    size                 BigInt               @default(0)
-    part_number          Int
-    bucket_id            String
-    key                  String
-    etag                 String
-    owner_id             String?
-    version              String
-    created_at           DateTime             @default(now()) @db.Timestamptz(6)
-    buckets              buckets              @relation(fields: [bucket_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-    s3_multipart_uploads s3_multipart_uploads @relation(fields: [upload_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-    @@schema("storage")
+enum image_detail {
+    auto
+    low
+    high
 }
 
 enum message_content_type {
     text
     image
-    pdf
+    file
     tool_use
     tool_result
-
-    @@map("message_content_type")
-    @@schema("public")
 }
 
 enum message_role {
-    user
-    assistant
-    system
     developer
-
-    @@map("message_role")
-    @@schema("public")
+    system
+    assistant
+    user
+    tool
 }
 
-enum message_content_format {
+enum widget_type {
+    text
     image
+    image_url
     chart
-    unknown
+    multiple_choice
+}
 
-    @@map("message_content_format")
-    @@schema("public")
+enum health_data_point_type {
+    steps
+}
+
+enum health_platform {
+    apple_health
+    google_fit
+}
+
+enum recording_method {
+    AUTOMATIC
+    MANUAL
+    ACTIVE
+    UNKNOWN
+}
+
+enum health_data_unit {
+    COUNT
+}
+
+model health_data_points {
+    id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+    created_at DateTime @default(now())
+    updated_at DateTime @default(now()) @updatedAt
+
+    user_id String @db.Uuid
+    user    users  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+    type      health_data_point_type
+    value     Int
+    unit      health_data_unit
+    date_from DateTime
+    date_to   DateTime
+
+    // Source information
+    source_uuid      String          @unique
+    health_platform  health_platform
+    source_device_id String?
+    source_id        String? // e.g. com.apple.Health
+    source_name      String? // e.g. Apple Health
+
+    @@map("health_data_points")
+}
+
+model users {
+    id          String   @id @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+    external_id String   @unique
+    created_at  DateTime @default(now())
+    updated_at  DateTime @default(now()) @updatedAt
+
+    health_data_points health_data_points[]
+
+    @@map("users")
 }
 
 model threads {
-    id          String     @id @default(cuid())
+    id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
     external_id String?    @unique
     created_at  DateTime   @default(now())
-    updated_at  DateTime   @updatedAt
-    metadata    String?
+    updated_at  DateTime   @default(now()) @updatedAt
+    metadata    Json       @default("{}") @db.JsonB
     messages    messages[]
 
     @@map("threads")
-    @@schema("public")
 }
 
 model messages {
-    id          String             @id @default(cuid())
+    id          String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
     thread      threads            @relation(fields: [thread_id], references: [id], onDelete: Cascade)
-    thread_id   String
+    thread_id   String             @db.Uuid
     role        message_role       @default(user)
+    name        String?
+    tool_use_id String?
+    refusal     String?
     contents    message_contents[]
     agent_class String
     created_at  DateTime           @default(now())
-    updated_at  DateTime           @updatedAt
+    updated_at  DateTime           @default(now()) @updatedAt
 
     @@map("messages")
-    @@schema("public")
 }
 
 model message_contents {
-    id                String                 @id @default(cuid())
-    message           messages               @relation(fields: [message_id], references: [id], onDelete: Cascade)
-    message_id        String
-    type              message_content_type   @default(text)
-    tool_use_id       String?
-    tool_use_is_error Boolean?
-    tool_use_name     String?
-    tool_use_input    Json?
-    content           String?
-    content_type      String?
-    content_format    message_content_format @default(unknown)
-    data              String?
-    created_at        DateTime               @default(now())
-    updated_at        DateTime               @updatedAt
+    id          String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+    message     messages             @relation(fields: [message_id], references: [id], onDelete: Cascade)
+    message_id  String               @db.Uuid
+    type        message_content_type @default(text)
+    image_url   String?
+    file_data   Bytes?
+    file_name   String?
+    text        String?
+    widget_type widget_type?
+    tool_use_id String?
+    tool_name   String?
+    tool_input  Json?                @db.JsonB
+    tool_output String?
+    created_at  DateTime             @default(now())
+    updated_at  DateTime             @default(now()) @updatedAt
 
     @@map("message_contents")
-    @@schema("public")
 }
 
-model processed_pdfs {
-    id               String                 @id @default(cuid())
-    long_summary     String
-    short_summary    String
-    markdown_content String
-    file_type        String
-    object_id        String                 @unique @db.Uuid
-    object           objects                @relation(fields: [object_id], references: [id], onDelete: Cascade)
-    images           processed_pdf_images[]
-    created_at       DateTime               @default(now())
-    updated_at       DateTime               @updatedAt
+model documents {
+    id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+    created_at  DateTime @default(now())
+    updated_at  DateTime @default(now()) @updatedAt
+    file_name   String
+    path        String
+    content     Json     @db.JsonB
+    summary     String
+    subject     String
+    weaviate_id String?
 
-    @@map("processed_pdfs")
-    @@schema("public")
-}
-
-model processed_pdf_images {
-    id                 String         @id @default(cuid())
-    processed_pdf_id   String
-    processed_pdf      processed_pdfs @relation(fields: [processed_pdf_id], references: [id], onDelete: Cascade)
-    object_id          String         @unique @db.Uuid
-    object             objects        @relation(fields: [object_id], references: [id], onDelete: Cascade)
-    original_file_name String
-    summary            String
-    page               Int
-    created_at         DateTime       @default(now())
-    updated_at         DateTime       @updatedAt
-
-    @@map("processed_pdf_images")
-    @@schema("public")
+    @@map("documents")
 }
