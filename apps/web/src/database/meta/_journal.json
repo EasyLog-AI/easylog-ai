@@ -8,6 +8,13 @@
       "when": 1762093665888,
       "tag": "0000_fine_warstar",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1762093798638,
+      "tag": "0001_strange_owl",
+      "breakpoints": true
     }
   ]
 }

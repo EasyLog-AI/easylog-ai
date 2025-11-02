@@ -24,6 +24,7 @@ const authGetMe = protectedProcedure
         z.object({
           id: z.string().uuid(),
           userId: z.string().uuid(),
+          agentId: z.string().uuid(),
           content: z.string(),
           createdAt: z.date(),
           updatedAt: z.date()

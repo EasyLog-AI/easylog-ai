@@ -83,6 +83,11 @@ export const runSuperAgentJob = schemaTask({
       throw new AbortTaskRunError('Chat not found');
     }
 
+    const agentMemories =
+      (chat.user.memories ?? []).filter(
+        (memory) => memory.agentId === chat.agentId
+      );
+
     const activeRole =
       chat.activeRole ?? chat.agent.roles.find((r) => r.isDefault);
 
@@ -113,8 +118,8 @@ ${superAgent.prompt}
 
 ### Available Data
 
-**User Memories** (${chat.user.memories.length} total):
-${chat.user.memories.length > 0 ? chat.user.memories.map((m) => `- ${m.content}`).join('\n') : 'No memories stored yet.'}
+**User Memories** (${agentMemories.length} total):
+${agentMemories.length > 0 ? agentMemories.map((m) => `- ${m.content}`).join('\n') : 'No memories stored yet.'}
 
 **Scratchpad Messages** (${scratchpadMessages.length} total - your private notes from previous runs):
 ${scratchpadMessages.length > 0 ? scratchpadMessages.map((m) => `[${new Date(m.createdAt).toISOString()}] ${m.message}`).join('\n') : 'No scratchpad messages yet.'}
@@ -173,9 +178,7 @@ Silently monitor and analyze conversations, storing insights in your scratchpad.
 
     logger.info(`Messages: ${JSON.stringify(chat.messages, null, 2)}`);
 
-    logger.info(
-      `User memories: ${JSON.stringify(chat.user.memories, null, 2)}`
-    );
+    logger.info(`User memories: ${JSON.stringify(agentMemories, null, 2)}`);
 
     logger.info(
       `Scratchpad messages: ${JSON.stringify(scratchpadMessages, null, 2)}`
@@ -286,8 +289,14 @@ Silently monitor and analyze conversations, storing insights in your scratchpad.
               return 'Message will be written to chat when the super agent is finished.';
             }
           }),
-          createMemory: toolCreateMemory(userId),
-          deleteMemory: toolDeleteMemory(),
+          createMemory: toolCreateMemory({
+            userId,
+            agentId: chat.agentId
+          }),
+          deleteMemory: toolDeleteMemory({
+            userId,
+            agentId: chat.agentId
+          }),
           executeSql: toolExecuteSQL(),
           searchKnowledgeBase: toolSearchKnowledgeBase({
             agentId: chat.agentId,
