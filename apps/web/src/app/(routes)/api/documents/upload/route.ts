@@ -1,29 +1,20 @@
 import * as Sentry from '@sentry/nextjs';
 import { type HandleUploadBody, handleUpload } from '@vercel/blob/client';
 import { eq } from 'drizzle-orm';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import getCurrentUser from '@/app/_auth/data/getCurrentUser';
+import uploadDocumentPayloadSchema from '@/app/_documents/schemas/uploadDocumentPayloadSchema';
 import db from '@/database/client';
-import { documents } from '@/database/schema';
+import { documentRoleAccess, documents } from '@/database/schema';
 import { ingestDocumentJob } from '@/jobs/ingest-document/ingest-document-job';
-import isUUID from '@/utils/is-uuid';
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ agentSlug: string }> }
-) {
-  const { agentSlug } = await params;
+export async function POST(request: NextRequest) {
+  const user = await getCurrentUser(request.headers);
 
-  const agent = await db.query.agents.findFirst({
-    where: {
-      [isUUID(agentSlug) ? 'id' : 'slug']: agentSlug
-    }
-  });
-
-  if (!agent) {
-    return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const body = (await request.json()) as HandleUploadBody;
@@ -33,22 +24,38 @@ export async function POST(
       token: process.env.BLOB_READ_WRITE_TOKEN,
       body,
       request,
-      onBeforeGenerateToken: async (pathname) => {
-        const user = await getCurrentUser(request.headers);
+      onBeforeGenerateToken: async (pathname, clientPayload) => {
+        const payload = uploadDocumentPayloadSchema.parse(
+          JSON.parse(clientPayload ?? '{}')
+        );
 
-        if (!user) {
-          throw new Error('Unauthorized');
-        }
-
+        // Create document with agent ID
         const [document] = await db
           .insert(documents)
           .values({
             name: pathname.split('/').pop() ?? 'unknown',
-            agentId: agent.id,
             type: 'unknown',
-            status: 'pending'
+            status: 'pending',
+            agentId: payload.agentId
           })
           .returning();
+
+        // Handle role access
+        if (payload.allRoles) {
+          // Grant access to all roles (agentRoleId = null)
+          await db.insert(documentRoleAccess).values({
+            documentId: document.id,
+            agentRoleId: null
+          });
+        } else if (payload.roleIds.length > 0) {
+          // Grant access to specific roles
+          await db.insert(documentRoleAccess).values(
+            payload.roleIds.map((roleId) => ({
+              documentId: document.id,
+              agentRoleId: roleId
+            }))
+          );
+        }
 
         return {
           allowedContentTypes: [

@@ -54,7 +54,12 @@ export const runSuperAgentJob = schemaTask({
           id: chatId
         },
         with: {
-          agent: true,
+          agent: {
+            with: {
+              roles: true
+            }
+          },
+          activeRole: true,
           user: {
             with: {
               memories: true
@@ -77,6 +82,9 @@ export const runSuperAgentJob = schemaTask({
     if (!chat) {
       throw new AbortTaskRunError('Chat not found');
     }
+
+    const activeRole =
+      chat.activeRole ?? chat.agent.roles.find((r) => r.isDefault);
 
     // Construct comprehensive system prompt
     const systemPrompt = `# Super Agent System
@@ -282,7 +290,8 @@ Silently monitor and analyze conversations, storing insights in your scratchpad.
           deleteMemory: toolDeleteMemory(),
           executeSql: toolExecuteSQL(),
           searchKnowledgeBase: toolSearchKnowledgeBase({
-            agentId: chat.agentId
+            agentId: chat.agentId,
+            roleId: activeRole?.id
           })
         }
       })

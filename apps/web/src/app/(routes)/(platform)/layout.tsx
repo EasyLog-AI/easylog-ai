@@ -5,12 +5,7 @@ import { Suspense } from 'react';
 import getCurrentUser from '@/app/_auth/data/getCurrentUser';
 import Header from '@/app/_shared/components/Header';
 
-const PlatformLayout = async ({
-  children,
-  params
-}: React.PropsWithChildren<{ params: Promise<{ agentSlug: string }> }>) => {
-  const { agentSlug } = await params;
-
+const PlatformLayout = async ({ children }: React.PropsWithChildren<{}>) => {
   const user = await getCurrentUser(await headers());
 
   if (!user) {
@@ -18,9 +13,9 @@ const PlatformLayout = async ({
   }
 
   return (
-    <main className="flex h-svh flex-col">
+    <main className="flex min-h-svh flex-col">
       <Suspense>
-        <Header user={user} agentSlug={agentSlug} />
+        <Header user={user} />
       </Suspense>
       {children}
     </main>

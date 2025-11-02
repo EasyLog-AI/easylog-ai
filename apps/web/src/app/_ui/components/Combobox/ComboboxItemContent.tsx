@@ -2,7 +2,7 @@ import { IconCheck } from '@tabler/icons-react';
 
 import useComboboxContext from './useComboboxContext';
 import ContentWrapper, {
-  ContentWrapperProps
+  ContentWrapperProps,
 } from '../ContentWrapper/ContentWrapper';
 
 export interface ComboboxItemContentProps extends ContentWrapperProps {
@@ -15,13 +15,13 @@ const ComboBoxItemContent = ({
   iconRight,
   ...props
 }: React.PropsWithChildren<ComboboxItemContentProps>) => {
-  const { activeItem } = useComboboxContext();
+  const { activeItem, idField } = useComboboxContext();
 
   return (
     <ContentWrapper
       {...props}
       align="start"
-      iconRight={value === activeItem?.id.toString() ? IconCheck : iconRight}
+      iconRight={value === activeItem?.[idField] ? IconCheck : iconRight}
     >
       {children}
     </ContentWrapper>

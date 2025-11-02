@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 import { VariantProps, tv } from 'tailwind-variants';
 
@@ -7,7 +9,6 @@ import Typography, {
   TypographyProps
 } from '@/app/_ui/components/Typography/Typography';
 import useNavigationMenuContext from '@/app/_ui/hooks/useNavigationMenuContext';
-import { Link, usePathname } from '@/i18n/routing';
 
 export const navigationMenuItemStyles = tv({
   slots: {

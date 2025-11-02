@@ -6,10 +6,13 @@ import {
   stepCountIs,
   tool
 } from 'ai';
+import { and, eq, exists, isNull, or } from 'drizzle-orm';
+import { QueryBuilder } from 'drizzle-orm/pg-core';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 
 import db from '@/database/client';
+import { documentRoleAccess, documents } from '@/database/schema';
 import openrouterProvider from '@/lib/ai-providers/openrouter';
 import splitArrayBatches from '@/utils/split-array-batches';
 import tryCatch from '@/utils/try-catch';
@@ -18,16 +21,19 @@ import { searchKnowledgeBaseConfig } from './config';
 
 interface ToolSearchKnowledgeBaseProps {
   agentId: string;
+  roleId?: string;
 }
 
 const getToolSearchKnowledgeBase = (
-  { agentId }: ToolSearchKnowledgeBaseProps,
+  { agentId, roleId }: ToolSearchKnowledgeBaseProps,
   messageStreamWriter?: UIMessageStreamWriter
 ) => {
   return tool({
     ...searchKnowledgeBaseConfig,
     execute: async ({ userSearchQuery }) => {
       const id = uuidv4();
+
+      const qb = new QueryBuilder();
 
       messageStreamWriter?.write({
         type: 'data-research',
@@ -39,23 +45,54 @@ const getToolSearchKnowledgeBase = (
         }
       });
 
-      const dbDocuments = await db.query.documents.findMany({
-        limit: 50,
-        columns: {
-          id: true,
-          name: true,
-          summary: true,
-          tags: true
-        },
-        where: {
-          agentId
-        }
-      });
+      // Access control: documents must belong to the agent AND (have "all roles" access OR specific role has access)
+      const accessClause = and(
+        eq(documents.agentId, agentId),
+        or(
+          // Document has "all roles" access (agentRoleId IS NULL in documentRoleAccess)
+          exists(
+            qb
+              .select()
+              .from(documentRoleAccess)
+              .where(
+                and(
+                  eq(documentRoleAccess.documentId, documents.id),
+                  isNull(documentRoleAccess.agentRoleId)
+                )
+              )
+          ),
+          // Document has specific role access
+          roleId
+            ? exists(
+                qb
+                  .select()
+                  .from(documentRoleAccess)
+                  .where(
+                    and(
+                      eq(documentRoleAccess.documentId, documents.id),
+                      eq(documentRoleAccess.agentRoleId, roleId)
+                    )
+                  )
+              )
+            : undefined
+        )
+      );
+
+      const dbDocuments = await db
+        .select({
+          id: documents.id,
+          name: documents.name,
+          summary: documents.summary,
+          tags: documents.tags
+        })
+        .from(documents)
+        .where(accessClause)
+        .limit(50);
 
       console.log('dbDocuments', dbDocuments);
 
       const {
-        object: { documents }
+        object: { documents: relevantDocuments }
       } = await generateObject({
         model: openrouterProvider('google/gemini-2.5-flash'),
         prompt: `You are a document search assistant. Analyze the user's question and the available documents to identify which documents are most relevant to answering their query.
@@ -96,14 +133,14 @@ const getToolSearchKnowledgeBase = (
         })
       });
 
-      console.log('documents', documents);
+      console.log('documents', relevantDocuments);
 
       const relevantInformationObjects: {
         id: string;
         name: string;
         relevantInformation: string;
         reason: string;
-      }[] = documents.map((d) => ({
+      }[] = relevantDocuments.map((d) => ({
         id: d.id,
         name: d.name,
         relevantInformation: '',
@@ -116,7 +153,7 @@ const getToolSearchKnowledgeBase = (
         data: {
           status: 'loading',
           title: 'Found relevant documents',
-          body: `Found ${documents.length} relevant knowledge base documents`
+          body: `Found ${relevantDocuments.length} relevant knowledge base documents`
         }
       });
 

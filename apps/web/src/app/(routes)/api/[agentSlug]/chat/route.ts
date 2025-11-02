@@ -286,11 +286,15 @@ export const POST = async (
           executeSql: toolExecuteSQL(writer),
           searchKnowledgeBase: toolSearchKnowledgeBase(
             {
-              agentId: chat.agentId
+              agentId: chat.agentId,
+              roleId: activeRole?.id
             },
             writer
           ),
-          loadDocument: toolLoadDocument(),
+          loadDocument: toolLoadDocument({
+            agentId: chat.agentId,
+            roleId: activeRole?.id
+          }),
           clearChat: toolClearChat(chat.id, chat.agentId, user.id),
           changeRole: toolChangeRole(
             chat.id,
@@ -315,10 +319,11 @@ export const POST = async (
           getVehicleRanking: toolGetVehicleRanking()
         };
 
-        // Filter tools based on agent capabilities if specified
-        const allowedToolNames = getToolNamesFromCapabilities(
-          chat.agent.capabilities
-        );
+        // Filter tools based on role or agent capabilities
+        const capabilities = activeRole
+          ? activeRole.capabilities
+          : chat.agent.defaultCapabilities;
+        const allowedToolNames = getToolNamesFromCapabilities(capabilities);
 
         const tools =
           allowedToolNames.length > 0

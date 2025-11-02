@@ -1,84 +1,142 @@
 'use client';
 
 import Fuse, { IFuseOptions } from 'fuse.js';
-import { createContext, useState } from 'react';
+import { createContext, useEffect, useMemo, useState } from 'react';
 
-export type ItemWithId = {
-  id: number | string;
-} & Record<string, unknown>;
+import useDebounce from '../../hooks/useDebounce';
 
-export interface ComboboxContextType<T = ItemWithId> {
-  items: ReadonlyArray<T>;
+export interface ComboboxContextType<T, IDField extends keyof T = keyof T> {
+  items: T[] | undefined;
 
   activeItem: T | null;
 
   open: boolean;
   setOpen: (open: boolean) => void;
 
-  value: string | number | null;
-  setValue: (value: string | number | null) => void;
+  value: T[IDField] | null;
+  setValue: (value: T[IDField] | null) => void;
 
   search: string;
   setSearch: (search: string) => void;
 
-  results: ReadonlyArray<T>;
+  results: T[];
+
+  idField: IDField;
 }
 
-export const ComboboxContext = createContext<ComboboxContextType | null>(null);
+export const ComboboxContext =
+  createContext<ComboboxContextType<unknown> | null>(null);
 
-export interface ComboboxProviderProps<T = ItemWithId> {
-  items: ReadonlyArray<T>;
-  value?: number | string | null;
-  defaultValue?: number | string | null;
-  onValueChange?: (value: number | string | null) => void;
+export interface ComboboxProviderProps<T, IDField extends keyof T = keyof T> {
+  items?: T[];
+  defaultValue?: T[IDField] | null;
+  idField: IDField;
+  value?: T[IDField] | null;
+  onValueChange?: (value: T[IDField] | null) => void;
+  onSearch?: (search: string) => Promise<T[]> | T[];
   fuseOptions?: IFuseOptions<T>;
+  debounceMs?: number;
+  children?:
+    | React.ReactNode
+    | ((context: ComboboxContextType<T, IDField>) => React.ReactNode);
 }
 
-const ComboboxProvider = ({
-  items,
+const ComboboxProvider = <T, IDField extends keyof T = keyof T>({
+  items = [],
+  defaultValue,
   value: _value,
   onValueChange,
-  defaultValue = null,
+  idField,
+  onSearch,
   fuseOptions,
-  children
-}: React.PropsWithChildren<ComboboxProviderProps>) => {
+  debounceMs = 300,
+  children,
+}: ComboboxProviderProps<T, IDField>) => {
+  if (onSearch && fuseOptions) {
+    throw new Error('Cannot use onSearch and fuseOptions together');
+  }
+
+  const [results, setResults] = useState<T[]>(items);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
-
-  const [__value, __setValue] = useState<string | number | null>(defaultValue);
+  const [__value, _setValue] = useState<T[IDField] | null | undefined>(
+    defaultValue,
+  );
 
   const value = _value ?? __value;
 
-  const setValue = (value: string | number | null) => {
-    __setValue(value);
-    onValueChange?.(value);
-  };
+  // Create Fuse instance for default search
+  const fuse = useMemo(() => {
+    if (!fuseOptions || items.length === 0) return null;
+    return new Fuse(items as T[], fuseOptions);
+  }, [items, fuseOptions]);
 
-  const fuse = new Fuse(items, fuseOptions);
+  // Debounce search input
+  const [debouncedSearch] = useDebounce(search, debounceMs);
 
-  const results = search
-    ? fuse.search(search).map((result) => result.item)
-    : items;
+  // Handle search with custom handler or Fuse fallback
+  useEffect(() => {
+    const performSearch = async () => {
+      if (!debouncedSearch) {
+        setResults(items);
+        return;
+      }
+
+      // Custom search handler
+      if (onSearch) {
+        const searchResults = await onSearch(debouncedSearch);
+        setResults(searchResults);
+        return;
+      }
+
+      // Fuse search
+      if (fuse) {
+        const fuseResults = fuse.search(debouncedSearch);
+        setResults(fuseResults.map((result) => result.item));
+        return;
+      }
+
+      // No search configured, just filter items by string matching
+      if (items.length > 0) {
+        const filtered = items.filter((item) =>
+          Object.values(item as Record<string, unknown>).some((val) =>
+            String(val).toLowerCase().includes(debouncedSearch.toLowerCase()),
+          ),
+        );
+        setResults(filtered);
+      }
+    };
+
+    void performSearch();
+  }, [debouncedSearch, items, onSearch, fuse]);
 
   const activeItem = value
-    ? (items.find((item) => item.id?.toString() === value.toString()) ?? null)
+    ? (items?.find((item) => item[idField] === value) ?? null)
     : null;
+
+  const setValue = (newValue: T[IDField] | null) => {
+    _setValue(newValue);
+    onValueChange?.(newValue);
+  };
+
+  const contextValue: ComboboxContextType<T, IDField> = {
+    items,
+    activeItem,
+    open,
+    setOpen,
+    value: value ?? null,
+    setValue,
+    search,
+    setSearch,
+    results,
+    idField,
+  };
 
   return (
     <ComboboxContext.Provider
-      value={{
-        items,
-        activeItem,
-        open,
-        setOpen,
-        value,
-        setValue,
-        search,
-        setSearch,
-        results
-      }}
+      value={contextValue as unknown as ComboboxContextType<unknown>}
     >
-      {children}
+      {typeof children === 'function' ? children(contextValue) : children}
     </ComboboxContext.Provider>
   );
 };

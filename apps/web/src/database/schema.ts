@@ -168,8 +168,23 @@ export const documents = pgTable('documents', {
   analysis: jsonb('analysis').notNull().default({}),
   status: documentStatusEnum('status').notNull().default('pending'),
   agentId: uuid('agent_id')
-    .references(() => agents.id, { onDelete: 'cascade' })
+    .references(() => agents.id, {
+      onDelete: 'cascade'
+    })
     .notNull(),
+  ...timestamps
+});
+
+export const documentRoleAccess = pgTable('document_role_access', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  documentId: uuid('document_id')
+    .references(() => documents.id, {
+      onDelete: 'cascade'
+    })
+    .notNull(),
+  agentRoleId: uuid('agent_role_id').references(() => agentRoles.id, {
+    onDelete: 'cascade'
+  }),
   ...timestamps
 });
 
@@ -209,7 +224,7 @@ export const agents = pgTable('agents', {
   voiceChatVoice: voiceChatVoiceEnum('voice_chat_voice')
     .notNull()
     .default('marin'),
-  capabilities: jsonb('capabilities')
+  defaultCapabilities: jsonb('default_capabilities')
     .notNull()
     .default({
       core: true,
@@ -244,6 +259,19 @@ export const agentRoles = pgTable('agent_roles', {
     .default('medium'),
   cacheControl: boolean('cache_control').notNull().default(false),
   autoStartMessage: text('auto_start_message'),
+  capabilities: jsonb('capabilities')
+    .notNull()
+    .default({
+      core: true,
+      charts: true,
+      planning: true,
+      sql: true,
+      knowledgeBase: true,
+      memories: true,
+      multipleChoice: true,
+      pqiAudits: true
+    })
+    .$type<AgentCapabilities>(),
   ...timestamps
 });
 
@@ -258,7 +286,6 @@ export const chats = pgTable('chats', {
   activeRoleId: uuid('active_role_id').references(() => agentRoles.id, {
     onDelete: 'cascade'
   }),
-  /** TODO: come on jappie, we can do better than this */
   messages: jsonb('messages').notNull().default([]).$type<ChatMessage[]>(),
   ...timestamps
 });
@@ -313,29 +340,4 @@ export const scratchpadMessages = pgTable('scratchpad_messages', {
     .notNull(),
   message: text().notNull().default(''),
   ...timestamps
-});
-
-/**
- * Anthropic API Logs Table
- *
- * Stores all Anthropic API interactions for monitoring:
- *
- * - Context management effectiveness
- * - Prompt caching performance
- * - Token usage and costs
- * - Error tracking
- */
-export const anthropicLogs = pgTable('anthropic_logs', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  chatId: uuid('chat_id').references(() => chats.id, { onDelete: 'cascade' }),
-  timestamp: timestamp('timestamp', { mode: 'date' }).notNull().defaultNow(),
-  requestType: anthropicRequestTypeEnum('request_type').notNull(),
-  model: text('model'),
-  messagesCount: integer('messages_count'),
-  toolsCount: integer('tools_count'),
-  contextManagement: jsonb('context_management'),
-  cacheCreationTokens: integer('cache_creation_tokens'),
-  cacheReadTokens: integer('cache_read_tokens'),
-  errorMessage: text('error_message'),
-  rawData: jsonb('raw_data')
 });
