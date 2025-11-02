@@ -12,9 +12,9 @@ import CardTitle from '@/app/_ui/components/Card/CardTitle';
 import Typography from '@/app/_ui/components/Typography/Typography';
 import useTRPC from '@/lib/trpc/browser';
 
-import useAgentSlug from '../../hooks/useAgentSlug';
 import AgentRoleForm from './AgentRoleForm';
 import DeleteRoleAlert from './DeleteRoleAlert';
+import useAgentSlug from '../../hooks/useAgentSlug';
 
 const AgentRolesList = () => {
   const api = useTRPC();

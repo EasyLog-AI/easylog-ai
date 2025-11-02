@@ -10,13 +10,13 @@ import ButtonContent from '@/app/_ui/components/Button/ButtonContent';
 import useZodForm from '@/app/_ui/hooks/useZodForm';
 import useTRPC from '@/lib/trpc/browser';
 
+import RoleBasicSettings from './RoleBasicSettings';
+import RoleCapabilitiesSettings from './RoleCapabilitiesSettings';
+import RoleModelSettings from './RoleModelSettings';
 import useAgentSlug from '../../hooks/useAgentSlug';
 import agentRoleFormSchema, {
   AgentRoleFormSchema
 } from '../schemas/agentRoleFormSchema';
-import RoleBasicSettings from './RoleBasicSettings';
-import RoleCapabilitiesSettings from './RoleCapabilitiesSettings';
-import RoleModelSettings from './RoleModelSettings';
 
 interface AgentRoleFormProps {
   role?: {
