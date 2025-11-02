@@ -60,7 +60,7 @@ const ChatHistory = () => {
 
   return (
     <div
-      className="container relative flex-1 overflow-y-auto"
+      className="container relative flex-1 overflow-y-auto pb-3 md:pb-5"
       ref={scrollRef}
       onScroll={handleScroll}
     >
@@ -157,7 +157,7 @@ const ChatHistory = () => {
               className="bg-fill-brand animate-scale-in my-3 size-3 rounded-full"
               initial={{ opacity: 0, scale: 0 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.2, delay: 0.2 }}
               style={{ overflowAnchor: 'none' }}
             />
           ) : null}
