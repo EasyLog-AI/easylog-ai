@@ -2,12 +2,12 @@ import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
 import { headers } from 'next/headers';
 import { forbidden } from 'next/navigation';
 
-import AgentBaseSettingsForm from '@/app/_agents/components/AgentBaseSettingsForm';
+import AgentRolesList from '@/app/_agents/_agent-roles/components/AgentRolesList';
 import getCurrentUser from '@/app/_auth/data/getCurrentUser';
 import getQueryClient from '@/lib/react-query';
 import api from '@/lib/trpc/server';
 
-const SettingsPage = async ({
+const RolesSettingsPage = async ({
   params
 }: {
   params: Promise<{
@@ -25,18 +25,16 @@ const SettingsPage = async ({
   const queryClient = getQueryClient();
 
   void queryClient.prefetchQuery(
-    api.agents.get.queryOptions({
+    api.agents.roles.getMany.queryOptions({
       agentId: agentSlug
     })
   );
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <main className="container mx-auto py-10">
-        <AgentBaseSettingsForm />
-      </main>
+      <AgentRolesList />
     </HydrationBoundary>
   );
 };
 
-export default SettingsPage;
+export default RolesSettingsPage;

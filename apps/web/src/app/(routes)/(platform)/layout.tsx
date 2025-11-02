@@ -13,7 +13,7 @@ const PlatformLayout = async ({ children }: React.PropsWithChildren<{}>) => {
   }
 
   return (
-    <main className="flex h-svh flex-col">
+    <main className="flex min-h-svh flex-col">
       <Suspense>
         <Header user={user} />
       </Suspense>

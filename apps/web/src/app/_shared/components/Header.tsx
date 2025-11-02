@@ -23,7 +23,7 @@ const Header = ({ user }: HeaderProps) => {
   }
 
   return (
-    <div className="bg-surface-primary border-border-muted sticky top-0 z-10 flex h-14 border-b">
+    <div className="bg-surface-primary border-border-muted sticky top-0 z-50 flex h-14 border-b">
       <div className="container flex items-center justify-between">
         <Link href="/chat">
           <Logo className="h-12 w-auto" />
