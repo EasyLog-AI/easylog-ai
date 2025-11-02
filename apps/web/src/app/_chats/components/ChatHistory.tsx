@@ -152,7 +152,7 @@ const ChatHistory = () => {
             ) : null
           )}
 
-          {status === 'submitted' ? (
+          {status === 'submitted' || status === 'streaming' ? (
             <motion.div
               className="bg-fill-brand animate-scale-in my-3 size-3 rounded-full"
               initial={{ opacity: 0, scale: 0 }}
