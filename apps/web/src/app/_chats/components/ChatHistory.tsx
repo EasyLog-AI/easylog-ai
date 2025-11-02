@@ -79,7 +79,6 @@ const ChatHistory = () => {
                       <ChatMessageUserTextContent
                         key={`${message.id}-${i}`}
                         text={part.text}
-                        _isHidden={isHiddenText(part.text)}
                       />
                     ) : part.type === 'file' ? (
                       <ChatMessageFileContent
