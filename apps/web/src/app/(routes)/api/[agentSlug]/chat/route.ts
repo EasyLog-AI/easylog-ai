@@ -139,6 +139,11 @@ export const POST = async (
       return new NextResponse('Chat not found', { status: 404 });
     }
 
+    const agentMemories =
+      (user.memories ?? []).filter(
+        (memory) => memory.agentId === chat.agentId
+      );
+
     const existingMessages = chat.messages as ChatMessage[];
     const combinedMessages: ChatMessage[] = [...existingMessages, message];
 
@@ -170,8 +175,8 @@ export const POST = async (
   This is the information you have stored about the user. Use it to personalize your responses.
   
   ${
-    user.memories && user.memories.length > 0
-      ? user.memories
+    agentMemories.length > 0
+      ? agentMemories
           .map((mem) => `- [ID: ${mem.id}] ${mem.content}`)
           .join('\n')
       : 'You have not stored any memories about this user yet.'
@@ -302,8 +307,14 @@ export const POST = async (
             user,
             chat.agent
           ),
-          createMemory: toolCreateMemory(user.id),
-          deleteMemory: toolDeleteMemory(),
+          createMemory: toolCreateMemory({
+            userId: user.id,
+            agentId: chat.agentId
+          }),
+          deleteMemory: toolDeleteMemory({
+            userId: user.id,
+            agentId: chat.agentId
+          }),
           createMultipleChoice: toolCreateMultipleChoice(
             {
               chatId: chat.id
