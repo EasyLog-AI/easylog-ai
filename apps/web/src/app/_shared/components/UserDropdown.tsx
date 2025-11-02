@@ -1,6 +1,6 @@
 'use client';
 
-import { IconBook, IconLogout } from '@tabler/icons-react';
+import { IconLogout } from '@tabler/icons-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
@@ -46,18 +46,6 @@ const UserDropdown = ({ user }: UserDropdownProps) => {
             {user?.email}
           </Typography>
         </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-
-        <DropdownMenuItem
-          onSelect={() => {
-            router.push(`/knowledge-base`);
-          }}
-        >
-          <DropdownMenuContentWrapper iconLeft={IconBook} align="start">
-            Kennisbank
-          </DropdownMenuContentWrapper>
-        </DropdownMenuItem>
-
         <DropdownMenuSeparator />
 
         <DropdownMenuItem

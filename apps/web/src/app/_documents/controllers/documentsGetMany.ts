@@ -1,8 +1,10 @@
+import { eq, exists } from 'drizzle-orm';
 import { z } from 'zod';
 
 import db from '@/database/client';
-import { documents } from '@/database/schema';
+import { agents, documents } from '@/database/schema';
 import { protectedProcedure } from '@/lib/trpc/procedures';
+import isUUID from '@/utils/is-uuid';
 
 const documentsGetMany = protectedProcedure
   .meta({
@@ -10,29 +12,57 @@ const documentsGetMany = protectedProcedure
       method: 'GET',
       path: '/api/orpc/documents',
       tags: ['Documents'],
-      summary: 'List all documents'
+      summary: 'List all documents with optional filtering'
     }
   })
   .input(
     z.object({
       cursor: z.number().default(0),
-      limit: z.number().min(1).max(100).default(10)
+      limit: z.number().min(1).max(1000).default(10),
+      filter: z
+        .object({
+          agentId: z.string().optional()
+        })
+        .optional()
     })
   )
   .query(async ({ input }) => {
     const [data, total] = await Promise.all([
       db.query.documents.findMany({
+        where: input.filter?.agentId
+          ? {
+              agent: {
+                [isUUID(input.filter.agentId) ? 'id' : 'slug']:
+                  input.filter.agentId
+              }
+            }
+          : undefined,
         orderBy: {
           createdAt: 'desc'
         },
         limit: input.limit,
         offset: input.cursor,
         with: {
-          agents: true,
+          agent: true,
           roles: true
         }
       }),
-      db.$count(documents)
+      db.$count(
+        documents,
+        input.filter?.agentId
+          ? exists(
+              db
+                .select()
+                .from(agents)
+                .where(
+                  eq(
+                    agents[isUUID(input.filter.agentId) ? 'id' : 'slug'],
+                    input.filter.agentId
+                  )
+                )
+            )
+          : undefined
+      )
     ]);
 
     const hasMore = input.cursor + input.limit < total;
