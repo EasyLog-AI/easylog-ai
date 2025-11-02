@@ -167,18 +167,18 @@ export const documents = pgTable('documents', {
   content: jsonb('content'),
   analysis: jsonb('analysis').notNull().default({}),
   status: documentStatusEnum('status').notNull().default('pending'),
-  ...timestamps
-});
-
-export const documentAccess = pgTable('document_access', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  documentId: uuid('document_id')
-    .references(() => documents.id, {
+  agentId: uuid('agent_id')
+    .references(() => agents.id, {
       onDelete: 'cascade'
     })
     .notNull(),
-  agentId: uuid('agent_id')
-    .references(() => agents.id, {
+  ...timestamps
+});
+
+export const documentRoleAccess = pgTable('document_role_access', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  documentId: uuid('document_id')
+    .references(() => documents.id, {
       onDelete: 'cascade'
     })
     .notNull(),
@@ -224,7 +224,7 @@ export const agents = pgTable('agents', {
   voiceChatVoice: voiceChatVoiceEnum('voice_chat_voice')
     .notNull()
     .default('marin'),
-  capabilities: jsonb('capabilities')
+  defaultCapabilities: jsonb('default_capabilities')
     .notNull()
     .default({
       core: true,
@@ -259,6 +259,19 @@ export const agentRoles = pgTable('agent_roles', {
     .default('medium'),
   cacheControl: boolean('cache_control').notNull().default(false),
   autoStartMessage: text('auto_start_message'),
+  capabilities: jsonb('capabilities')
+    .notNull()
+    .default({
+      core: true,
+      charts: true,
+      planning: true,
+      sql: true,
+      knowledgeBase: true,
+      memories: true,
+      multipleChoice: true,
+      pqiAudits: true
+    })
+    .$type<AgentCapabilities>(),
   ...timestamps
 });
 
@@ -273,7 +286,6 @@ export const chats = pgTable('chats', {
   activeRoleId: uuid('active_role_id').references(() => agentRoles.id, {
     onDelete: 'cascade'
   }),
-  /** TODO: come on jappie, we can do better than this */
   messages: jsonb('messages').notNull().default([]).$type<ChatMessage[]>(),
   ...timestamps
 });

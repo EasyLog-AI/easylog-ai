@@ -1,38 +1,45 @@
 import { z } from 'zod';
 
 import db from '@/database/client';
-import { documents } from '@/database/schema';
+import { agents } from '@/database/schema';
 import { protectedProcedure } from '@/lib/trpc/procedures';
 
-const documentsGetMany = protectedProcedure
+/**
+ * Get all agents with their roles. Optionally filter by knowledgeBase
+ * capability.
+ */
+const agentsGetMany = protectedProcedure
   .meta({
     route: {
       method: 'GET',
-      path: '/api/orpc/documents',
-      tags: ['Documents'],
-      summary: 'List all documents'
+      path: '/api/orpc/agents',
+      tags: ['Agents'],
+      summary: 'List all agents with roles'
     }
   })
   .input(
-    z.object({
-      cursor: z.number().default(0),
-      limit: z.number().min(1).max(100).default(10)
-    })
+    z
+      .object({
+        cursor: z.number().default(0),
+        limit: z.number().min(1).max(100).default(10)
+      })
+      .optional()
+      .default({})
   )
   .query(async ({ input }) => {
     const [data, total] = await Promise.all([
-      db.query.documents.findMany({
+      db.query.agents.findMany({
+        with: {
+          roles: true,
+          documents: true
+        },
         orderBy: {
           createdAt: 'desc'
         },
         limit: input.limit,
-        offset: input.cursor,
-        with: {
-          agents: true,
-          roles: true
-        }
+        offset: input.cursor
       }),
-      db.$count(documents)
+      db.$count(agents)
     ]);
 
     const hasMore = input.cursor + input.limit < total;
@@ -50,4 +57,4 @@ const documentsGetMany = protectedProcedure
     };
   });
 
-export default documentsGetMany;
+export default agentsGetMany;

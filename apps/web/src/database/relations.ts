@@ -58,10 +58,6 @@ const relations = defineRelations(schema, (r) => ({
     })
   },
   agents: {
-    documents: r.many.documentAgents({
-      from: r.agents.id,
-      to: r.documentAgents.agentId
-    }),
     chats: r.many.chats({
       from: r.agents.id,
       to: r.chats.agentId
@@ -73,6 +69,10 @@ const relations = defineRelations(schema, (r) => ({
     superAgents: r.many.superAgents({
       from: r.agents.id,
       to: r.superAgents.agentId
+    }),
+    documents: r.many.documents({
+      from: r.agents.id,
+      to: r.documents.agentId
     })
   },
   agentRoles: {
@@ -84,48 +84,20 @@ const relations = defineRelations(schema, (r) => ({
     activeChats: r.many.chats({
       from: r.agentRoles.id,
       to: r.chats.activeRoleId
-    }),
-    documents: r.many.documentRoles({
-      from: r.agentRoles.id,
-      to: r.documentRoles.roleId
     })
   },
   documents: {
-    agents: r.many.documentAgents({
+    agents: r.many.agents({
       from: r.documents.id,
-      to: r.documentAgents.documentId
+      to: r.agents.id
     }),
-    roles: r.many.documentRoles({
+    roles: r.many.agentRoles({
       from: r.documents.id,
-      to: r.documentRoles.documentId
+      to: r.agentRoles.id
     }),
     data: r.many.documentData({
       from: r.documents.id,
       to: r.documentData.documentId
-    })
-  },
-  documentAgents: {
-    document: r.one.documents({
-      from: r.documentAgents.documentId,
-      to: r.documents.id,
-      optional: false
-    }),
-    agent: r.one.agents({
-      from: r.documentAgents.agentId,
-      to: r.agents.id,
-      optional: false
-    })
-  },
-  documentRoles: {
-    document: r.one.documents({
-      from: r.documentRoles.documentId,
-      to: r.documents.id,
-      optional: false
-    }),
-    role: r.one.agentRoles({
-      from: r.documentRoles.roleId,
-      to: r.agentRoles.id,
-      optional: false
     })
   },
   chats: {
