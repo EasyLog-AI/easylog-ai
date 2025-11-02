@@ -6,14 +6,10 @@ import DialogTrigger from '@/app/_ui/components/Dialog/DialogTrigger';
 
 import DocumentsUploadDialog from './DocumentsUploadDialog';
 
-interface DocumentsActionRowProps {
-  agentSlug: string;
-}
-
-const DocumentsActionRow = ({ agentSlug }: DocumentsActionRowProps) => {
+const DocumentsActionRow = () => {
   return (
     <div className="flex items-center justify-between">
-      <DocumentsUploadDialog agentSlug={agentSlug}>
+      <DocumentsUploadDialog>
         <DialogTrigger asChild>
           <Button>
             <ButtonContent iconLeft={IconUpload}>

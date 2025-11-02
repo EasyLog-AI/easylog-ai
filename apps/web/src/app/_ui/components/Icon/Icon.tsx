@@ -46,7 +46,7 @@ const Icon = ({
   size,
   colorRole,
   className,
-  stroke = '2.5'
+  stroke = '2'
 }: IconProps) => {
   const Comp = icon;
 

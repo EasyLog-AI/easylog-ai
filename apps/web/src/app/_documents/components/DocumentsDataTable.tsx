@@ -7,32 +7,21 @@ import useTRPC from '@/lib/trpc/browser';
 
 import { documentsTableColumns } from '../table-columns/DocumentsTableColumns';
 
-interface DocumentsDataTableProps {
-  agentSlug: string;
-}
-
-const DocumentsDataTable = ({ agentSlug }: DocumentsDataTableProps) => {
+const DocumentsDataTable = () => {
   const api = useTRPC();
 
   const { data: documentData } = useSuspenseInfiniteQuery(
     api.documents.getMany.infiniteQueryOptions(
       {
         cursor: 0,
-        limit: 100,
-        agentId: agentSlug
+        limit: 100
       },
       {
-        getNextPageParam: (lastPage, allPages) => {
-          const total = allPages.reduce(
-            (acc, page) => acc + page.data.length,
-            0
-          );
-
-          if (total >= lastPage.meta.total) {
-            return undefined;
-          }
-
-          return lastPage.meta.cursor + lastPage.meta.limit;
+        getNextPageParam: (lastPage) => {
+          return lastPage.meta.nextCursor;
+        },
+        getPreviousPageParam: (firstPage) => {
+          return firstPage.meta.previousCursor;
         }
       }
     )

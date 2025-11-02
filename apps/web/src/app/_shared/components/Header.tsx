@@ -10,10 +10,9 @@ import UserDropdown from './UserDropdown';
 
 export interface HeaderProps {
   user: User;
-  agentSlug: string;
 }
 
-const Header = ({ user, agentSlug }: HeaderProps) => {
+const Header = ({ user }: HeaderProps) => {
   const [headerHidden] = useQueryState(
     'header_hidden',
     parseAsBoolean.withDefault(false)
@@ -29,7 +28,7 @@ const Header = ({ user, agentSlug }: HeaderProps) => {
         <Link href="/chat">
           <Logo className="h-12 w-auto" />
         </Link>
-        <UserDropdown user={user} agentId={agentSlug} />
+        <UserDropdown user={user} />
       </div>
     </div>
   );

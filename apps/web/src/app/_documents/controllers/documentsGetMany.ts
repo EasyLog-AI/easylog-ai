@@ -35,12 +35,16 @@ const documentsGetMany = protectedProcedure
       db.$count(documents)
     ]);
 
+    const hasMore = input.cursor + input.limit < total;
+    const nextCursor = hasMore ? input.cursor + input.limit : null;
+    const previousCursor = input.cursor > 0 ? Math.max(0, input.cursor - input.limit) : null;
+
     return {
       data,
       meta: {
         total,
-        cursor: input.cursor + input.limit,
-        limit: input.limit
+        nextCursor,
+        previousCursor
       }
     };
   });
