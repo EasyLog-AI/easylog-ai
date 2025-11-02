@@ -84,20 +84,36 @@ const relations = defineRelations(schema, (r) => ({
     activeChats: r.many.chats({
       from: r.agentRoles.id,
       to: r.chats.activeRoleId
+    }),
+    documentAccess: r.many.documentRoleAccess({
+      from: r.agentRoles.id,
+      to: r.documentRoleAccess.agentRoleId
     })
   },
   documents: {
-    agents: r.many.agents({
-      from: r.documents.id,
-      to: r.agents.id
+    agent: r.one.agents({
+      from: r.documents.agentId,
+      to: r.agents.id,
+      optional: false
     }),
-    roles: r.many.agentRoles({
+    roles: r.many.documentRoleAccess({
       from: r.documents.id,
-      to: r.agentRoles.id
+      to: r.documentRoleAccess.documentId
     }),
     data: r.many.documentData({
       from: r.documents.id,
       to: r.documentData.documentId
+    })
+  },
+  documentRoleAccess: {
+    document: r.one.documents({
+      from: r.documentRoleAccess.documentId,
+      to: r.documents.id,
+      optional: false
+    }),
+    role: r.one.agentRoles({
+      from: r.documentRoleAccess.agentRoleId,
+      to: r.agentRoles.id
     })
   },
   chats: {

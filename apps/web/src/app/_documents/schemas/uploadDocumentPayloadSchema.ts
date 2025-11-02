@@ -1,12 +1,13 @@
 import { z } from 'zod';
 
-const uploadDocumentPayloadSchema = z.array(
-  z.object({
-    agentId: z.string(),
-    roleId: z.string().nullable().optional()
-  })
-);
+const uploadDocumentPayloadSchema = z.object({
+  agentId: z.string().uuid(),
+  allRoles: z.boolean(),
+  roleIds: z.array(z.string().uuid())
+});
 
-export type UploadDocumentPayload = z.infer<typeof uploadDocumentPayloadSchema>;
+export type UploadDocumentPayload = z.infer<
+  typeof uploadDocumentPayloadSchema
+>;
 
 export default uploadDocumentPayloadSchema;

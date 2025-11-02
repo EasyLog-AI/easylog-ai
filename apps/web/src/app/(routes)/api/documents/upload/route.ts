@@ -7,7 +7,7 @@ import { z } from 'zod';
 import getCurrentUser from '@/app/_auth/data/getCurrentUser';
 import uploadDocumentPayloadSchema from '@/app/_documents/schemas/uploadDocumentPayloadSchema';
 import db from '@/database/client';
-import { documentAccess, documents } from '@/database/schema';
+import { documentRoleAccess, documents } from '@/database/schema';
 import { ingestDocumentJob } from '@/jobs/ingest-document/ingest-document-job';
 
 export async function POST(request: NextRequest) {
@@ -25,26 +25,37 @@ export async function POST(request: NextRequest) {
       body,
       request,
       onBeforeGenerateToken: async (pathname, clientPayload) => {
-        const accessControlList = uploadDocumentPayloadSchema.parse(
+        const payload = uploadDocumentPayloadSchema.parse(
           JSON.parse(clientPayload ?? '{}')
         );
 
+        // Create document with agent ID
         const [document] = await db
           .insert(documents)
           .values({
             name: pathname.split('/').pop() ?? 'unknown',
             type: 'unknown',
-            status: 'pending'
+            status: 'pending',
+            agentId: payload.agentId
           })
           .returning();
 
-        await db.insert(documentAccess).values(
-          accessControlList.map((access) => ({
+        // Handle role access
+        if (payload.allRoles) {
+          // Grant access to all roles (agentRoleId = null)
+          await db.insert(documentRoleAccess).values({
             documentId: document.id,
-            agentId: access.agentId,
-            agentRoleId: access.roleId
-          }))
-        );
+            agentRoleId: null
+          });
+        } else if (payload.roleIds.length > 0) {
+          // Grant access to specific roles
+          await db.insert(documentRoleAccess).values(
+            payload.roleIds.map((roleId) => ({
+              documentId: document.id,
+              agentRoleId: roleId
+            }))
+          );
+        }
 
         return {
           allowedContentTypes: [
