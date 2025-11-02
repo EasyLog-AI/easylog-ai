@@ -37,7 +37,7 @@ const testAgentPrompt = async (slug: string, userMessage: string) => {
     };
 
     // Filter tools based on agent capabilities if specified
-    const allowedToolNames = getToolNamesFromCapabilities(agent.capabilities);
+    const allowedToolNames = getToolNamesFromCapabilities(agent.defaultCapabilities);
 
     const tools =
       allowedToolNames.length > 0

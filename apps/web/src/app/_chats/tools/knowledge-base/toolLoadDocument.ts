@@ -1,9 +1,9 @@
 import { tool } from 'ai';
-import { and, eq, exists, not, or } from 'drizzle-orm';
+import { and, eq, exists, isNull, or } from 'drizzle-orm';
 import { QueryBuilder } from 'drizzle-orm/pg-core';
 
 import db from '@/database/client';
-import { documentAgents, documentRoles, documents } from '@/database/schema';
+import { documentRoleAccess, documents } from '@/database/schema';
 
 import { loadDocumentConfig } from './config';
 
@@ -18,60 +18,40 @@ const getToolLoadDocument = ({ agentId, roleId }: ToolLoadDocumentProps) => {
     execute: async ({ documentId }) => {
       const qb = new QueryBuilder();
 
-      // Agent access: no associations OR current agent has access
-      const agentAccessClause = or(
-        not(
+      // Access control: documents must belong to the agent AND (have "all roles" access OR specific role has access)
+      const accessClause = and(
+        eq(documents.agentId, agentId),
+        or(
+          // Document has "all roles" access (agentRoleId IS NULL in documentRoleAccess)
           exists(
             qb
               .select()
-              .from(documentAgents)
-              .where(eq(documentAgents.documentId, documents.id))
-          )
-        ),
-        exists(
-          qb
-            .select()
-            .from(documentAgents)
-            .where(
-              and(
-                eq(documentAgents.documentId, documents.id),
-                eq(documentAgents.agentId, agentId)
+              .from(documentRoleAccess)
+              .where(
+                and(
+                  eq(documentRoleAccess.documentId, documents.id),
+                  isNull(documentRoleAccess.agentRoleId)
+                )
               )
-            )
+          ),
+          // Document has specific role access
+          roleId
+            ? exists(
+                qb
+                  .select()
+                  .from(documentRoleAccess)
+                  .where(
+                    and(
+                      eq(documentRoleAccess.documentId, documents.id),
+                      eq(documentRoleAccess.agentRoleId, roleId)
+                    )
+                  )
+              )
+            : undefined
         )
       );
 
-      // Role access: no restrictions OR current role has access
-      const roleAccessClause = roleId
-        ? or(
-            not(
-              exists(
-                qb
-                  .select()
-                  .from(documentRoles)
-                  .where(eq(documentRoles.documentId, documents.id))
-              )
-            ),
-            exists(
-              qb
-                .select()
-                .from(documentRoles)
-                .where(
-                  and(
-                    eq(documentRoles.documentId, documents.id),
-                    eq(documentRoles.roleId, roleId)
-                  )
-                )
-            )
-          )
-        : undefined;
-
-      const whereClause = and(
-        roleAccessClause
-          ? and(agentAccessClause, roleAccessClause)
-          : agentAccessClause,
-        eq(documents.id, documentId)
-      );
+      const whereClause = and(accessClause, eq(documents.id, documentId));
 
       const documentResult = await db
         .select({
@@ -85,7 +65,7 @@ const getToolLoadDocument = ({ agentId, roleId }: ToolLoadDocumentProps) => {
         .limit(1);
 
       if (!documentResult.length) {
-        throw new Error('Document not found');
+        throw new Error('Document not found or access denied');
       }
 
       return JSON.stringify(documentResult[0]);

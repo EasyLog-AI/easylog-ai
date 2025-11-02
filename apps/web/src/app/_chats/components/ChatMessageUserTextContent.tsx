@@ -2,7 +2,7 @@ import Typography from '@/app/_ui/components/Typography/Typography';
 
 export interface ChatMessageUserTextContentProps {
   text: string;
-  isHidden?: boolean;
+  _isHidden?: boolean;
 }
 
 const ChatMessageUserTextContent = ({

@@ -319,10 +319,11 @@ export const POST = async (
           getVehicleRanking: toolGetVehicleRanking()
         };
 
-        // Filter tools based on agent capabilities if specified
-        const allowedToolNames = getToolNamesFromCapabilities(
-          chat.agent.capabilities
-        );
+        // Filter tools based on role or agent capabilities
+        const capabilities = activeRole
+          ? activeRole.capabilities
+          : chat.agent.defaultCapabilities;
+        const allowedToolNames = getToolNamesFromCapabilities(capabilities);
 
         const tools =
           allowedToolNames.length > 0
