@@ -6,13 +6,13 @@ import {
   stepCountIs,
   tool
 } from 'ai';
-import { and, eq, exists, not, or } from 'drizzle-orm';
+import { and, eq, exists, isNull, not, or } from 'drizzle-orm';
 import { QueryBuilder } from 'drizzle-orm/pg-core';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 
 import db from '@/database/client';
-import { documentAgents, documentRoles, documents } from '@/database/schema';
+import { documentAccess, documents } from '@/database/schema';
 import openrouterProvider from '@/lib/ai-providers/openrouter';
 import splitArrayBatches from '@/utils/split-array-batches';
 import tryCatch from '@/utils/try-catch';
@@ -45,57 +45,34 @@ const getToolSearchKnowledgeBase = (
         }
       });
 
-      // Agent access: no associations OR current agent has access
-      const agentAccessClause = or(
+      // Access control: no restrictions OR current agent+role combination has access
+      const accessClause = or(
         not(
           exists(
             qb
               .select()
-              .from(documentAgents)
-              .where(eq(documentAgents.documentId, documents.id))
+              .from(documentAccess)
+              .where(eq(documentAccess.documentId, documents.id))
           )
         ),
         exists(
           qb
             .select()
-            .from(documentAgents)
+            .from(documentAccess)
             .where(
               and(
-                eq(documentAgents.documentId, documents.id),
-                eq(documentAgents.agentId, agentId)
+                eq(documentAccess.documentId, documents.id),
+                eq(documentAccess.agentId, agentId),
+                roleId
+                  ? or(
+                      eq(documentAccess.agentRoleId, roleId),
+                      isNull(documentAccess.agentRoleId)
+                    )
+                  : isNull(documentAccess.agentRoleId)
               )
             )
         )
       );
-
-      // Role access: no restrictions OR current role has access
-      const roleAccessClause = roleId
-        ? or(
-            not(
-              exists(
-                qb
-                  .select()
-                  .from(documentRoles)
-                  .where(eq(documentRoles.documentId, documents.id))
-              )
-            ),
-            exists(
-              qb
-                .select()
-                .from(documentRoles)
-                .where(
-                  and(
-                    eq(documentRoles.documentId, documents.id),
-                    eq(documentRoles.roleId, roleId)
-                  )
-                )
-            )
-          )
-        : undefined;
-
-      const whereClause = roleAccessClause
-        ? and(agentAccessClause, roleAccessClause)
-        : agentAccessClause;
 
       const dbDocuments = await db
         .select({
@@ -105,7 +82,7 @@ const getToolSearchKnowledgeBase = (
           tags: documents.tags
         })
         .from(documents)
-        .where(whereClause)
+        .where(accessClause)
         .limit(50);
 
       console.log('dbDocuments', dbDocuments);

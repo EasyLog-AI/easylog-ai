@@ -5,27 +5,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import getCurrentUser from '@/app/_auth/data/getCurrentUser';
+import uploadDocumentPayloadSchema from '@/app/_documents/schemas/uploadDocumentPayloadSchema';
 import db from '@/database/client';
-import { documentAgents, documentRoles, documents } from '@/database/schema';
+import { documentAccess, documents } from '@/database/schema';
 import { ingestDocumentJob } from '@/jobs/ingest-document/ingest-document-job';
 
-const querySchema = z.object({
-  agentIds: z
-    .string()
-    .transform((val) => val?.split(',').filter((id) => id.trim()))
-    .optional()
-    .default(''),
-  roleIds: z
-    .string()
-    .transform((val) => val?.split(',').filter((id) => id.trim()))
-    .optional()
-    .default('')
-});
-
 export async function POST(request: NextRequest) {
-  const { agentIds, roleIds } = querySchema.parse(
-    Object.fromEntries(request.nextUrl.searchParams.entries())
-  );
+  const user = await getCurrentUser(request.headers);
+
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   const body = (await request.json()) as HandleUploadBody;
 
@@ -34,12 +24,10 @@ export async function POST(request: NextRequest) {
       token: process.env.BLOB_READ_WRITE_TOKEN,
       body,
       request,
-      onBeforeGenerateToken: async (pathname) => {
-        const user = await getCurrentUser(request.headers);
-
-        if (!user) {
-          throw new Error('Unauthorized');
-        }
+      onBeforeGenerateToken: async (pathname, clientPayload) => {
+        const accessControlList = uploadDocumentPayloadSchema.parse(
+          JSON.parse(clientPayload ?? '{}')
+        );
 
         const [document] = await db
           .insert(documents)
@@ -50,43 +38,13 @@ export async function POST(request: NextRequest) {
           })
           .returning();
 
-        const [agents, roles] = await Promise.all([
-          db.query.agents.findMany({
-            where: {
-              id: {
-                in: agentIds
-              }
-            }
-          }),
-          db.query.agentRoles.findMany({
-            where: {
-              id: {
-                in: roleIds
-              }
-            }
-          })
-        ]);
-
-        // Create agent associations
-        const agentAssociations = agents.map((agent) => ({
-          documentId: document.id,
-          agentId: agent.id
-        }));
-
-        const roleAssociations = roles.map((role) => ({
-          documentId: document.id,
-          roleId: role.id
-        }));
-
-        // Insert associations in parallel
-        await Promise.all([
-          agentAssociations.length > 0
-            ? db.insert(documentAgents).values(agentAssociations)
-            : Promise.resolve(),
-          roleAssociations.length > 0
-            ? db.insert(documentRoles).values(roleAssociations)
-            : Promise.resolve()
-        ]);
+        await db.insert(documentAccess).values(
+          accessControlList.map((access) => ({
+            documentId: document.id,
+            agentId: access.agentId,
+            agentRoleId: access.roleId
+          }))
+        );
 
         return {
           allowedContentTypes: [

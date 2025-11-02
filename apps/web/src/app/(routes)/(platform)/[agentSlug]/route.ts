@@ -22,9 +22,25 @@ export const GET = async (
     }
   });
 
-  if (!agent) {
-    return notFound();
+  if (agent) {
+    redirect(`/${agent.slug}/chat`);
   }
 
-  return redirect(`/${agent.slug}/chat`);
+  const lastChat = await db.query.chats.findFirst({
+    where: {
+      userId: user.id
+    },
+    orderBy: {
+      createdAt: 'desc'
+    },
+    with: {
+      agent: true
+    }
+  });
+
+  if (lastChat) {
+    redirect(`/${lastChat.agent.slug}/chat`);
+  }
+
+  notFound();
 };

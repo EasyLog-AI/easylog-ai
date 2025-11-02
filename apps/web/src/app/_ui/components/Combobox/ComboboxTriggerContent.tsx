@@ -4,19 +4,19 @@ import { VariantProps, tv } from 'tailwind-variants';
 
 import useComboboxContext from './useComboboxContext';
 import ContentWrapper, {
-  ContentWrapperProps
+  ContentWrapperProps,
 } from '../ContentWrapper/ContentWrapper';
 
 const comboboxTriggerContentStyles = tv({
   variants: {
     isActive: {
       true: '',
-      false: 'text-text-muted font-normal'
-    }
+      false: 'text-text-muted font-normal',
+    },
   },
   defaultVariants: {
-    isActive: false
-  }
+    isActive: false,
+  },
 });
 export interface ComboboxTriggerContentProps
   extends Omit<ContentWrapperProps, 'iconRight'>,
@@ -39,7 +39,7 @@ const ComboBoxTriggerContent = ({
       iconRight={IconChevronDown}
       className={comboboxTriggerContentStyles({
         isActive: !!activeItem,
-        className
+        className,
       })}
     >
       {activeItem !== null ? children : placeholder}

@@ -1,17 +1,13 @@
 import { useContext } from 'react';
 
-import {
-  ComboboxContext,
-  ComboboxContextType,
-  ItemWithId
-} from './ComboboxProvider';
+import { ComboboxContext, ComboboxContextType } from './ComboboxProvider';
 
-const useComboboxContext = <T = ItemWithId>() => {
+const useComboboxContext = <T>() => {
   const context = useContext(ComboboxContext) as ComboboxContextType<T> | null;
 
   if (!context) {
     throw new Error(
-      'useComboboxContext must be used within a ComboboxProvider'
+      'useComboboxContext must be used within a ComboboxProvider',
     );
   }
 

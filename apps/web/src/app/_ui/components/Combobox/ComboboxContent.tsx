@@ -4,7 +4,7 @@ import Command from '../Command/Command';
 import PopoverContent, { PopoverContentProps } from '../Popover/PopoverContent';
 
 export const comboboxContentStyles = tv({
-  base: 'min-w-[var(--radix-popover-trigger-width)] p-0'
+  base: 'min-w-(--radix-popover-trigger-width) p-0',
 });
 
 export interface ComboboxContentProps extends PopoverContentProps {}
