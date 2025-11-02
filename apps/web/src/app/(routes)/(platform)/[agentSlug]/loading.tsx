@@ -4,8 +4,7 @@ const AgentLoading = () => {
   return (
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
       <div className="flex flex-col items-center gap-4">
-        <IconSpinner className="size-8 text-text-muted" />
-        <p className="text-text-muted text-sm">Laden...</p>
+        <IconSpinner className="text-text-muted size-4" />
       </div>
     </div>
   );

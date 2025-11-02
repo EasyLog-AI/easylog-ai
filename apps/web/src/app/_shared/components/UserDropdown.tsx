@@ -1,9 +1,10 @@
 'use client';
 
-import { IconLogout } from '@tabler/icons-react';
+import { IconLogout, IconSettings } from '@tabler/icons-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
+import useAgentSlug from '@/app/_agents/hooks/useAgentSlug';
 import Button from '@/app/_ui/components/Button/Button';
 import ButtonContent from '@/app/_ui/components/Button/ButtonContent';
 import DropdownMenu from '@/app/_ui/components/DropdownMenu/DropdownMenu';
@@ -23,6 +24,8 @@ export interface UserDropdownProps {
 
 const UserDropdown = ({ user }: UserDropdownProps) => {
   const router = useRouter();
+
+  const agentSlug = useAgentSlug();
 
   return (
     <DropdownMenu>
@@ -46,6 +49,18 @@ const UserDropdown = ({ user }: UserDropdownProps) => {
             {user?.email}
           </Typography>
         </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+
+        <DropdownMenuItem
+          onSelect={() => {
+            router.push(`/${agentSlug}/settings/agent`);
+          }}
+        >
+          <DropdownMenuContentWrapper iconLeft={IconSettings} align="start">
+            Instellingen
+          </DropdownMenuContentWrapper>
+        </DropdownMenuItem>
+
         <DropdownMenuSeparator />
 
         <DropdownMenuItem
