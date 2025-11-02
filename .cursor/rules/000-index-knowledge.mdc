@@ -1,0 +1,35 @@
+---
+description: ALWAYS check index.md in Instructies folder and repository AGENTS.md first for project knowledge before searching other sources
+globs: 
+---
+
+# Project Knowledge Source
+
+All project knowledge is organized in `Instructies/index.md` and repository `AGENTS.md` files - check these first before searching other sources.
+
+## Requirements
+
+1. **Check `Instructies/index.md` first** when user asks about:
+   - Project structure or documentation
+   - Setup instructions or guides
+   - Platform features or architecture
+
+2. **Check repository `AGENTS.md`** for:
+   - Agent architecture and development
+   - Tool system and capabilities
+   - Repository-specific guidelines
+
+3. **Use as navigation** to locate specific documentation files
+
+4. **Before codebase search** → check index.md/AGENTS.md → read referenced doc
+
+## Locations
+
+- **Index**: `Instructies/index.md` (primary knowledge source)
+- **AGENTS.md**: Repository root (e.g., `easylog-ai/AGENTS.md`, `easylog-web-develop/AGENTS.md`)
+
+## Examples
+
+✅ "Let me check index.md for agent development guide"  
+✅ "Let me check AGENTS.md for tool architecture"  
+❌ Random codebase search without checking index.md/AGENTS.md first

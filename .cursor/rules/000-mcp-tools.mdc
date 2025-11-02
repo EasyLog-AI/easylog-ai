@@ -1,0 +1,53 @@
+---
+description: USE MCP tools actively during tasks - they are available and should be used for errors, deployments, database, forms, background jobs
+globs: 
+---
+
+# MCP Tools Available During Tasks
+
+## Context
+
+All MCP (Model Context Protocol) servers are **actively available** during task execution. Use them proactively when relevant.
+
+## Available MCP Servers
+
+### Error Tracking & Monitoring
+- **Sentry MCP**: Search errors, analyze issues, get stacktraces
+  - Use: `mcp_sentry_search_issues`, `mcp_sentry_get_issue_details`
+- **Trigger.dev MCP**: Background jobs, runs, deployments
+  - Use: `mcp_trigger_list_runs`, `mcp_trigger_get_run_details`
+
+### Development & Operations
+- **GitHub MCP**: PRs, code, files, issues
+  - Use: `mcp_github_get_file_contents`, `mcp_github_list_pull_requests`
+- **Vercel MCP**: Deployment status, build logs
+  - Use: `mcp_vercel_list_deployments`, `mcp_vercel_get_deployment_build_logs`
+- **Forge MCP**: Server management, deployments
+  - Use: `mcp_forge_list_servers`, `mcp_forge_trigger_deployment`
+
+### Database & Data
+- **Neon MCP**: SQL queries, migrations
+  - Use: `mcp_neon_run_sql`
+- **EasyLog MCP**: Forms, submissions, follow-ups
+  - Use: `mcp_easylog-staging2_list_forms`, `mcp_easylog-staging2_list_submissions`
+
+## Requirements
+
+1. **Proactively use** relevant MCP tools when:
+   - User asks about errors → Sentry MCP
+   - User asks about deployments → Vercel/Forge MCP
+   - User asks about database → Neon MCP
+   - User asks about forms/submissions → EasyLog MCP
+   - User asks about background jobs → Trigger MCP
+
+2. **Don't ask permission** - these tools are available and should be used automatically
+
+3. **Combine tools** when needed:
+   - Error debugging: Sentry → GitHub → Fix → Vercel
+   - Form management: EasyLog MCP for data, GitHub for code
+
+## Examples
+
+✅ **Good**: "Let me check recent errors in Sentry" → uses `mcp_sentry_search_issues`  
+✅ **Good**: "I'll check deployment status" → uses `mcp_vercel_list_deployments`  
+❌ **Bad**: "I could check Sentry if you want" → should just use it directly
