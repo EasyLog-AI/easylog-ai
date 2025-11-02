@@ -11,12 +11,6 @@ import { documentRoleAccess, documents } from '@/database/schema';
 import { ingestDocumentJob } from '@/jobs/ingest-document/ingest-document-job';
 
 export async function POST(request: NextRequest) {
-  const user = await getCurrentUser(request.headers);
-
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   const body = (await request.json()) as HandleUploadBody;
 
   try {
@@ -25,6 +19,12 @@ export async function POST(request: NextRequest) {
       body,
       request,
       onBeforeGenerateToken: async (pathname, clientPayload) => {
+        const user = await getCurrentUser(request.headers);
+
+        if (!user) {
+          throw new Error('Unauthorized');
+        }
+
         const payload = uploadDocumentPayloadSchema.parse(
           JSON.parse(clientPayload ?? '{}')
         );
