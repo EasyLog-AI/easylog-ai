@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 const agentRoleUpdateSchema = z.object({
   name: z.string().min(1).optional(),
+  isDefault: z.boolean().optional(),
   description: z.string().optional(),
   instructions: z.string().min(1).optional(),
   model: z.string().min(1).optional(),

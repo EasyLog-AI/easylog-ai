@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 const agentRoleCreateSchema = z.object({
   name: z.string().min(1, 'Naam is verplicht'),
+  isDefault: z.boolean().default(false),
   description: z.string().default(''),
   instructions: z.string().min(1, 'Instructies zijn verplicht'),
   model: z.string().min(1, 'Model is verplicht'),
