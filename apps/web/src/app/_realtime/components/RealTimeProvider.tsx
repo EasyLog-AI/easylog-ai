@@ -89,6 +89,7 @@ const RealTimeProvider = ({
         chatId: dbChat.id
       },
       {
+        enabled: isEnabled,
         refetchInterval: ({ state }) => {
           if (!state.data?.expires_at) return false;
           const now = Date.now();

@@ -109,7 +109,14 @@ const ChatProvider = ({
       setDidStartChat(true);
       void chat.sendMessage({ text: dbChat.agent.autoStartMessage });
     }
-  }, [chat, didStartChat, dbChat.agent?.autoStartMessage]);
+  }, [
+    chat.messages.length,
+    chat.status,
+    chat.sendMessage,
+    didStartChat,
+    dbChat.agent.autoStartMessage,
+    chat
+  ]);
 
   return (
     <ChatContext.Provider
