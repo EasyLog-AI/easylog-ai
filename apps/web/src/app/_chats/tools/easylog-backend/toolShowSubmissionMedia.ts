@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/nextjs';
 import { UIMessageStreamWriter, tool } from 'ai';
 
+import { ResponseError } from '@/lib/easylog/generated-client';
 import tryCatch from '@/utils/try-catch';
 
 import { showSubmissionMediaConfig } from './config';
@@ -15,17 +16,21 @@ const toolShowSubmissionMedia = (
     execute: async ({ mediaId, size = 'detail' }, opts) => {
       const client = await getEasylogClient(userId);
 
-      const [response, apiError] = await tryCatch(
+      const [response, error] = await tryCatch(
         client.media.showMedia({
           media: String(mediaId),
           conversion: size === 'original' ? undefined : size
         })
       );
 
-      if (apiError) {
-        Sentry.captureException(apiError);
-        console.error('❌ Media API error:', apiError);
-        return `Error fetching media: ${apiError.message}`;
+      if (error instanceof ResponseError) {
+        Sentry.captureException(error);
+        return await error.response.text();
+      }
+
+      if (error) {
+        Sentry.captureException(error);
+        return `Error fetching media: ${error.message}`;
       }
 
       if (!response || !response.data) {

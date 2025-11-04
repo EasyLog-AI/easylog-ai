@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/nextjs';
 import { tool } from 'ai';
 
+import { ResponseError } from '@/lib/easylog/generated-client';
 import tryCatch from '@/utils/try-catch';
 
 import { getResourceGroupsConfig } from './config';
@@ -18,6 +19,11 @@ const toolGetResourceGroups = (userId: string) => {
           slug: resourceSlug
         })
       );
+
+      if (error instanceof ResponseError) {
+        Sentry.captureException(error);
+        return await error.response.text();
+      }
 
       if (error) {
         Sentry.captureException(error);

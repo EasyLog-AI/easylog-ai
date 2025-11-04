@@ -24,9 +24,9 @@ export interface ShowMediaRequest {
 
 export class MediaApi extends runtime.BaseAPI {
   /**
-   * Get media file details including presigned download URL (valid for 1 hour)
-   * and available image conversions. Supports both numeric ID and UUID. Show
-   * media file
+   * Get media file details including presigned download URL (valid for 1
+   * hour) and available image conversions. Supports both numeric ID and UUID.
+   * Show media file
    */
   async showMediaRaw(
     requestParameters: ShowMediaRequest,
@@ -77,9 +77,9 @@ export class MediaApi extends runtime.BaseAPI {
   }
 
   /**
-   * Get media file details including presigned download URL (valid for 1 hour)
-   * and available image conversions. Supports both numeric ID and UUID. Show
-   * media file
+   * Get media file details including presigned download URL (valid for 1
+   * hour) and available image conversions. Supports both numeric ID and UUID.
+   * Show media file
    */
   async showMedia(
     requestParameters: ShowMediaRequest,

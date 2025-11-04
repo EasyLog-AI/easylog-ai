@@ -22,8 +22,8 @@ export interface GeneratePdfReportRequest {
 export class ReportsApi extends runtime.BaseAPI {
   /**
    * Generate and download a PDF report based on encrypted data parameters.
-   * Supports exporting single or multiple Eloquent models as PDF. Add ?as=html
-   * to view HTML instead of PDF. Generate PDF report
+   * Supports exporting single or multiple Eloquent models as PDF. Add
+   * ?as=html to view HTML instead of PDF. Generate PDF report
    */
   async generatePdfReportRaw(
     requestParameters: GeneratePdfReportRequest,
@@ -95,8 +95,8 @@ export class ReportsApi extends runtime.BaseAPI {
 
   /**
    * Generate and download a PDF report based on encrypted data parameters.
-   * Supports exporting single or multiple Eloquent models as PDF. Add ?as=html
-   * to view HTML instead of PDF. Generate PDF report
+   * Supports exporting single or multiple Eloquent models as PDF. Add
+   * ?as=html to view HTML instead of PDF. Generate PDF report
    */
   async generatePdfReport(
     requestParameters: GeneratePdfReportRequest,

@@ -27,9 +27,15 @@ const createClient = ({
   apiKey,
   basePath = 'https://staging2.easylog.nu/api'
 }: ClientConfig) => {
+  const bearerToken = `Bearer ${apiKey}`;
+
   const config = new Configuration({
     basePath,
-    accessToken: `Bearer ${apiKey}`
+    accessToken: async () => bearerToken,
+    headers: {
+      Accept: 'application/json',
+      Authorization: bearerToken
+    }
   });
 
   return {

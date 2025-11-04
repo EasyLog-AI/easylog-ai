@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/nextjs';
 import { tool } from 'ai';
 
+import { ResponseError } from '@/lib/easylog/generated-client';
 import { ProjectPayload } from '@/lib/easylog/generated-client/models';
 import tryCatch from '@/utils/try-catch';
 
@@ -26,6 +27,11 @@ const toolUpdatePlanningProject = (userId: string) => {
           projectPayload
         })
       );
+
+      if (error instanceof ResponseError) {
+        Sentry.captureException(error);
+        return await error.response.text();
+      }
 
       if (error) {
         Sentry.captureException(error);

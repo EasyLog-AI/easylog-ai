@@ -20,7 +20,8 @@ import {
 export class ConfigurationApi extends runtime.BaseAPI {
   /**
    * Retrieve the authenticated user's client configuration including default
-   * time periods, planning filters, and permissions. Get client configuration
+   * time periods, planning filters, and permissions. Get client
+   * configuration
    */
   async getClientConfigurationRaw(
     initOverrides?: RequestInit | runtime.InitOverrideFunction
@@ -56,7 +57,8 @@ export class ConfigurationApi extends runtime.BaseAPI {
 
   /**
    * Retrieve the authenticated user's client configuration including default
-   * time periods, planning filters, and permissions. Get client configuration
+   * time periods, planning filters, and permissions. Get client
+   * configuration
    */
   async getClientConfiguration(
     initOverrides?: RequestInit | runtime.InitOverrideFunction

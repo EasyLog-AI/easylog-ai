@@ -21,8 +21,8 @@ export class BulletinApi extends runtime.BaseAPI {
   /**
    * Get all bulletin chapters with their items, organized hierarchically.
    * Includes items not assigned to any chapter as a synthetic first chapter
-   * with id=0. Only returns chapters and items accessible to the user's groups.
-   * List bulletin chapters and items
+   * with id=0. Only returns chapters and items accessible to the user's
+   * groups. List bulletin chapters and items
    */
   async listBulletinItemsRaw(
     initOverrides?: RequestInit | runtime.InitOverrideFunction
@@ -59,8 +59,8 @@ export class BulletinApi extends runtime.BaseAPI {
   /**
    * Get all bulletin chapters with their items, organized hierarchically.
    * Includes items not assigned to any chapter as a synthetic first chapter
-   * with id=0. Only returns chapters and items accessible to the user's groups.
-   * List bulletin chapters and items
+   * with id=0. Only returns chapters and items accessible to the user's
+   * groups. List bulletin chapters and items
    */
   async listBulletinItems(
     initOverrides?: RequestInit | runtime.InitOverrideFunction
