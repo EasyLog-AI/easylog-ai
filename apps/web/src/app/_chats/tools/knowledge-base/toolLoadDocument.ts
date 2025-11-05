@@ -85,7 +85,7 @@ const getToolLoadDocument = (
             type: 'data-executing-tool',
             id,
             data: {
-              status: 'completed',
+              status: 'error',
               message: 'Document niet gevonden of geen toegang'
             }
           });
@@ -115,7 +115,7 @@ const getToolLoadDocument = (
           type: 'data-executing-tool',
           id,
           data: {
-            status: 'completed',
+            status: 'error',
             message: `Fout bij laden van document: ${message}`
           }
         });

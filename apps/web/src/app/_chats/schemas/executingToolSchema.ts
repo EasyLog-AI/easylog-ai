@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 const executingToolSchema = z.object({
-  status: z.enum(['in_progress', 'completed']),
+  status: z.enum(['in_progress', 'completed', 'error']),
   message: z.string()
 });
 

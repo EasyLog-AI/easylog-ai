@@ -82,7 +82,7 @@ const getToolResearchKnowledge = (
           type: 'data-executing-tool',
           id,
           data: {
-            status: 'completed',
+            status: 'error',
             message: `Kennisitem niet gevonden of toegang geweigerd`
           }
         });
@@ -179,7 +179,7 @@ Return your answer using markdown formatting. Be concise and direct. Preserve an
         type: 'data-executing-tool',
         id,
         data: {
-          status: 'error',
+          status: 'completed',
           message: `Analyse van "${dbKnowledge.name}" voltooid`
         }
       });

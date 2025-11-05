@@ -202,7 +202,7 @@ const toolGetAuditSubmissions = (
           type: 'data-executing-tool',
           id,
           data: {
-            status: 'completed',
+            status: 'error',
             message: `Fout bij ophalen van PQI-auditinzendingen: ${message}`
           }
         });

@@ -13,10 +13,7 @@ interface ToolExploreKnowledgeProps {
 }
 
 const getToolExploreKnowledge = (
-  {
-    agentId,
-    roleId
-  }: ToolExploreKnowledgeProps,
+  { agentId, roleId }: ToolExploreKnowledgeProps,
   messageStreamWriter?: UIMessageStreamWriter
 ) => {
   return tool({
@@ -136,7 +133,7 @@ Example 2: Finding specific data
           type: 'data-executing-tool',
           id,
           data: {
-            status: 'completed',
+            status: 'error',
             message: `Fout bij verkennen van kennis: ${message}`
           }
         });

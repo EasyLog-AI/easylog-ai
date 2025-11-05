@@ -46,6 +46,8 @@ const ChatProvider = ({
     })
   );
 
+  console.log('🔧 dbChat:', dbChat);
+
   const chat = useChat({
     id: dbChat.id,
     transport: new DefaultChatTransport({

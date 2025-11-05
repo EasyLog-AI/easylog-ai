@@ -139,16 +139,19 @@ const getToolSearchKnowledge = (
 
       console.log('Search results:', results);
 
+      // Filter to only include results with similarity > 0.6
+      const filteredResults = results.filter((result) => result.similarity > 0.6);
+
       messageStreamWriter?.write({
         type: 'data-executing-tool',
         id,
         data: {
           status: 'completed',
-          message: `${results.length} relevant${results.length === 1 ? '' : 'e'} kennisitem${results.length === 1 ? '' : 's'} gevonden`
+          message: `${filteredResults.length} potentieel relevant${filteredResults.length === 1 ? '' : 'e'} kennisitem${filteredResults.length === 1 ? '' : 's'} gevonden`
         }
       });
 
-      return results;
+      return filteredResults;
     }
   });
 };
