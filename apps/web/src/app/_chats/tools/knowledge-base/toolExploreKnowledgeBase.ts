@@ -36,6 +36,7 @@ Answer the user's question by exploring the knowledge base through multiple sear
 ## Available Tools
 - **searchDocuments(query)**: Returns relevant documents with IDs, names, summaries, and similarity scores
 - **researchDocument(documentId, question)**: Deep-dives into a specific document's content to extract detailed information
+  - CRITICAL: Use the document's "id" field (UUID) from searchDocuments results, NOT the "name" field
 
 ## Exploration Strategy
 
@@ -66,14 +67,14 @@ If initial attempts don't yield results, systematically try:
 
 **Example 1: Finding a company website**
 - User asks: "What is the IKEA website?"
-- Search: "IKEA" → finds "IKEA Invoice March 2024.pdf"
-- Research: researchDocument(invoice_id, "What is the company website or URL?")
+- Search: "IKEA" → finds document with id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890" and name: "IKEA Invoice March 2024.pdf"
+- Research: researchDocument("a1b2c3d4-e5f6-7890-abcd-ef1234567890", "What is the company website or URL?")
 - Result: Website found in invoice header
 
 **Example 2: Finding specific data**
 - User asks: "How many employees does Acme Corp have?"
-- Search: "Acme Corp employees" → finds "Acme Annual Report 2024"
-- Research: researchDocument(report_id, "How many employees or staff members are mentioned?")
+- Search: "Acme Corp employees" → finds document with id: "b2c3d4e5-f6a7-8901-bcde-f12345678901" and name: "Acme Annual Report 2024"
+- Research: researchDocument("b2c3d4e5-f6a7-8901-bcde-f12345678901", "How many employees or staff members are mentioned?")
 - Result: Employee count found in company overview section
 
 ## Output Guidelines

@@ -20,9 +20,14 @@ export const searchDocumentsConfig = {
 export const researchDocumentConfig = {
   name: 'researchDocument',
   description:
-    'Research a specific document to answer a question. Uses a recursive AI agent to query document data and find answers. Requires a document ID (use searchDocuments first to find relevant documents).',
+    'Research a specific document to answer a question. Uses a recursive AI agent to query document data and find answers. IMPORTANT: You must first use searchDocuments to get document IDs, then pass the ID (not the name) to this tool.',
   inputSchema: z.object({
-    documentId: z.string().describe('The ID of the document to research'),
+    documentId: z
+      .string()
+      .uuid()
+      .describe(
+        'The UUID of the document to research (from searchDocuments results - use the "id" field, NOT the "name" field)'
+      ),
     question: z.string().describe('The question to answer using this document')
   })
 } as const;
