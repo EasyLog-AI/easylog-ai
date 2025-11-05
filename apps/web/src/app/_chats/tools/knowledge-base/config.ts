@@ -11,7 +11,7 @@ export const loadDocumentConfig = {
 export const searchKnowledgeConfig = {
   name: 'searchKnowledge',
   description:
-    'Search the knowledge base using hybrid semantic and keyword search. Returns relevant knowledge items with their IDs, names, summaries, and similarity scores.',
+    'Search the knowledge base using hybrid semantic and keyword search. Returns metadata only: IDs, names, summaries, and similarity scores. Use this to find which knowledge items are relevant, then use researchKnowledge to access the actual data inside them.',
   inputSchema: z.object({
     query: z.string().describe('What to search for')
   })
@@ -20,21 +20,27 @@ export const searchKnowledgeConfig = {
 export const researchKnowledgeConfig = {
   name: 'researchKnowledge',
   description:
-    'Deep-dive into a specific knowledge item to answer a question. Requires the item ID from searchKnowledge results. Pass the id field, not the name.',
+    'Access the FULL CONTENT of a knowledge item via SQL queries to answer any question about the data inside. Can answer questions about counts, statistics, trends, top N items, filtering by date/criteria, etc. Works on structured data (Excel, CSV) and unstructured content (PDFs, text). Always try this tool when asked about data - it has complete access to everything in the knowledge item.',
   inputSchema: z.object({
     knowledgeId: z
       .string()
       .uuid()
       .describe('UUID from searchKnowledge results (use id field)'),
-    question: z.string().describe('Question to answer from this knowledge item')
+    question: z
+      .string()
+      .describe(
+        'Any question about the content - counts, statistics, filtering, top N, date ranges, etc.'
+      )
   })
 } as const;
 
 export const exploreKnowledgeConfig = {
   name: 'exploreKnowledge',
   description:
-    'Autonomously search and research the knowledge base to answer a question. Automatically finds relevant items and extracts answers.',
+    'Fully autonomous tool that combines searchKnowledge + researchKnowledge. Use this for complex questions where you need to find relevant knowledge items AND extract detailed answers from them. It will search, identify the best sources, and deep-dive into the content automatically.',
   inputSchema: z.object({
-    question: z.string().describe('Question to answer from the knowledge base')
+    question: z
+      .string()
+      .describe('Any complex question that requires finding and analyzing knowledge')
   })
 } as const;
