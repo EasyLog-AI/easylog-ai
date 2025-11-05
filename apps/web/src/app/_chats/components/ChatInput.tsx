@@ -123,28 +123,18 @@ const ChatInput = () => {
     }
   }, [isSubmitSuccessful, reset]);
 
-  // Focus input after AI completes response
-  const prevStatusRef = useRef(status);
-  useEffect(() => {
-    const prevStatus = prevStatusRef.current;
-    prevStatusRef.current = status;
-
-    // Focus when AI finishes streaming (streaming → awaiting_message)
-    if (
-      prevStatus === 'streaming' &&
-      status === 'awaiting_message' &&
-      !isFlutterWebViewRef.current
-    ) {
-      textareaRef.current?.focus();
-    }
-  }, [status]);
-
   const isLoading =
     isSubmitting || status === 'submitted' || status === 'streaming';
 
   const isInputDisabled = isSubmitting || status === 'submitted';
 
   const isStreaming = status === 'streaming';
+
+  useEffect(() => {
+    if (!isStreaming) {
+      textareaRef.current?.focus();
+    }
+  }, [isStreaming]);
 
   return (
     <motion.div
