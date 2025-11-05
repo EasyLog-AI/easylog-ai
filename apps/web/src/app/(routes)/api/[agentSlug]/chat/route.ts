@@ -73,8 +73,10 @@ import toolUpdatePlanningProject from '@/app/_chats/tools/easylog-backend/toolUp
 import toolUpdateSubmission from '@/app/_chats/tools/easylog-backend/toolUpdateSubmission';
 import toolUploadSubmissionMedia from '@/app/_chats/tools/easylog-backend/toolUploadSubmissionMedia';
 import toolExecuteSQL from '@/app/_chats/tools/execute-sql/toolExecuteSQL';
+import toolExploreKnowledgeBase from '@/app/_chats/tools/knowledge-base/toolExploreKnowledgeBase';
 import toolLoadDocument from '@/app/_chats/tools/knowledge-base/toolLoadDocument';
-import toolSearchKnowledgeBase from '@/app/_chats/tools/knowledge-base/toolSearchKnowledgeBase';
+import toolResearchDocument from '@/app/_chats/tools/knowledge-base/toolResearchDocument';
+import toolSearchDocuments from '@/app/_chats/tools/knowledge-base/toolSearchDocuments';
 import toolAnswerMultipleChoice from '@/app/_chats/tools/multiple-choice/toolAnswerMultipleChoice';
 import toolCreateMultipleChoice from '@/app/_chats/tools/multiple-choice/toolCreateMultipleChoice';
 import toolGetAuditSubmissions from '@/app/_chats/tools/pqi-audits/toolGetAuditSubmissions';
@@ -289,7 +291,18 @@ export const POST = async (
           prepareSubmission: toolPrepareSubmission(user.id),
           uploadSubmissionMedia: toolUploadSubmissionMedia(user.id),
           executeSql: toolExecuteSQL(writer),
-          searchKnowledgeBase: toolSearchKnowledgeBase(
+          searchDocuments: toolSearchDocuments({
+            agentId: chat.agentId,
+            roleId: activeRole?.id
+          }),
+          researchDocument: toolResearchDocument(
+            {
+              agentId: chat.agentId,
+              roleId: activeRole?.id
+            },
+            writer
+          ),
+          exploreKnowledgeBase: toolExploreKnowledgeBase(
             {
               agentId: chat.agentId,
               roleId: activeRole?.id

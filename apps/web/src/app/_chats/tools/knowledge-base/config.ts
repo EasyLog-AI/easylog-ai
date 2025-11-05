@@ -8,10 +8,32 @@ export const loadDocumentConfig = {
   })
 } as const;
 
-export const searchKnowledgeBaseConfig = {
-  name: 'searchKnowledgeBase',
-  description: 'Search the knowledge base for information',
+export const searchDocumentsConfig = {
+  name: 'searchDocuments',
+  description:
+    'Search for relevant documents using hybrid vector + keyword search. Returns a list of document IDs, names, summaries, and similarity scores. Use this when you need to find which documents are relevant before researching them.',
   inputSchema: z.object({
-    userSearchQuery: z.string().describe('The question the user asked')
+    query: z.string().describe('The search query')
+  })
+} as const;
+
+export const researchDocumentConfig = {
+  name: 'researchDocument',
+  description:
+    'Research a specific document to answer a question. Uses a recursive AI agent to query document data and find answers. Requires a document ID (use searchDocuments first to find relevant documents).',
+  inputSchema: z.object({
+    documentId: z.string().describe('The ID of the document to research'),
+    question: z.string().describe('The question to answer using this document')
+  })
+} as const;
+
+export const exploreKnowledgeBaseConfig = {
+  name: 'exploreKnowledgeBase',
+  description:
+    'Automatically search for relevant documents and research them to answer a question. Combines search + research in one tool. Use this when you want to comprehensively explore the knowledge base without knowing which specific documents to look at.',
+  inputSchema: z.object({
+    userSearchQuery: z
+      .string()
+      .describe('The question to answer by exploring the knowledge base')
   })
 } as const;

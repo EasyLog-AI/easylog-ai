@@ -7,6 +7,7 @@ import { z } from 'zod';
 import db from '@/database/client';
 import { documentData, documents } from '@/database/schema';
 import openrouterProvider from '@/lib/ai-providers/openrouter';
+import { generateEmbedding } from '@/lib/embeddings/generateEmbedding';
 import serverConfig from '@/server.config';
 import splitArrayBatches from '@/utils/split-array-batches';
 
@@ -153,6 +154,12 @@ Remember: Return ONLY the JSON object with "summary" and "tags" fields. Do not i
 
     logger.info('Summary', { summary, tags });
 
+    // Generate embedding from summary and tags
+    const embeddingText = `${summary} ${tags.join(' ')}`;
+    logger.info('Generating embedding', { embeddingText });
+    const embedding = await generateEmbedding(embeddingText);
+    logger.info('Embedding generated', { dimensions: embedding.length });
+
     const [document] = await db
       .update(documents)
       .set({
@@ -164,7 +171,8 @@ Remember: Return ONLY the JSON object with "summary" and "tags" fields. Do not i
               : 'xlsx',
         summary,
         tags,
-        analysis
+        analysis,
+        embedding
       })
       .where(eq(documents.id, documentId))
       .returning();

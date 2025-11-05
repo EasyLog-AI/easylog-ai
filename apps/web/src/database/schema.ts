@@ -1,12 +1,14 @@
 import {
   boolean,
+  index,
   integer,
   jsonb,
   pgEnum,
   pgTable,
   text,
   timestamp,
-  uuid
+  uuid,
+  vector
 } from 'drizzle-orm/pg-core';
 
 import { ChatMessage } from '@/app/_chats/types';
@@ -160,23 +162,41 @@ export const passkeys = pgTable('passkeys', {
   ...timestamps
 });
 
-export const documents = pgTable('documents', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  name: text('name').notNull(),
-  path: text('path'),
-  type: documentTypeEnum('type').notNull().default('unknown'),
-  summary: text('summary'),
-  tags: text('tags').array().notNull().default([]),
-  content: jsonb('content'),
-  analysis: jsonb('analysis').notNull().default({}),
-  status: documentStatusEnum('status').notNull().default('pending'),
-  agentId: uuid('agent_id')
-    .references(() => agents.id, {
-      onDelete: 'cascade'
-    })
-    .notNull(),
-  ...timestamps
-});
+export const documents = pgTable(
+  'documents',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(),
+    path: text('path'),
+    type: documentTypeEnum('type').notNull().default('unknown'),
+    summary: text('summary'),
+    tags: text('tags').array().notNull().default([]),
+    content: jsonb('content'),
+    analysis: jsonb('analysis').notNull().default({}),
+    status: documentStatusEnum('status').notNull().default('pending'),
+    agentId: uuid('agent_id')
+      .references(() => agents.id, {
+        onDelete: 'cascade'
+      })
+      .notNull(),
+    embedding: vector('embedding', { dimensions: 1536 }),
+    ...timestamps
+  },
+  (table) => [
+    index('embedding_idx').using(
+      'hnsw',
+      table.embedding.op('vector_cosine_ops')
+    ),
+    index('documents_name_trgm_idx').using(
+      'gin',
+      table.name.op('gin_trgm_ops')
+    ),
+    index('documents_summary_trgm_idx').using(
+      'gin',
+      table.summary.op('gin_trgm_ops')
+    )
+  ]
+);
 
 export const documentRoleAccess = pgTable('document_role_access', {
   id: uuid('id').primaryKey().defaultRandom(),
