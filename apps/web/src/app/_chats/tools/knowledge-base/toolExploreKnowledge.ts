@@ -79,7 +79,9 @@ Example 2: Finding specific data
 - Be thorough: Don't conclude "not found" until you've tried multiple search strategies
 - Be specific: Include item names and relevant excerpts
 - Be transparent: Explain your search process if the answer isn't obvious
-- Be persistent: Use all 15 available steps if needed to find the answer`
+- Be persistent: Use all 15 available steps if needed to find the answer
+- Preserve markdown: If researchKnowledge returns markdown with images (![alt](url)), include them in your final answer
+- Return markdown: Use markdown formatting in your response, especially for images, lists, and emphasis`
           },
           {
             role: 'user',

@@ -159,7 +159,13 @@ Example aggregate queries:
 - "SELECT row_data->>'ColumnName' as value, COUNT(*) FROM document_data WHERE document_id = '${dbKnowledge.id}' GROUP BY value ORDER BY COUNT(*) DESC LIMIT 10"
 - "SELECT AVG((row_data->>'NumericColumn')::numeric) as average FROM document_data WHERE document_id = '${dbKnowledge.id}'"
 
-Return only the answer to the user's question as plain text. Be concise and direct.`
+IMAGES AND MARKDOWN:
+- The data may contain markdown with embedded images: ![alt](https://url)
+- ALWAYS preserve markdown image syntax in your response
+- When relevant images exist or user asks for visuals, include them using markdown image syntax
+- Example: If row_data contains "![chart](https://blob.url)", include that in your response
+
+Return your answer using markdown formatting. Be concise and direct. Preserve any image references from the data.`
           },
           {
             role: 'user',
