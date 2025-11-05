@@ -74,10 +74,10 @@ import toolUpdatePlanningProject from '@/app/_chats/tools/easylog-backend/toolUp
 import toolUpdateSubmission from '@/app/_chats/tools/easylog-backend/toolUpdateSubmission';
 import toolUploadSubmissionMedia from '@/app/_chats/tools/easylog-backend/toolUploadSubmissionMedia';
 import toolExecuteSQL from '@/app/_chats/tools/execute-sql/toolExecuteSQL';
-import toolExploreKnowledgeBase from '@/app/_chats/tools/knowledge-base/toolExploreKnowledgeBase';
+import toolExploreKnowledge from '@/app/_chats/tools/knowledge-base/toolExploreKnowledge';
 import toolLoadDocument from '@/app/_chats/tools/knowledge-base/toolLoadDocument';
-import toolResearchDocument from '@/app/_chats/tools/knowledge-base/toolResearchDocument';
-import toolSearchDocuments from '@/app/_chats/tools/knowledge-base/toolSearchDocuments';
+import toolResearchKnowledge from '@/app/_chats/tools/knowledge-base/toolResearchKnowledge';
+import toolSearchKnowledge from '@/app/_chats/tools/knowledge-base/toolSearchKnowledge';
 import toolAnswerMultipleChoice from '@/app/_chats/tools/multiple-choice/toolAnswerMultipleChoice';
 import toolCreateMultipleChoice from '@/app/_chats/tools/multiple-choice/toolCreateMultipleChoice';
 import toolGetAuditSubmissions from '@/app/_chats/tools/pqi-audits/toolGetAuditSubmissions';
@@ -291,21 +291,21 @@ export const POST = async (
           prepareSubmission: toolPrepareSubmission(user.id),
           uploadSubmissionMedia: toolUploadSubmissionMedia(user.id),
           executeSql: toolExecuteSQL(writer),
-          searchDocuments: toolSearchDocuments(
+          searchKnowledge: toolSearchKnowledge(
             {
               agentId: chat.agentId,
               roleId: activeRole?.id
             },
             writer
           ),
-          researchDocument: toolResearchDocument(
+          researchKnowledge: toolResearchKnowledge(
             {
               agentId: chat.agentId,
               roleId: activeRole?.id
             },
             writer
           ),
-          exploreKnowledgeBase: toolExploreKnowledgeBase({
+          exploreKnowledge: toolExploreKnowledge({
             agentId: chat.agentId,
             roleId: activeRole?.id
           }),

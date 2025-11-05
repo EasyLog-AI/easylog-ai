@@ -8,37 +8,33 @@ export const loadDocumentConfig = {
   })
 } as const;
 
-export const searchDocumentsConfig = {
-  name: 'searchDocuments',
+export const searchKnowledgeConfig = {
+  name: 'searchKnowledge',
   description:
-    'Search for relevant documents using hybrid vector + keyword search. Returns a list of document IDs, names, summaries, and similarity scores. Use this when you need to find which documents are relevant before researching them.',
+    'Search the knowledge base using hybrid semantic and keyword search. Returns relevant knowledge items with their IDs, names, summaries, and similarity scores.',
   inputSchema: z.object({
-    query: z.string().describe('The search query')
+    query: z.string().describe('What to search for')
   })
 } as const;
 
-export const researchDocumentConfig = {
-  name: 'researchDocument',
+export const researchKnowledgeConfig = {
+  name: 'researchKnowledge',
   description:
-    'Research a specific document to answer a question. Uses a recursive AI agent to query document data and find answers. IMPORTANT: You must first use searchDocuments to get document IDs, then pass the ID (not the name) to this tool.',
+    'Deep-dive into a specific knowledge item to answer a question. Requires the item ID from searchKnowledge results. Pass the id field, not the name.',
   inputSchema: z.object({
-    documentId: z
+    knowledgeId: z
       .string()
       .uuid()
-      .describe(
-        'The UUID of the document to research (from searchDocuments results - use the "id" field, NOT the "name" field)'
-      ),
-    question: z.string().describe('The question to answer using this document')
+      .describe('UUID from searchKnowledge results (use id field)'),
+    question: z.string().describe('Question to answer from this knowledge item')
   })
 } as const;
 
-export const exploreKnowledgeBaseConfig = {
-  name: 'exploreKnowledgeBase',
+export const exploreKnowledgeConfig = {
+  name: 'exploreKnowledge',
   description:
-    'Automatically search for relevant documents and research them to answer a question. Combines search + research in one tool. Use this when you want to comprehensively explore the knowledge base without knowing which specific documents to look at.',
+    'Autonomously search and research the knowledge base to answer a question. Automatically finds relevant items and extracts answers.',
   inputSchema: z.object({
-    userSearchQuery: z
-      .string()
-      .describe('The question to answer by exploring the knowledge base')
+    question: z.string().describe('Question to answer from the knowledge base')
   })
 } as const;

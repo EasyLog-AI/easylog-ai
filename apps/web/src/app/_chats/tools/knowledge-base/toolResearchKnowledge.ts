@@ -10,20 +10,20 @@ import { documentRoleAccess, documents } from '@/database/schema';
 import openrouterProvider from '@/lib/ai-providers/openrouter';
 import tryCatch from '@/utils/try-catch';
 
-import { researchDocumentConfig } from './config';
+import { researchKnowledgeConfig } from './config';
 
-interface ToolResearchDocumentProps {
+interface ToolResearchKnowledgeProps {
   agentId: string;
   roleId?: string;
 }
 
-const getToolResearchDocument = (
-  { agentId, roleId }: ToolResearchDocumentProps,
+const getToolResearchKnowledge = (
+  { agentId, roleId }: ToolResearchKnowledgeProps,
   messageStreamWriter?: UIMessageStreamWriter
 ) => {
   return tool({
-    ...researchDocumentConfig,
-    execute: async ({ documentId, question }) => {
+    ...researchKnowledgeConfig,
+    execute: async ({ knowledgeId, question }) => {
       const id = uuidv4();
       const qb = new QueryBuilder();
 
@@ -32,16 +32,16 @@ const getToolResearchDocument = (
         id,
         data: {
           status: 'in_progress',
-          message: `Searching document content for: "${question}"`
+          message: `Doorzoeken van kennisinhoud voor: "${question}"`
         }
       });
 
-      // Verify document access
+      // Verify knowledge access
       const accessClause = and(
-        eq(documents.id, documentId),
+        eq(documents.id, knowledgeId),
         eq(documents.agentId, agentId),
         or(
-          // Document has "all roles" access
+          // Knowledge has "all roles" access
           exists(
             qb
               .select()
@@ -53,7 +53,7 @@ const getToolResearchDocument = (
                 )
               )
           ),
-          // Document has specific role access
+          // Knowledge has specific role access
           roleId
             ? exists(
                 qb
@@ -70,32 +70,32 @@ const getToolResearchDocument = (
         )
       );
 
-      const [dbDocument] = await db
+      const [dbKnowledge] = await db
         .select()
         .from(documents)
         .where(accessClause)
         .limit(1);
 
-      if (!dbDocument) {
-        const errorMessage = 'Document not found or access denied';
+      if (!dbKnowledge) {
+        const errorMessage = 'Kennisitem niet gevonden of toegang geweigerd';
         messageStreamWriter?.write({
           type: 'data-executing-tool',
           id,
           data: {
             status: 'completed',
-            message: `Document not found or access denied`
+            message: `Kennisitem niet gevonden of toegang geweigerd`
           }
         });
         return errorMessage;
       }
 
-      // Create recursive agent with SQL tool to research the document
+      // Create recursive agent with SQL tool to research the knowledge
       const { text } = await generateText({
         model: openrouterProvider('google/gemini-2.5-flash'),
         tools: {
           toolExecuteSQL: tool({
             description:
-              'Execute a SQL query on the Easylog database to extract document data',
+              'Execute a SQL query on the Easylog database to extract knowledge data',
             inputSchema: z.object({
               query: z.string().describe('The SQL query to execute')
             }),
@@ -117,15 +117,15 @@ const getToolResearchDocument = (
         messages: [
           {
             role: 'system',
-            content: `You are a document research assistant. Your task is to answer the user's question using the provided document data.
+            content: `You are a knowledge research assistant. Your task is to answer the user's question using the provided knowledge data.
 
 You have access to toolExecuteSQL to query the document_data table. Use this tool recursively to extract relevant information.
 
 The document_data table structure:
 - id: UUID (primary key)
 - document_id: UUID (foreign key to documents table)
-- part_name: TEXT (document section/part)
-- row_id: INTEGER (row number within document)
+- part_name: TEXT (knowledge section/part)
+- row_id: INTEGER (row number)
 - row_data: JSONB (contains all row data as JSON objects)
 - created_at: TIMESTAMP
 - updated_at: TIMESTAMP
@@ -138,13 +138,13 @@ The row_data column contains JSON objects where each key is a column name and th
   "Column4": true
 }
 
-Document Information:
-- Document ID: ${dbDocument.id}
-- Document Name: ${dbDocument.name}
-- Document Summary: ${dbDocument.summary || 'N/A'}
+Knowledge Information:
+- ID: ${dbKnowledge.id}
+- Name: ${dbKnowledge.name}
+- Summary: ${dbKnowledge.summary || 'N/A'}
 
-Document Structure Analysis:
-${JSON.stringify(dbDocument.analysis, null, 2)}
+Structure Analysis:
+${JSON.stringify(dbKnowledge.analysis, null, 2)}
 
 QUERY STRATEGY:
 1. ALWAYS prioritize aggregate functions (COUNT, SUM, AVG, MIN, MAX) for overview information
@@ -155,9 +155,9 @@ QUERY STRATEGY:
 6. Make multiple queries if needed to build a complete answer
 
 Example aggregate queries:
-- "SELECT COUNT(*) as total_rows FROM document_data WHERE document_id = '${dbDocument.id}'"
-- "SELECT row_data->>'ColumnName' as value, COUNT(*) FROM document_data WHERE document_id = '${dbDocument.id}' GROUP BY value ORDER BY COUNT(*) DESC LIMIT 10"
-- "SELECT AVG((row_data->>'NumericColumn')::numeric) as average FROM document_data WHERE document_id = '${dbDocument.id}'"
+- "SELECT COUNT(*) as total_rows FROM document_data WHERE document_id = '${dbKnowledge.id}'"
+- "SELECT row_data->>'ColumnName' as value, COUNT(*) FROM document_data WHERE document_id = '${dbKnowledge.id}' GROUP BY value ORDER BY COUNT(*) DESC LIMIT 10"
+- "SELECT AVG((row_data->>'NumericColumn')::numeric) as average FROM document_data WHERE document_id = '${dbKnowledge.id}'"
 
 Return only the answer to the user's question as plain text. Be concise and direct.`
           },
@@ -174,7 +174,7 @@ Return only the answer to the user's question as plain text. Be concise and dire
         id,
         data: {
           status: 'completed',
-          message: `Finished analyzing "${dbDocument.name}"`
+          message: `Analyse van "${dbKnowledge.name}" voltooid`
         }
       });
 
@@ -183,4 +183,4 @@ Return only the answer to the user's question as plain text. Be concise and dire
   });
 };
 
-export default getToolResearchDocument;
+export default getToolResearchKnowledge;

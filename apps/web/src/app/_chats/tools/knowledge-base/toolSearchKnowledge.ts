@@ -17,19 +17,19 @@ import db from '@/database/client';
 import { documentRoleAccess, documents } from '@/database/schema';
 import { generateEmbedding } from '@/lib/embeddings/generateEmbedding';
 
-import { searchDocumentsConfig } from './config';
+import { searchKnowledgeConfig } from './config';
 
-interface ToolSearchDocumentsProps {
+interface ToolSearchKnowledgeProps {
   agentId: string;
   roleId?: string;
 }
 
-const getToolSearchDocuments = (
-  { agentId, roleId }: ToolSearchDocumentsProps,
+const getToolSearchKnowledge = (
+  { agentId, roleId }: ToolSearchKnowledgeProps,
   messageStreamWriter?: UIMessageStreamWriter
 ) => {
   return tool({
-    ...searchDocumentsConfig,
+    ...searchKnowledgeConfig,
     execute: async ({ query }) => {
       const id = uuidv4();
       const qb = new QueryBuilder();
@@ -39,7 +39,7 @@ const getToolSearchDocuments = (
         id,
         data: {
           status: 'in_progress',
-          message: `Searching knowledge base for: "${query}"`
+          message: `Zoeken in kennisbank naar: "${query}"`
         }
       });
 
@@ -51,7 +51,7 @@ const getToolSearchDocuments = (
         id,
         data: {
           status: 'in_progress',
-          message: `Running hybrid search (semantic + keyword matching)...`
+          message: `Hybride zoekopdracht uitvoeren (semantisch + zoekwoorden)...`
         }
       });
 
@@ -144,7 +144,7 @@ const getToolSearchDocuments = (
         id,
         data: {
           status: 'completed',
-          message: `Found ${results.length} relevant document${results.length === 1 ? '' : 's'}`
+          message: `${results.length} relevant${results.length === 1 ? '' : 'e'} kennisitem${results.length === 1 ? '' : 's'} gevonden`
         }
       });
 
@@ -153,4 +153,4 @@ const getToolSearchDocuments = (
   });
 };
 
-export default getToolSearchDocuments;
+export default getToolSearchKnowledge;
