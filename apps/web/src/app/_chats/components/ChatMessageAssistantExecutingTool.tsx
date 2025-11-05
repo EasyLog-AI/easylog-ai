@@ -1,6 +1,6 @@
 import { IconCheck } from '@tabler/icons-react';
 
-import ContentWrapper from '@/app/_ui/components/ContentWrapper/ContentWrapper';
+import Icon from '@/app/_ui/components/Icon/Icon';
 import IconSpinner from '@/app/_ui/components/Icon/IconSpinner';
 import Typography from '@/app/_ui/components/Typography/Typography';
 
@@ -17,15 +17,9 @@ const ChatMessageAssistantExecutingTool = ({
   'use no memo';
 
   return (
-    <div className="bg-surface-muted shadow-short my-2 w-fit overflow-auto rounded-xl px-3 py-2">
-      <Typography variant="bodySm">
-        <ContentWrapper
-          className="h-8"
-          iconLeft={status === 'in_progress' ? IconSpinner : IconCheck}
-        >
-          {message}
-        </ContentWrapper>
-      </Typography>
+    <div className="bg-surface-muted shadow-short my-2 flex max-w-full items-center gap-2 self-start rounded-2xl px-3 py-2">
+      <Icon icon={status === 'in_progress' ? IconSpinner : IconCheck} />
+      <Typography variant="bodySm">{message}</Typography>
     </div>
   );
 };

@@ -19,7 +19,7 @@ const ChatMessageUser = ({
       transition={{ duration: 0.2 }}
       className="my-3 flex w-full items-end justify-end"
     >
-      <div className="from-fill-brand to-fill-brand-2 shadow-fill-brand/20 flex flex-col items-end gap-1.5 rounded-2xl bg-gradient-to-tr p-3 shadow-md">
+      <div className="from-fill-brand to-fill-brand-2 shadow-fill-brand/20 flex flex-col items-end gap-1.5 rounded-2xl bg-gradient-to-tr px-3 py-2 shadow-md">
         {children}
       </div>
     </motion.div>
