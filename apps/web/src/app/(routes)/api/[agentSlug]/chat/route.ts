@@ -305,13 +305,10 @@ export const POST = async (
             },
             writer
           ),
-          exploreKnowledgeBase: toolExploreKnowledgeBase(
-            {
-              agentId: chat.agentId,
-              roleId: activeRole?.id
-            },
-            writer
-          ),
+          exploreKnowledgeBase: toolExploreKnowledgeBase({
+            agentId: chat.agentId,
+            roleId: activeRole?.id
+          }),
           loadDocument: toolLoadDocument({
             agentId: chat.agentId,
             roleId: activeRole?.id

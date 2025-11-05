@@ -1,4 +1,4 @@
-import { UIMessageStreamWriter, generateText, stepCountIs, tool } from 'ai';
+import { generateText, stepCountIs, tool } from 'ai';
 
 import openrouterProvider from '@/lib/ai-providers/openrouter';
 
@@ -11,10 +11,10 @@ interface ToolExploreKnowledgeBaseProps {
   roleId?: string;
 }
 
-const getToolExploreKnowledgeBase = (
-  { agentId, roleId }: ToolExploreKnowledgeBaseProps,
-  messageStreamWriter?: UIMessageStreamWriter
-) => {
+const getToolExploreKnowledgeBase = ({
+  agentId,
+  roleId
+}: ToolExploreKnowledgeBaseProps) => {
   return tool({
     ...exploreKnowledgeBaseConfig,
     execute: async ({ userSearchQuery }) => {
@@ -22,14 +22,8 @@ const getToolExploreKnowledgeBase = (
       const { text } = await generateText({
         model: openrouterProvider('google/gemini-2.5-flash'),
         tools: {
-          searchDocuments: getToolSearchDocuments(
-            { agentId, roleId },
-            messageStreamWriter
-          ),
-          researchDocument: getToolResearchDocument(
-            { agentId, roleId },
-            messageStreamWriter
-          )
+          searchDocuments: getToolSearchDocuments({ agentId, roleId }),
+          researchDocument: getToolResearchDocument({ agentId, roleId })
         },
         messages: [
           {

@@ -316,13 +316,10 @@ Silently monitor and analyze conversations, storing insights in your scratchpad.
             },
             undefined
           ),
-          exploreKnowledgeBase: toolExploreKnowledgeBase(
-            {
-              agentId: chat.agentId,
-              roleId: activeRole?.id
-            },
-            undefined
-          )
+          exploreKnowledgeBase: toolExploreKnowledgeBase({
+            agentId: chat.agentId,
+            roleId: activeRole?.id
+          })
         }
       })
     );
