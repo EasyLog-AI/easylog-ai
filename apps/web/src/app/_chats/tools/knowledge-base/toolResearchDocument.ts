@@ -28,12 +28,11 @@ const getToolResearchDocument = (
       const qb = new QueryBuilder();
 
       messageStreamWriter?.write({
-        type: 'data-research',
+        type: 'data-executing-tool',
         id,
         data: {
-          status: 'loading',
-          title: 'Researching document',
-          body: `Researching document to answer: "${question}"`
+          status: 'in_progress',
+          message: `Searching document content for: "${question}"`
         }
       });
 
@@ -80,12 +79,11 @@ const getToolResearchDocument = (
       if (!dbDocument) {
         const errorMessage = 'Document not found or access denied';
         messageStreamWriter?.write({
-          type: 'data-research',
+          type: 'data-executing-tool',
           id,
           data: {
-            status: 'complete',
-            title: 'Research failed',
-            body: errorMessage
+            status: 'completed',
+            message: `Document not found or access denied`
           }
         });
         return errorMessage;
@@ -172,12 +170,11 @@ Return only the answer to the user's question as plain text. Be concise and dire
       });
 
       messageStreamWriter?.write({
-        type: 'data-research',
+        type: 'data-executing-tool',
         id,
         data: {
-          status: 'complete',
-          title: 'Research complete',
-          body: text
+          status: 'completed',
+          message: `Finished analyzing "${dbDocument.name}"`
         }
       });
 

@@ -22,7 +22,10 @@ const getToolExploreKnowledgeBase = (
       const { text } = await generateText({
         model: openrouterProvider('google/gemini-2.5-flash'),
         tools: {
-          searchDocuments: getToolSearchDocuments({ agentId, roleId }),
+          searchDocuments: getToolSearchDocuments(
+            { agentId, roleId },
+            messageStreamWriter
+          ),
           researchDocument: getToolResearchDocument(
             { agentId, roleId },
             messageStreamWriter

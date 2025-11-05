@@ -302,18 +302,27 @@ Silently monitor and analyze conversations, storing insights in your scratchpad.
             agentId: chat.agentId
           }),
           executeSql: toolExecuteSQL(),
-          searchDocuments: toolSearchDocuments({
-            agentId: chat.agentId,
-            roleId: activeRole?.id
-          }),
-          researchDocument: toolResearchDocument({
-            agentId: chat.agentId,
-            roleId: activeRole?.id
-          }),
-          exploreKnowledgeBase: toolExploreKnowledgeBase({
-            agentId: chat.agentId,
-            roleId: activeRole?.id
-          })
+          searchDocuments: toolSearchDocuments(
+            {
+              agentId: chat.agentId,
+              roleId: activeRole?.id
+            },
+            undefined
+          ),
+          researchDocument: toolResearchDocument(
+            {
+              agentId: chat.agentId,
+              roleId: activeRole?.id
+            },
+            undefined
+          ),
+          exploreKnowledgeBase: toolExploreKnowledgeBase(
+            {
+              agentId: chat.agentId,
+              roleId: activeRole?.id
+            },
+            undefined
+          )
         }
       })
     );

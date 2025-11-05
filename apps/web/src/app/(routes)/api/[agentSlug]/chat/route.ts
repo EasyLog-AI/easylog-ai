@@ -13,6 +13,7 @@ import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 
 import getCurrentUser from '@/app/_auth/data/getCurrentUser';
+import executingToolSchema from '@/app/_chats/schemas/executingToolSchema';
 import mediaImageSchema from '@/app/_chats/schemas/mediaImageSchema';
 import multipleChoiceSchema from '@/app/_chats/schemas/multipleChoiceSchema';
 import researchSchema from '@/app/_chats/schemas/researchSchema';
@@ -141,10 +142,9 @@ export const POST = async (
       return new NextResponse('Chat not found', { status: 404 });
     }
 
-    const agentMemories =
-      (user.memories ?? []).filter(
-        (memory) => memory.agentId === chat.agentId
-      );
+    const agentMemories = (user.memories ?? []).filter(
+      (memory) => memory.agentId === chat.agentId
+    );
 
     const existingMessages = chat.messages as ChatMessage[];
     const combinedMessages: ChatMessage[] = [...existingMessages, message];
@@ -156,11 +156,11 @@ export const POST = async (
         'line-chart': lineChartSchema,
         'stacked-bar-chart': stackedBarChartSchema,
         'pie-chart': pieChartSchema,
-        research: researchSchema,
+        'executing-tool': executingToolSchema,
         'multiple-choice': multipleChoiceSchema,
-        'media-image': mediaImageSchema
+        'media-image': mediaImageSchema,
+        research: researchSchema
       }
-      // TODO: Add tool calls to the messages
     });
 
     const activeRole =
@@ -291,10 +291,13 @@ export const POST = async (
           prepareSubmission: toolPrepareSubmission(user.id),
           uploadSubmissionMedia: toolUploadSubmissionMedia(user.id),
           executeSql: toolExecuteSQL(writer),
-          searchDocuments: toolSearchDocuments({
-            agentId: chat.agentId,
-            roleId: activeRole?.id
-          }),
+          searchDocuments: toolSearchDocuments(
+            {
+              agentId: chat.agentId,
+              roleId: activeRole?.id
+            },
+            writer
+          ),
           researchDocument: toolResearchDocument(
             {
               agentId: chat.agentId,

@@ -1,4 +1,4 @@
-import { tool } from 'ai';
+import { UIMessageStreamWriter, tool } from 'ai';
 import {
   and,
   cosineDistance,
@@ -11,6 +11,7 @@ import {
   sql
 } from 'drizzle-orm';
 import { QueryBuilder } from 'drizzle-orm/pg-core';
+import { v4 as uuidv4 } from 'uuid';
 
 import db from '@/database/client';
 import { documentRoleAccess, documents } from '@/database/schema';
@@ -23,17 +24,36 @@ interface ToolSearchDocumentsProps {
   roleId?: string;
 }
 
-const getToolSearchDocuments = ({
-  agentId,
-  roleId
-}: ToolSearchDocumentsProps) => {
+const getToolSearchDocuments = (
+  { agentId, roleId }: ToolSearchDocumentsProps,
+  messageStreamWriter?: UIMessageStreamWriter
+) => {
   return tool({
     ...searchDocumentsConfig,
     execute: async ({ query }) => {
+      const id = uuidv4();
       const qb = new QueryBuilder();
+
+      messageStreamWriter?.write({
+        type: 'data-executing-tool',
+        id,
+        data: {
+          status: 'in_progress',
+          message: `Searching knowledge base for: "${query}"`
+        }
+      });
 
       // Generate embedding for the search query
       const queryEmbedding = await generateEmbedding(query);
+
+      messageStreamWriter?.write({
+        type: 'data-executing-tool',
+        id,
+        data: {
+          status: 'in_progress',
+          message: `Running hybrid search (semantic + keyword matching)...`
+        }
+      });
 
       // Access control: documents must belong to the agent AND (have "all roles" access OR specific role has access)
       const accessClause = and(
@@ -118,6 +138,15 @@ const getToolSearchDocuments = ({
         .limit(10);
 
       console.log('Search results:', results);
+
+      messageStreamWriter?.write({
+        type: 'data-executing-tool',
+        id,
+        data: {
+          status: 'completed',
+          message: `Found ${results.length} relevant document${results.length === 1 ? '' : 's'}`
+        }
+      });
 
       return results;
     }

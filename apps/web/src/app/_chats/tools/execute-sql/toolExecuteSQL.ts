@@ -19,12 +19,11 @@ const toolExecuteSQL = (messageStreamWriter?: UIMessageStreamWriter) => {
       console.log('Executing SQL query', query.proposedQuery);
 
       messageStreamWriter?.write({
-        type: 'data-research',
+        type: 'data-executing-tool',
         id,
         data: {
-          status: 'loading',
-          title: 'Executing query',
-          body: `${query.queryIntent}`
+          status: 'in_progress',
+          message: `Executing query: ${query.queryIntent}`
         }
       });
 
@@ -172,12 +171,11 @@ ${query.queryIntent}
               }),
               execute: async (query) => {
                 messageStreamWriter?.write({
-                  type: 'data-research',
+                  type: 'data-executing-tool',
                   id,
                   data: {
-                    status: 'loading',
-                    title: 'Executing query',
-                    body: `${query.query}`
+                    status: 'in_progress',
+                    message: `Running SQL: ${query.query.substring(0, 100)}${query.query.length > 100 ? '...' : ''}`
                   }
                 });
 
@@ -210,11 +208,11 @@ ${query.queryIntent}
           prepareStep: (step) => {
             if (step.steps.at(-1)?.toolCalls.length === 0) {
               messageStreamWriter?.write({
-                type: 'data-research',
+                type: 'data-executing-tool',
                 id,
                 data: {
-                  status: 'loading',
-                  title: 'Researching query results'
+                  status: 'in_progress',
+                  message: 'Analyzing query results...'
                 }
               });
             }
@@ -231,12 +229,11 @@ ${query.queryIntent}
       }
 
       messageStreamWriter?.write({
-        type: 'data-research',
+        type: 'data-executing-tool',
         id,
         data: {
-          status: 'complete',
-          title: 'Query executed',
-          body: result.text
+          status: 'completed',
+          message: 'Query executed successfully'
         }
       });
 

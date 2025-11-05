@@ -9,6 +9,7 @@ import PieChart from '@/app/_charts/components/PieChart';
 import StackedBarChart from '@/app/_charts/components/StackedBarChart';
 
 import ChatMessageAssistant from './ChatMessageAssistant';
+import ChatMessageAssistantExecutingTool from './ChatMessageAssistantExecutingTool';
 import ChatMessageAssistantImage from './ChatMessageAssistantImage';
 import ChatMessageAssistantMarkdownContent from './ChatMessageAssistantMarkdownContent';
 import ChatMessageAssistantMultipleChoice from './ChatMessageAssistantMultipleChoice';
@@ -112,12 +113,18 @@ const ChatHistory = () => {
                         key={`${message.id}-${i}`}
                         config={part.data}
                       />
+                    ) : part.type === 'data-executing-tool' ? (
+                      <ChatMessageAssistantExecutingTool
+                        key={`${message.id}-${i}`}
+                        status={part.data.status}
+                        message={part.data.message}
+                      />
                     ) : part.type === 'data-research' ? (
                       <ChatMessageAssistantResearch
                         key={`${message.id}-${i}`}
                         status={part.data.status}
                         title={part.data.title}
-                        body={part.data.body}
+                        body={part.data.body ?? ''}
                       />
                     ) : part.type === 'reasoning' ? (
                       <ChatMessageAssistantReasoning

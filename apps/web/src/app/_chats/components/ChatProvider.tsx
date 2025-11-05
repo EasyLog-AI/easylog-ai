@@ -9,6 +9,7 @@ import useTRPC from '@/lib/trpc/browser';
 import lastAssistantMessageIsCompleteWithToolCalls from '@/utils/lastAssistantMessageIsCompleteWithToolCalls';
 
 import useChatMode from '../hooks/useChatMode';
+import executingToolSchema from '../schemas/executingToolSchema';
 import mediaImageSchema from '../schemas/mediaImageSchema';
 import multipleChoiceSchema from '../schemas/multipleChoiceSchema';
 import researchSchema from '../schemas/researchSchema';
@@ -62,6 +63,7 @@ const ChatProvider = ({
       'stacked-bar-chart': stackedBarChartSchema,
       'pie-chart': pieChartSchema,
       research: researchSchema,
+      'executing-tool': executingToolSchema,
       'multiple-choice': multipleChoiceSchema,
       'media-image': mediaImageSchema
     },
@@ -109,14 +111,7 @@ const ChatProvider = ({
       setDidStartChat(true);
       void chat.sendMessage({ text: dbChat.agent.autoStartMessage });
     }
-  }, [
-    chat.messages.length,
-    chat.status,
-    chat.sendMessage,
-    didStartChat,
-    dbChat.agent.autoStartMessage,
-    chat
-  ]);
+  }, [didStartChat, dbChat.agent.autoStartMessage, chat]);
 
   return (
     <ChatContext.Provider
