@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/nextjs';
-import { tool } from 'ai';
+import { tool, UIMessageStreamWriter } from 'ai';
+import { v4 as uuidv4 } from 'uuid';
 
 import { ResponseError } from '@/lib/easylog/generated-client';
 import tryCatch from '@/utils/try-catch';
@@ -7,7 +8,10 @@ import tryCatch from '@/utils/try-catch';
 import { createFormConfig } from './config';
 import getEasylogClient from './utils/getEasylogClient';
 
-const toolCreateForm = (userId: string) => {
+const toolCreateForm = (
+  userId: string,
+  messageStreamWriter?: UIMessageStreamWriter
+) => {
   return tool({
     ...createFormConfig,
     execute: async ({
@@ -17,6 +21,16 @@ const toolCreateForm = (userId: string) => {
       content,
       forceSchemaValidity
     }) => {
+      const id = uuidv4();
+
+      messageStreamWriter?.write({
+        type: 'data-executing-tool',
+        id,
+        data: {
+          status: 'in_progress',
+          message: `Formulier "${name}" aanmaken...`
+        }
+      });
       let normalizedContent: string;
 
       if (content == null) {
@@ -54,15 +68,40 @@ const toolCreateForm = (userId: string) => {
 
       if (error instanceof ResponseError) {
         Sentry.captureException(error);
+        messageStreamWriter?.write({
+          type: 'data-executing-tool',
+          id,
+          data: {
+            status: 'completed',
+            message: 'Fout bij aanmaken van formulier'
+          }
+        });
         return await error.response.text();
       }
 
       if (error) {
         Sentry.captureException(error);
+        messageStreamWriter?.write({
+          type: 'data-executing-tool',
+          id,
+          data: {
+            status: 'completed',
+            message: `Fout bij aanmaken van formulier: ${error.message}`
+          }
+        });
         return `Error creating form: ${error.message}`;
       }
 
       console.log('created form', form);
+
+      messageStreamWriter?.write({
+        type: 'data-executing-tool',
+        id,
+        data: {
+          status: 'completed',
+          message: `Formulier "${name}" aangemaakt`
+        }
+      });
 
       return JSON.stringify(form, null, 2);
     }
