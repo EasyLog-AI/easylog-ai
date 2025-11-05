@@ -80,10 +80,13 @@ const getToolSearchDocuments = ({
         0
       )`;
 
+      // Best keyword similarity across name, summary, and tags
+      const keywordSimilarity = sql<number>`GREATEST(${nameSimilarity}, ${summarySimilarity}, ${tagsSimilarity})`;
+
       // Combined ranking: vector (60%) + text fuzzy matching (40%)
       const combinedScore = sql<number>`(
         ${vectorSimilarity} * 0.6 +
-        (GREATEST(${nameSimilarity}, ${summarySimilarity}, ${tagsSimilarity})) * 0.4
+        ${keywordSimilarity} * 0.4
       )`;
 
       // Hybrid search: combine vector similarity with fuzzy text matching
@@ -93,7 +96,9 @@ const getToolSearchDocuments = ({
           name: documents.name,
           summary: documents.summary,
           tags: documents.tags,
-          similarity: combinedScore
+          similarity: combinedScore,
+          cosineSimilarity: vectorSimilarity,
+          keywordSimilarity: keywordSimilarity
         })
         .from(documents)
         .where(
