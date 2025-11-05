@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/nextjs';
 import { UIMessageStreamWriter, tool } from 'ai';
+import { v4 as uuidv4 } from 'uuid';
 
 import { ResponseError } from '@/lib/easylog/generated-client';
 import tryCatch from '@/utils/try-catch';
@@ -14,6 +15,16 @@ const toolShowSubmissionMedia = (
   return tool({
     ...showSubmissionMediaConfig,
     execute: async ({ mediaId, size = 'detail' }, opts) => {
+      const id = uuidv4();
+
+      messageStreamWriter.write({
+        type: 'data-executing-tool',
+        id,
+        data: {
+          status: 'in_progress',
+          message: 'Inzendingsmedium ophalen...'
+        }
+      });
       const client = await getEasylogClient(userId);
 
       const [response, error] = await tryCatch(
@@ -25,16 +36,40 @@ const toolShowSubmissionMedia = (
 
       if (error instanceof ResponseError) {
         Sentry.captureException(error);
+        messageStreamWriter.write({
+          type: 'data-executing-tool',
+          id,
+          data: {
+            status: 'completed',
+            message: 'Fout bij ophalen van inzendingsmedium'
+          }
+        });
         return await error.response.text();
       }
 
       if (error) {
         Sentry.captureException(error);
+        messageStreamWriter.write({
+          type: 'data-executing-tool',
+          id,
+          data: {
+            status: 'completed',
+            message: `Fout bij ophalen van inzendingsmedium: ${error.message}`
+          }
+        });
         return `Error fetching media: ${error.message}`;
       }
 
       if (!response || !response.data) {
         console.error('❌ Media not found:', mediaId);
+        messageStreamWriter.write({
+          type: 'data-executing-tool',
+          id,
+          data: {
+            status: 'completed',
+            message: 'Inzendingsmedium niet gevonden'
+          }
+        });
         return `Media ${mediaId} not found`;
       }
 
@@ -92,6 +127,14 @@ const toolShowSubmissionMedia = (
         type: 'data-media-image',
         id: opts.toolCallId,
         data: mediaData
+      });
+      messageStreamWriter.write({
+        type: 'data-executing-tool',
+        id,
+        data: {
+          status: 'completed',
+          message: 'Inzendingsmedium opgehaald'
+        }
       });
 
       return `Image displayed: ${media.fileName} (${formatBytes(media.size || 0)})`;

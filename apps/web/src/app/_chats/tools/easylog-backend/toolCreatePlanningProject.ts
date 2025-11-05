@@ -1,16 +1,31 @@
 import * as Sentry from '@sentry/nextjs';
-import { tool } from 'ai';
+import { UIMessageStreamWriter, tool } from 'ai';
+import { v4 as uuidv4 } from 'uuid';
 
+import { ResponseError } from '@/lib/easylog/generated-client';
 import { ProjectPayload } from '@/lib/easylog/generated-client/models';
 import tryCatch from '@/utils/try-catch';
 
 import { createPlanningProjectConfig } from './config';
 import getEasylogClient from './utils/getEasylogClient';
 
-const toolCreatePlanningProject = (userId: string) => {
+const toolCreatePlanningProject = (
+  userId: string,
+  messageStreamWriter?: UIMessageStreamWriter
+) => {
   return tool({
     ...createPlanningProjectConfig,
     execute: async ({ datasourceId, ...updateData }) => {
+      const id = uuidv4();
+
+      messageStreamWriter?.write({
+        type: 'data-executing-tool',
+        id,
+        data: {
+          status: 'in_progress',
+          message: 'Planningsproject aanmaken...'
+        }
+      });
       console.log('[toolCreatePlanningProject] Tool execution started', {
         userId,
         datasourceId,
@@ -22,7 +37,9 @@ const toolCreatePlanningProject = (userId: string) => {
       try {
         console.log('[toolCreatePlanningProject] Getting EasyLog client...');
         const client = await getEasylogClient(userId);
-        console.log('[toolCreatePlanningProject] EasyLog client obtained successfully');
+        console.log(
+          '[toolCreatePlanningProject] EasyLog client obtained successfully'
+        );
 
         const projectPayload: ProjectPayload = {
           ...updateData,
@@ -40,16 +57,6 @@ const toolCreatePlanningProject = (userId: string) => {
           timestamp: new Date().toISOString()
         });
 
-        const apiMethod = datasourceId
-          ? 'createProjectInDatasource'
-          : 'createProject';
-
-        console.log('[toolCreatePlanningProject] Calling planning API', {
-          method: apiMethod,
-          datasourceId: datasourceId?.toString(),
-          endpoint: `client.planning.${apiMethod}`
-        });
-
         const [createdProjectResponse, error] = await tryCatch(
           datasourceId
             ? client.planning.createProjectInDatasource({
@@ -61,16 +68,36 @@ const toolCreatePlanningProject = (userId: string) => {
               })
         );
 
+        if (error instanceof ResponseError) {
+          Sentry.captureException(error);
+          messageStreamWriter?.write({
+            type: 'data-executing-tool',
+            id,
+            data: {
+              status: 'error',
+              message: 'Fout bij aanmaken van planningsproject'
+            }
+          });
+          return await error.response.text();
+        }
+
         if (error) {
           console.error('[toolCreatePlanningProject] API call failed', {
             errorMessage: error.message,
             errorName: error.name,
             errorStack: error.stack,
             datasourceId,
-            method: apiMethod,
             timestamp: new Date().toISOString()
           });
           Sentry.captureException(error);
+          messageStreamWriter?.write({
+            type: 'data-executing-tool',
+            id,
+            data: {
+              status: 'error',
+              message: `Fout bij aanmaken van planningsproject: ${error.message}`
+            }
+          });
           return `Error creating project: ${error.message}`;
         }
 
@@ -80,17 +107,43 @@ const toolCreatePlanningProject = (userId: string) => {
           timestamp: new Date().toISOString()
         });
 
-        console.log('[toolCreatePlanningProject] Full project response:', createdProjectResponse);
+        console.log(
+          '[toolCreatePlanningProject] Full project response:',
+          createdProjectResponse
+        );
+
+        messageStreamWriter?.write({
+          type: 'data-executing-tool',
+          id,
+          data: {
+            status: 'completed',
+            message: 'Planningsproject aangemaakt'
+          }
+        });
 
         return JSON.stringify(createdProjectResponse, null, 2);
       } catch (error) {
-        console.error('[toolCreatePlanningProject] Unexpected error in tool execution', {
-          error: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined,
-          datasourceId,
-          timestamp: new Date().toISOString()
+        console.error(
+          '[toolCreatePlanningProject] Unexpected error in tool execution',
+          {
+            error: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined,
+            datasourceId,
+            timestamp: new Date().toISOString()
+          }
+        );
+        const message =
+          error instanceof Error ? error.message : 'Unknown error';
+        Sentry.captureException(error);
+        messageStreamWriter?.write({
+          type: 'data-executing-tool',
+          id,
+          data: {
+            status: 'completed',
+            message: `Fout bij aanmaken van planningsproject: ${message}`
+          }
         });
-        throw error;
+        return `Error creating project: ${message}`;
       }
     }
   });

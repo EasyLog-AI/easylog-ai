@@ -248,48 +248,54 @@ export const POST = async (
           createLineChart: toolCreateLineChart(writer),
           createPieChart: toolCreatePieChart(writer),
           createStackedBarChart: toolCreateStackedBarChart(writer),
-          getDatasources: toolGetDataSources(user.id),
-          getPlanningProjects: toolGetPlanningProjects(user.id),
-          getPlanningProject: toolGetPlanningProject(user.id),
-          createPlanningProject: toolCreatePlanningProject(user.id),
-          updatePlanningProject: toolUpdatePlanningProject(user.id),
-          getPlanningPhases: toolGetPlanningPhases(user.id),
-          getPlanningPhase: toolGetPlanningPhase(user.id),
-          updatePlanningPhase: toolUpdatePlanningPhase(user.id),
+          getDatasources: toolGetDataSources(user.id, writer),
+          getPlanningProjects: toolGetPlanningProjects(user.id, writer),
+          getPlanningProject: toolGetPlanningProject(user.id, writer),
+          createPlanningProject: toolCreatePlanningProject(user.id, writer),
+          updatePlanningProject: toolUpdatePlanningProject(user.id, writer),
+          getPlanningPhases: toolGetPlanningPhases(user.id, writer),
+          getPlanningPhase: toolGetPlanningPhase(user.id, writer),
+          updatePlanningPhase: toolUpdatePlanningPhase(user.id, writer),
           createPlanningPhase: toolCreatePlanningPhase(user.id),
-          getResources: toolGetResources(user.id),
-          getProjectsOfResource: toolGetProjectsOfResource(user.id),
-          getResourceGroups: toolGetResourceGroups(user.id),
-          createMultipleAllocations: toolCreateMultipleAllocations(user.id),
-          updateMultipleAllocations: toolUpdateMultipleAllocations(user.id),
-          deleteAllocation: toolDeleteAllocation(user.id),
-          listFollowUps: toolListFollowUps(user.id),
-          showFollowUp: toolShowFollowUp(user.id),
-          createFollowUp: toolCreateFollowUp(user.id),
-          updateFollowUp: toolUpdateFollowUp(user.id),
-          deleteFollowUp: toolDeleteFollowUp(user.id),
-          listFollowUpEntries: toolListFollowUpEntries(user.id),
-          showFollowUpEntry: toolShowFollowUpEntry(user.id),
-          createFollowUpEntry: toolCreateFollowUpEntry(user.id),
-          updateFollowUpEntry: toolUpdateFollowUpEntry(user.id),
-          deleteFollowUpEntry: toolDeleteFollowUpEntry(user.id),
-          listFollowUpCategories: toolListFollowUpCategories(user.id),
-          showFollowUpCategory: toolShowFollowUpCategory(user.id),
-          listForms: toolListForms(user.id),
-          showForm: toolShowForm(user.id),
-          listProjectForms: toolListProjectForms(user.id),
-          createForm: toolCreateForm(user.id),
-          updateForm: toolUpdateForm(user.id),
-          deleteForm: toolDeleteForm(user.id),
-          listSubmissions: toolListSubmissions(user.id),
-          showSubmission: toolShowSubmission(user.id),
-          createSubmission: toolCreateSubmission(user.id),
-          updateSubmission: toolUpdateSubmission(user.id),
-          deleteSubmission: toolDeleteSubmission(user.id),
-          listSubmissionMedia: toolListSubmissionMedia(user.id),
+          getResources: toolGetResources(user.id, writer),
+          getProjectsOfResource: toolGetProjectsOfResource(user.id, writer),
+          getResourceGroups: toolGetResourceGroups(user.id, writer),
+          createMultipleAllocations: toolCreateMultipleAllocations(
+            user.id,
+            writer
+          ),
+          updateMultipleAllocations: toolUpdateMultipleAllocations(
+            user.id,
+            writer
+          ),
+          deleteAllocation: toolDeleteAllocation(user.id, writer),
+          listFollowUps: toolListFollowUps(user.id, writer),
+          showFollowUp: toolShowFollowUp(user.id, writer),
+          createFollowUp: toolCreateFollowUp(user.id, writer),
+          updateFollowUp: toolUpdateFollowUp(user.id, writer),
+          deleteFollowUp: toolDeleteFollowUp(user.id, writer),
+          listFollowUpEntries: toolListFollowUpEntries(user.id, writer),
+          showFollowUpEntry: toolShowFollowUpEntry(user.id, writer),
+          createFollowUpEntry: toolCreateFollowUpEntry(user.id, writer),
+          updateFollowUpEntry: toolUpdateFollowUpEntry(user.id, writer),
+          deleteFollowUpEntry: toolDeleteFollowUpEntry(user.id, writer),
+          listFollowUpCategories: toolListFollowUpCategories(user.id, writer),
+          showFollowUpCategory: toolShowFollowUpCategory(user.id, writer),
+          listForms: toolListForms(user.id, writer),
+          showForm: toolShowForm(user.id, writer),
+          listProjectForms: toolListProjectForms(user.id, writer),
+          createForm: toolCreateForm(user.id, writer),
+          updateForm: toolUpdateForm(user.id, writer),
+          deleteForm: toolDeleteForm(user.id, writer),
+          listSubmissions: toolListSubmissions(user.id, writer),
+          showSubmission: toolShowSubmission(user.id, writer),
+          createSubmission: toolCreateSubmission(user.id, writer),
+          updateSubmission: toolUpdateSubmission(user.id, writer),
+          deleteSubmission: toolDeleteSubmission(user.id, writer),
+          listSubmissionMedia: toolListSubmissionMedia(user.id, writer),
           showSubmissionMedia: toolShowSubmissionMedia(user.id, writer),
-          prepareSubmission: toolPrepareSubmission(user.id),
-          uploadSubmissionMedia: toolUploadSubmissionMedia(user.id),
+          prepareSubmission: toolPrepareSubmission(user.id, writer),
+          uploadSubmissionMedia: toolUploadSubmissionMedia(user.id, writer),
           executeSql: toolExecuteSQL(writer),
           searchKnowledge: toolSearchKnowledge(
             {
@@ -305,14 +311,20 @@ export const POST = async (
             },
             writer
           ),
-          exploreKnowledge: toolExploreKnowledge({
-            agentId: chat.agentId,
-            roleId: activeRole?.id
-          }),
-          loadDocument: toolLoadDocument({
-            agentId: chat.agentId,
-            roleId: activeRole?.id
-          }),
+          exploreKnowledge: toolExploreKnowledge(
+            {
+              agentId: chat.agentId,
+              roleId: activeRole?.id
+            },
+            writer
+          ),
+          loadDocument: toolLoadDocument(
+            {
+              agentId: chat.agentId,
+              roleId: activeRole?.id
+            },
+            writer
+          ),
           clearChat: toolClearChat(chat.id, chat.agentId, user.id),
           changeRole: toolChangeRole(
             chat.id,
@@ -337,10 +349,10 @@ export const POST = async (
           answerMultipleChoice: toolAnswerMultipleChoice({
             chatId: chat.id
           }),
-          getAuditSubmissions: toolGetAuditSubmissions(),
-          getAuditTrends: toolGetAuditTrends(),
-          getObservationsAnalysis: toolGetObservationsAnalysis(),
-          getVehicleRanking: toolGetVehicleRanking()
+          getAuditSubmissions: toolGetAuditSubmissions(writer),
+          getAuditTrends: toolGetAuditTrends(writer),
+          getObservationsAnalysis: toolGetObservationsAnalysis(writer),
+          getVehicleRanking: toolGetVehicleRanking(writer)
         };
 
         // Filter tools based on role or agent capabilities

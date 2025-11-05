@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/nextjs';
-import { tool, UIMessageStreamWriter } from 'ai';
+import { UIMessageStreamWriter, tool } from 'ai';
 import { v4 as uuidv4 } from 'uuid';
 
 import { ResponseError } from '@/lib/easylog/generated-client';
@@ -72,7 +72,7 @@ const toolCreateForm = (
           type: 'data-executing-tool',
           id,
           data: {
-            status: 'completed',
+            status: 'error',
             message: 'Fout bij aanmaken van formulier'
           }
         });
@@ -85,7 +85,7 @@ const toolCreateForm = (
           type: 'data-executing-tool',
           id,
           data: {
-            status: 'completed',
+            status: 'error',
             message: `Fout bij aanmaken van formulier: ${error.message}`
           }
         });

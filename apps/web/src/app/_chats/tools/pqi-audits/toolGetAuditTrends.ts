@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/nextjs';
-import { tool } from 'ai';
+import { UIMessageStreamWriter, tool } from 'ai';
 import { sql } from 'drizzle-orm';
+import { v4 as uuidv4 } from 'uuid';
 
 import easylogDb from '@/lib/easylog/db';
 import tryCatch from '@/utils/try-catch';
@@ -9,10 +10,23 @@ import { getAuditTrendsConfig } from './config';
 import { CLIENT_FIELD_HINTS, DEFAULT_FIELD_NAMES } from './constants';
 import type { AuditTrend } from './types';
 
-const toolGetAuditTrends = () => {
+const toolGetAuditTrends = (
+  messageStreamWriter?: UIMessageStreamWriter
+) => {
   return tool({
     ...getAuditTrendsConfig,
     execute: async (params) => {
+      const id = uuidv4();
+
+      messageStreamWriter?.write({
+        type: 'data-executing-tool',
+        id,
+        data: {
+          status: 'in_progress',
+          message: 'PQI-audittrends ophalen...'
+        }
+      });
+
       try {
         // Get field names for this client (fallback to defaults)
         const hints = CLIENT_FIELD_HINTS[params.clientId];
@@ -131,17 +145,44 @@ const toolGetAuditTrends = () => {
         if (error) {
           console.error('Error in getAuditTrends:', error);
           Sentry.captureException(error);
+          messageStreamWriter?.write({
+            type: 'data-executing-tool',
+            id,
+            data: {
+              status: 'error',
+              message: `Fout bij ophalen van PQI-audittrends: ${error.message}`
+            }
+          });
           return `Error retrieving audit trends: ${error.message}`;
         }
 
         // Drizzle execute returns [data, metadata] tuple - we only want the data
         const data =
           Array.isArray(result) && result.length > 0 ? result[0] : result;
+
+        messageStreamWriter?.write({
+          type: 'data-executing-tool',
+          id,
+          data: {
+            status: 'completed',
+            message: 'PQI-audittrends opgehaald'
+          }
+        });
         return JSON.stringify(data, null, 2);
       } catch (error) {
         console.error('Unexpected error in getAuditTrends:', error);
         Sentry.captureException(error);
-        return `Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`;
+        const message =
+          error instanceof Error ? error.message : 'Unknown error';
+        messageStreamWriter?.write({
+          type: 'data-executing-tool',
+          id,
+          data: {
+            status: 'completed',
+            message: `Fout bij ophalen van PQI-audittrends: ${message}`
+          }
+        });
+        return `Unexpected error: ${message}`;
       }
     }
   });

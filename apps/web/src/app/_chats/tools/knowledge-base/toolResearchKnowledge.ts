@@ -179,7 +179,7 @@ Return your answer using markdown formatting. Be concise and direct. Preserve an
         type: 'data-executing-tool',
         id,
         data: {
-          status: 'completed',
+          status: 'error',
           message: `Analyse van "${dbKnowledge.name}" voltooid`
         }
       });

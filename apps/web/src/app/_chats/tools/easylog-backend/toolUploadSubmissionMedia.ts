@@ -1,7 +1,8 @@
 import { Buffer } from 'buffer';
 
 import * as Sentry from '@sentry/nextjs';
-import { tool } from 'ai';
+import { UIMessageStreamWriter, tool } from 'ai';
+import { v4 as uuidv4 } from 'uuid';
 
 import { ResponseError } from '@/lib/easylog/generated-client';
 import tryCatch from '@/utils/try-catch';
@@ -9,7 +10,10 @@ import tryCatch from '@/utils/try-catch';
 import { uploadSubmissionMediaConfig } from './config';
 import getEasylogClient from './utils/getEasylogClient';
 
-const toolUploadSubmissionMedia = (userId: string) => {
+const toolUploadSubmissionMedia = (
+  userId: string,
+  messageStreamWriter?: UIMessageStreamWriter
+) => {
   return tool({
     ...uploadSubmissionMediaConfig,
     execute: async ({
@@ -18,6 +22,17 @@ const toolUploadSubmissionMedia = (userId: string) => {
       fileContentBase64,
       mimeType
     }) => {
+      const id = uuidv4();
+
+      messageStreamWriter?.write({
+        type: 'data-executing-tool',
+        id,
+        data: {
+          status: 'in_progress',
+          message: 'Inzendingsmedium uploaden...'
+        }
+      });
+
       let file: Blob;
 
       try {
@@ -40,6 +55,14 @@ const toolUploadSubmissionMedia = (userId: string) => {
           conversionError instanceof Error
             ? conversionError.message
             : 'Unknown file conversion error';
+        messageStreamWriter?.write({
+          type: 'data-executing-tool',
+          id,
+          data: {
+            status: 'completed',
+            message: `Fout bij uploaden van inzendingsmedium: ${message}`
+          }
+        });
         return `Error decoding file contents: ${message}`;
       }
 
@@ -54,15 +77,40 @@ const toolUploadSubmissionMedia = (userId: string) => {
 
       if (error instanceof ResponseError) {
         Sentry.captureException(error);
+        messageStreamWriter?.write({
+          type: 'data-executing-tool',
+          id,
+          data: {
+            status: 'error',
+            message: 'Fout bij uploaden van inzendingsmedium'
+          }
+        });
         return await error.response.text();
       }
 
       if (error) {
         Sentry.captureException(error);
+        messageStreamWriter?.write({
+          type: 'data-executing-tool',
+          id,
+          data: {
+            status: 'error',
+            message: `Fout bij uploaden van inzendingsmedium: ${error.message}`
+          }
+        });
         return `Error uploading submission media: ${error.message}`;
       }
 
       console.log('uploaded submission media', result);
+
+      messageStreamWriter?.write({
+        type: 'data-executing-tool',
+        id,
+        data: {
+          status: 'completed',
+          message: 'Inzendingsmedium geüpload'
+        }
+      });
 
       return JSON.stringify(result, null, 2);
     }

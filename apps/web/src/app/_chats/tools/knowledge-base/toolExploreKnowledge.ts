@@ -1,4 +1,5 @@
-import { generateText, stepCountIs, tool } from 'ai';
+import { UIMessageStreamWriter, generateText, stepCountIs, tool } from 'ai';
+import { v4 as uuidv4 } from 'uuid';
 
 import openrouterProvider from '@/lib/ai-providers/openrouter';
 
@@ -11,24 +12,45 @@ interface ToolExploreKnowledgeProps {
   roleId?: string;
 }
 
-const getToolExploreKnowledge = ({
-  agentId,
-  roleId
-}: ToolExploreKnowledgeProps) => {
+const getToolExploreKnowledge = (
+  {
+    agentId,
+    roleId
+  }: ToolExploreKnowledgeProps,
+  messageStreamWriter?: UIMessageStreamWriter
+) => {
   return tool({
     ...exploreKnowledgeConfig,
     execute: async ({ question }) => {
-      // Create a recursive AI agent that can use searchKnowledge and researchKnowledge tools
-      const { text } = await generateText({
-        model: openrouterProvider('google/gemini-2.5-flash'),
-        tools: {
-          searchKnowledge: getToolSearchKnowledge({ agentId, roleId }),
-          researchKnowledge: getToolResearchKnowledge({ agentId, roleId })
-        },
-        messages: [
-          {
-            role: 'system',
-            content: `You are a knowledge explorer specializing in finding information through systematic search and deep analysis.
+      const id = uuidv4();
+
+      messageStreamWriter?.write({
+        type: 'data-executing-tool',
+        id,
+        data: {
+          status: 'in_progress',
+          message: 'Kennis verkennen...'
+        }
+      });
+
+      try {
+        // Create a recursive AI agent that can use searchKnowledge and researchKnowledge tools
+        const { text } = await generateText({
+          model: openrouterProvider('google/gemini-2.5-flash'),
+          tools: {
+            searchKnowledge: getToolSearchKnowledge(
+              { agentId, roleId },
+              messageStreamWriter
+            ),
+            researchKnowledge: getToolResearchKnowledge(
+              { agentId, roleId },
+              messageStreamWriter
+            )
+          },
+          messages: [
+            {
+              role: 'system',
+              content: `You are a knowledge explorer specializing in finding information through systematic search and deep analysis.
 
 Answer the user's question by exploring the knowledge base through multiple search strategies and thorough research.
 
@@ -82,16 +104,44 @@ Example 2: Finding specific data
 - Be persistent: Use all 15 available steps if needed to find the answer
 - Preserve markdown: If researchKnowledge returns markdown with images (![alt](url)), include them in your final answer
 - Return markdown: Use markdown formatting in your response, especially for images, lists, and emphasis`
-          },
-          {
-            role: 'user',
-            content: question
-          }
-        ],
-        stopWhen: stepCountIs(15)
-      });
+            },
+            {
+              role: 'user',
+              content: question
+            }
+          ],
+          stopWhen: stepCountIs(15)
+        });
 
-      return text;
+        messageStreamWriter?.write({
+          type: 'data-executing-tool',
+          id,
+          data: {
+            status: 'completed',
+            message: 'Kennisverkenning afgerond'
+          }
+        });
+
+        return text;
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'Unknown error';
+        console.error('[toolExploreKnowledge] Error exploring knowledge', {
+          agentId,
+          roleId,
+          question,
+          error
+        });
+        messageStreamWriter?.write({
+          type: 'data-executing-tool',
+          id,
+          data: {
+            status: 'completed',
+            message: `Fout bij verkennen van kennis: ${message}`
+          }
+        });
+        return `Error exploring knowledge: ${message}`;
+      }
     }
   });
 };

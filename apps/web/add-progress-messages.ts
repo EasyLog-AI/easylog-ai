@@ -1,4 +1,4 @@
-#!/usr/bin/env ts-node
+#!/usr/bin/env bun
 /**
  * Script to add progress messages to all remaining tools
  * This automates the pattern of adding UIMessageStreamWriter to tool functions
@@ -6,7 +6,6 @@
 
 import fs from 'fs';
 import path from 'path';
-import { glob } from 'glob';
 
 // Tool name to Dutch translation mapping
 const translations: Record<string, { in_progress: string; completed: string; error: string }> = {
@@ -205,8 +204,23 @@ const translations: Record<string, { in_progress: string; completed: string; err
   }
 };
 
+function getAllToolFiles(dir: string): string[] {
+  const files: string[] = [];
+  const items = fs.readdirSync(dir, { withFileTypes: true });
+
+  for (const item of items) {
+    const fullPath = path.join(dir, item.name);
+    if (item.isDirectory()) {
+      files.push(...getAllToolFiles(fullPath));
+    } else if (item.isFile() && item.name.startsWith('tool') && item.name.endsWith('.ts')) {
+      files.push(fullPath);
+    }
+  }
+  return files;
+}
+
 async function addProgressMessages() {
-  const toolFiles = await glob('src/app/_chats/tools/**/ tool*.ts');
+  const toolFiles = getAllToolFiles('src/app/_chats/tools');
 
   for (const filePath of toolFiles) {
     const content = fs.readFileSync(filePath, 'utf-8');
