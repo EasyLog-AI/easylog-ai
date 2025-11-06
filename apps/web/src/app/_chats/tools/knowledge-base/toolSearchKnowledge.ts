@@ -51,7 +51,7 @@ const getToolSearchKnowledge = (
         id,
         data: {
           status: 'in_progress',
-          message: `Hybride zoekopdracht uitvoeren (semantisch + zoekwoorden)...`
+          message: `Kennisbank doorzoeken...`
         }
       });
 
