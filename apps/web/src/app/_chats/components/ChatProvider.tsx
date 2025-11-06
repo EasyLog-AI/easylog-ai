@@ -3,7 +3,7 @@
 import { UseChatHelpers, useChat } from '@ai-sdk/react';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { DefaultChatTransport } from 'ai';
-import { createContext, useEffect, useState } from 'react';
+import { createContext, useEffect, useRef } from 'react';
 
 import useTRPC from '@/lib/trpc/browser';
 import lastAssistantMessageIsCompleteWithToolCalls from '@/utils/lastAssistantMessageIsCompleteWithToolCalls';
@@ -38,15 +38,13 @@ const ChatProvider = ({
   const api = useTRPC();
   const { setMode } = useChatMode();
 
-  const [didStartChat, setDidStartChat] = useState(false);
+  const didStartChatRef = useRef(false);
 
   const { data: dbChat, refetch } = useSuspenseQuery(
     api.chats.getOrCreate.queryOptions({
       agentId: agentSlug
     })
   );
-
-  console.log('🔧 dbChat:', dbChat);
 
   const chat = useChat({
     id: dbChat.id,
@@ -80,7 +78,7 @@ const ChatProvider = ({
 
       if (toolCall.toolName === 'clearChat') {
         console.log('[clearChat] Clearing chat and reloading page...');
-        setDidStartChat(false);
+        didStartChatRef.current = false;
         await refetch();
 
         /**
@@ -106,14 +104,17 @@ const ChatProvider = ({
     const shouldAutoStart =
       chat.messages.length === 0 &&
       chat.status === 'ready' &&
-      !didStartChat &&
+      !didStartChatRef.current &&
       dbChat.agent?.autoStartMessage;
 
-    if (shouldAutoStart && dbChat.agent?.autoStartMessage) {
-      setDidStartChat(true);
-      void chat.sendMessage({ text: dbChat.agent.autoStartMessage });
+    if (!shouldAutoStart || !dbChat.agent?.autoStartMessage) {
+      return;
     }
-  }, [didStartChat, dbChat.agent.autoStartMessage, chat]);
+
+    didStartChatRef.current = true;
+
+    void chat.sendMessage({ text: dbChat.agent.autoStartMessage });
+  }, [dbChat.agent?.autoStartMessage, chat]);
 
   return (
     <ChatContext.Provider
