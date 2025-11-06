@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/nextjs';
-import { tool } from 'ai';
+import { UIMessageStreamWriter, tool } from 'ai';
 import { sql } from 'drizzle-orm';
+import { v4 as uuidv4 } from 'uuid';
 
 import easylogDb from '@/lib/easylog/db';
 import tryCatch from '@/utils/try-catch';
@@ -9,10 +10,23 @@ import { getVehicleRankingConfig } from './config';
 import { CLIENT_FIELD_HINTS, DEFAULT_FIELD_NAMES } from './constants';
 import type { VehicleRanking } from './types';
 
-const toolGetVehicleRanking = () => {
+const toolGetVehicleRanking = (
+  messageStreamWriter?: UIMessageStreamWriter
+) => {
   return tool({
     ...getVehicleRankingConfig,
     execute: async (params) => {
+      const id = uuidv4();
+
+      messageStreamWriter?.write({
+        type: 'data-executing-tool',
+        id,
+        data: {
+          status: 'in_progress',
+          message: 'PQI-voertuigrangschikking ophalen...'
+        }
+      });
+
       try {
         // Get field names for this client (fallback to defaults)
         const hints = CLIENT_FIELD_HINTS[params.clientId];
@@ -151,17 +165,44 @@ const toolGetVehicleRanking = () => {
         if (error) {
           console.error('Error in getVehicleRanking:', error);
           Sentry.captureException(error);
+          messageStreamWriter?.write({
+            type: 'data-executing-tool',
+            id,
+            data: {
+              status: 'error',
+              message: `Fout bij ophalen van PQI-voertuigrangschikking: ${error.message}`
+            }
+          });
           return `Error retrieving vehicle ranking: ${error.message}`;
         }
 
         // Drizzle execute returns [data, metadata] tuple - we only want the data
         const data =
           Array.isArray(result) && result.length > 0 ? result[0] : result;
+
+        messageStreamWriter?.write({
+          type: 'data-executing-tool',
+          id,
+          data: {
+            status: 'completed',
+            message: 'PQI-voertuigrangschikking opgehaald'
+          }
+        });
         return JSON.stringify(data, null, 2);
       } catch (error) {
         console.error('Unexpected error in getVehicleRanking:', error);
         Sentry.captureException(error);
-        return `Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`;
+        const message =
+          error instanceof Error ? error.message : 'Unknown error';
+        messageStreamWriter?.write({
+          type: 'data-executing-tool',
+          id,
+          data: {
+            status: 'completed',
+            message: `Fout bij ophalen van PQI-voertuigrangschikking: ${message}`
+          }
+        });
+        return `Unexpected error: ${message}`;
       }
     }
   });

@@ -13,7 +13,9 @@ import { z } from 'zod';
 import toolCreateMemory from '@/app/_chats/tools/core/toolCreateMemory';
 import toolDeleteMemory from '@/app/_chats/tools/core/toolDeleteMemory';
 import toolExecuteSQL from '@/app/_chats/tools/execute-sql/toolExecuteSQL';
-import toolSearchKnowledgeBase from '@/app/_chats/tools/knowledge-base/toolSearchKnowledgeBase';
+import toolExploreKnowledge from '@/app/_chats/tools/knowledge-base/toolExploreKnowledge';
+import toolResearchKnowledge from '@/app/_chats/tools/knowledge-base/toolResearchKnowledge';
+import toolSearchKnowledge from '@/app/_chats/tools/knowledge-base/toolSearchKnowledge';
 import { ChatMessage } from '@/app/_chats/types';
 import db from '@/database/client';
 import {
@@ -138,7 +140,9 @@ ${scratchpadMessages.length > 0 ? scratchpadMessages.map((m) => `[${new Date(m.c
 
 ### Data Access Tools
 - **executeSql(query)**: Execute SQL queries for data analysis.
-- **searchKnowledgeBase(query)**: Search the agent's knowledge base for relevant information.
+- **searchKnowledge(query)**: Search for relevant knowledge items using hybrid vector + keyword search.
+- **researchKnowledge(knowledgeId, question)**: Research a specific knowledge item to answer a question using a recursive AI agent.
+- **exploreKnowledge(question)**: Automatically search and research knowledge to answer a question (combines search + research).
 
 ## Guidelines
 
@@ -298,7 +302,21 @@ Silently monitor and analyze conversations, storing insights in your scratchpad.
             agentId: chat.agentId
           }),
           executeSql: toolExecuteSQL(),
-          searchKnowledgeBase: toolSearchKnowledgeBase({
+          searchKnowledge: toolSearchKnowledge(
+            {
+              agentId: chat.agentId,
+              roleId: activeRole?.id
+            },
+            undefined
+          ),
+          researchKnowledge: toolResearchKnowledge(
+            {
+              agentId: chat.agentId,
+              roleId: activeRole?.id
+            },
+            undefined
+          ),
+          exploreKnowledge: toolExploreKnowledge({
             agentId: chat.agentId,
             roleId: activeRole?.id
           })

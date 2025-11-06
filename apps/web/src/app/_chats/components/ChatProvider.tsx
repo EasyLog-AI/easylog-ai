@@ -3,12 +3,13 @@
 import { UseChatHelpers, useChat } from '@ai-sdk/react';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { DefaultChatTransport } from 'ai';
-import { createContext, useEffect, useState } from 'react';
+import { createContext, useEffect, useRef } from 'react';
 
 import useTRPC from '@/lib/trpc/browser';
 import lastAssistantMessageIsCompleteWithToolCalls from '@/utils/lastAssistantMessageIsCompleteWithToolCalls';
 
 import useChatMode from '../hooks/useChatMode';
+import executingToolSchema from '../schemas/executingToolSchema';
 import mediaImageSchema from '../schemas/mediaImageSchema';
 import multipleChoiceSchema from '../schemas/multipleChoiceSchema';
 import researchSchema from '../schemas/researchSchema';
@@ -37,7 +38,7 @@ const ChatProvider = ({
   const api = useTRPC();
   const { setMode } = useChatMode();
 
-  const [didStartChat, setDidStartChat] = useState(false);
+  const didStartChatRef = useRef(false);
 
   const { data: dbChat, refetch } = useSuspenseQuery(
     api.chats.getOrCreate.queryOptions({
@@ -62,6 +63,7 @@ const ChatProvider = ({
       'stacked-bar-chart': stackedBarChartSchema,
       'pie-chart': pieChartSchema,
       research: researchSchema,
+      'executing-tool': executingToolSchema,
       'multiple-choice': multipleChoiceSchema,
       'media-image': mediaImageSchema
     },
@@ -76,7 +78,7 @@ const ChatProvider = ({
 
       if (toolCall.toolName === 'clearChat') {
         console.log('[clearChat] Clearing chat and reloading page...');
-        setDidStartChat(false);
+        didStartChatRef.current = false;
         await refetch();
 
         /**
@@ -102,21 +104,17 @@ const ChatProvider = ({
     const shouldAutoStart =
       chat.messages.length === 0 &&
       chat.status === 'ready' &&
-      !didStartChat &&
+      !didStartChatRef.current &&
       dbChat.agent?.autoStartMessage;
 
-    if (shouldAutoStart && dbChat.agent?.autoStartMessage) {
-      setDidStartChat(true);
-      void chat.sendMessage({ text: dbChat.agent.autoStartMessage });
+    if (!shouldAutoStart || !dbChat.agent?.autoStartMessage) {
+      return;
     }
-  }, [
-    chat.messages.length,
-    chat.status,
-    chat.sendMessage,
-    didStartChat,
-    dbChat.agent.autoStartMessage,
-    chat
-  ]);
+
+    didStartChatRef.current = true;
+
+    void chat.sendMessage({ text: dbChat.agent.autoStartMessage });
+  }, [dbChat.agent?.autoStartMessage, chat]);
 
   return (
     <ChatContext.Provider

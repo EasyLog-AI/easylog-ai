@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/nextjs';
-import { tool } from 'ai';
+import { UIMessageStreamWriter, tool } from 'ai';
+import { v4 as uuidv4 } from 'uuid';
 
 import { ResponseError } from '@/lib/easylog/generated-client';
 import tryCatch from '@/utils/try-catch';
@@ -7,7 +8,10 @@ import tryCatch from '@/utils/try-catch';
 import { listSubmissionsConfig } from './config';
 import getEasylogClient from './utils/getEasylogClient';
 
-const toolListSubmissions = (userId: string) => {
+const toolListSubmissions = (
+  userId: string,
+  messageStreamWriter?: UIMessageStreamWriter
+) => {
   return tool({
     ...listSubmissionsConfig,
     execute: async ({
@@ -19,6 +23,17 @@ const toolListSubmissions = (userId: string) => {
       to,
       with: withRelations
     }) => {
+      const id = uuidv4();
+
+      messageStreamWriter?.write({
+        type: 'data-executing-tool',
+        id,
+        data: {
+          status: 'in_progress',
+          message: 'Inzendingen ophalen...'
+        }
+      });
+
       const client = await getEasylogClient(userId);
 
       const [response, error] = await tryCatch(
@@ -35,15 +50,40 @@ const toolListSubmissions = (userId: string) => {
 
       if (error instanceof ResponseError) {
         Sentry.captureException(error);
+        messageStreamWriter?.write({
+          type: 'data-executing-tool',
+          id,
+          data: {
+            status: 'error',
+            message: 'Fout bij ophalen van inzendingen'
+          }
+        });
         return await error.response.text();
       }
 
       if (error) {
         Sentry.captureException(error);
+        messageStreamWriter?.write({
+          type: 'data-executing-tool',
+          id,
+          data: {
+            status: 'error',
+            message: `Fout bij ophalen van inzendingen: ${error.message}`
+          }
+        });
         return `Error listing submissions: ${error.message}`;
       }
 
       const { data, meta, links } = response;
+
+      messageStreamWriter?.write({
+        type: 'data-executing-tool',
+        id,
+        data: {
+          status: 'completed',
+          message: `${meta?.total ?? 0} inzending${(meta?.total ?? 0) === 1 ? '' : 'en'} gevonden`
+        }
+      });
 
       const summary = `Found ${meta?.total ?? 0} submissions total (showing ${meta?.from ?? 0}-${meta?.to ?? 0}). Page ${meta?.currentPage ?? 1} of ${meta?.lastPage ?? 1}.`;
 

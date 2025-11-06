@@ -53,7 +53,11 @@ const getToolNamesFromCapabilities = (
 
   // Knowledge base capability
   if (capabilities.knowledgeBase) {
-    toolNames.push('searchKnowledgeBase');
+    toolNames.push(
+      'searchKnowledge',
+      'researchKnowledge',
+      'exploreKnowledge'
+    );
   }
 
   if (capabilities.loadDocument) {

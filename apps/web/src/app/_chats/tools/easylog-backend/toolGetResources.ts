@@ -1,15 +1,29 @@
 import * as Sentry from '@sentry/nextjs';
-import { tool } from 'ai';
+import { UIMessageStreamWriter, tool } from 'ai';
+import { v4 as uuidv4 } from 'uuid';
 
 import tryCatch from '@/utils/try-catch';
 
 import { getResourcesConfig } from './config';
 import getEasylogClient from './utils/getEasylogClient';
 
-const toolGetResources = (userId: string) => {
+const toolGetResources = (
+  userId: string,
+  messageStreamWriter?: UIMessageStreamWriter
+) => {
   return tool({
     ...getResourcesConfig,
     execute: async () => {
+      const id = uuidv4();
+
+      messageStreamWriter?.write({
+        type: 'data-executing-tool',
+        id,
+        data: {
+          status: 'in_progress',
+          message: 'Middelen ophalen...'
+        }
+      });
       console.log('[toolGetResources] Tool execution started', {
         userId,
         timestamp: new Date().toISOString()
@@ -36,6 +50,14 @@ const toolGetResources = (userId: string) => {
             timestamp: new Date().toISOString()
           });
           Sentry.captureException(error);
+          messageStreamWriter?.write({
+            type: 'data-executing-tool',
+            id,
+            data: {
+              status: 'error',
+              message: `Fout bij ophalen van middelen: ${error.message}`
+            }
+          });
           return `Error getting resources: ${error.message}`;
         }
 
@@ -47,6 +69,15 @@ const toolGetResources = (userId: string) => {
 
         console.log('[toolGetResources] Full resources response:', resources);
 
+        messageStreamWriter?.write({
+          type: 'data-executing-tool',
+          id,
+          data: {
+            status: 'completed',
+            message: 'Middelen opgehaald'
+          }
+        });
+
         return JSON.stringify(resources, null, 2);
       } catch (error) {
         console.error('[toolGetResources] Unexpected error in tool execution', {
@@ -54,7 +85,18 @@ const toolGetResources = (userId: string) => {
           stack: error instanceof Error ? error.stack : undefined,
           timestamp: new Date().toISOString()
         });
-        throw error;
+        const message =
+          error instanceof Error ? error.message : 'Unknown error';
+        Sentry.captureException(error);
+        messageStreamWriter?.write({
+          type: 'data-executing-tool',
+          id,
+          data: {
+            status: 'completed',
+            message: `Fout bij ophalen van middelen: ${message}`
+          }
+        });
+        return `Error getting resources: ${message}`;
       }
     }
   });
