@@ -16,6 +16,10 @@ const authServerClient = betterAuth({
   emailAndPassword: {
     enabled: true
   },
+  trustedOrigins: [
+    serverConfig.appUrl.toString(),
+    'https://apperto-ai.byont.io'
+  ],
   plugins: [
     nextCookies(),
     appertoServerPlugin({

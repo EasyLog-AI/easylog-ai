@@ -41,6 +41,8 @@ export const exploreKnowledgeConfig = {
   inputSchema: z.object({
     question: z
       .string()
-      .describe('Any complex question that requires finding and analyzing knowledge')
+      .describe(
+        'Any complex question that requires finding and analyzing knowledge'
+      )
   })
 } as const;
