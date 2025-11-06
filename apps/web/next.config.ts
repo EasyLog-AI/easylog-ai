@@ -23,17 +23,6 @@ const nextConfig: NextConfig = {
         source: '/',
         destination: '/chat',
         permanent: false
-      },
-      {
-        source: '/:path*',
-        has: [
-          {
-            type: 'host',
-            value: 'apperto-ai.byont.io'
-          }
-        ],
-        destination: 'https://chat.staging2.easylog.nu/:path*',
-        permanent: true
       }
     ];
   },

@@ -18,8 +18,9 @@ const authServerClient = betterAuth({
   },
   trustedOrigins: [
     serverConfig.appUrl.toString(),
-    'https://apperto-ai.byont.io'
-  ],
+    'https://apperto-ai.byont.io',
+    serverConfig.env === 'development' ? 'http://localhost:3000' : ''
+  ].filter(Boolean),
   plugins: [
     nextCookies(),
     appertoServerPlugin({
