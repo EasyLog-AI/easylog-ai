@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import { notFound, redirect } from 'next/navigation';
 import { NextRequest } from 'next/server';
 
@@ -16,9 +17,20 @@ export const GET = async (
     redirect('/sign-in');
   }
 
+  const userDomain = user.email.split('@')[1];
+
   const agent = await db.query.agents.findFirst({
     where: {
-      slug: agentSlug
+      slug: agentSlug,
+      OR: [
+        {
+          RAW: (table) => sql`${table.allowedDomains} @> ARRAY['*']::text[]`
+        },
+        {
+          RAW: (table) =>
+            sql`${table.allowedDomains} @> ARRAY[${userDomain}]::text[]`
+        }
+      ]
     }
   });
 
@@ -26,20 +38,23 @@ export const GET = async (
     redirect(`/${agent.slug}/chat`);
   }
 
-  const lastChat = await db.query.chats.findFirst({
+  // Fallback: Find first accessible agent
+  const firstAccessibleAgent = await db.query.agents.findFirst({
     where: {
-      userId: user.id
-    },
-    orderBy: {
-      createdAt: 'desc'
-    },
-    with: {
-      agent: true
+      OR: [
+        {
+          RAW: (table) => sql`${table.allowedDomains} @> ARRAY['*']::text[]`
+        },
+        {
+          RAW: (table) =>
+            sql`${table.allowedDomains} @> ARRAY[${userDomain}]::text[]`
+        }
+      ]
     }
   });
 
-  if (lastChat) {
-    redirect(`/${lastChat.agent.slug}/chat`);
+  if (firstAccessibleAgent) {
+    redirect(`/${firstAccessibleAgent.slug}/chat`);
   }
 
   notFound();

@@ -7,6 +7,7 @@ import Typography from '@/app/_ui/components/Typography/Typography';
 import useZodForm from '@/app/_ui/hooks/useZodForm';
 import useTRPC from '@/lib/trpc/browser';
 
+import AgentAccessControlSettings from './AgentAccessControlSettings';
 import AgentBasicSettings from './AgentBasicSettings';
 import AgentCapabilitiesSettings from './AgentCapabilitiesSettings';
 import AgentModelSettings from './AgentModelSettings';
@@ -38,7 +39,8 @@ const AgentBaseSettingsForm = () => {
       voiceChatEnabled: agent?.voiceChatEnabled,
       voiceChatAutoMute: agent?.voiceChatAutoMute,
       voiceChatVoice: agent?.voiceChatVoice,
-      defaultCapabilities: agent?.defaultCapabilities
+      defaultCapabilities: agent?.defaultCapabilities,
+      allowedDomains: agent?.allowedDomains
     }
   });
 
@@ -59,6 +61,7 @@ const AgentBaseSettingsForm = () => {
         <AgentModelSettings />
         <AgentVoiceChatSettings />
         <AgentCapabilitiesSettings />
+        <AgentAccessControlSettings />
       </div>
     </FormProvider>
   );

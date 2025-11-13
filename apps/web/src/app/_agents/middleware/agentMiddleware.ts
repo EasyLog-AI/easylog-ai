@@ -1,4 +1,5 @@
 import { TRPCError } from '@trpc/server';
+import { sql } from 'drizzle-orm';
 import { z } from 'zod';
 
 import db from '@/database/client';
@@ -12,16 +13,28 @@ const agentMiddleware = protectedProcedure
     })
   )
   .use(async ({ next, ctx, input }) => {
+    const userDomain = ctx.user.email.split('@')[1];
+    const idField = isUUID(input.agentId) ? 'id' : 'slug';
+
     const agent = await db.query.agents.findFirst({
       where: {
-        [isUUID(input.agentId) ? 'id' : 'slug']: input.agentId
+        [idField]: input.agentId,
+        OR: [
+          {
+            RAW: (table) => sql`${table.allowedDomains} @> ARRAY['*']::text[]`
+          },
+          {
+            RAW: (table) =>
+              sql`${table.allowedDomains} @> ARRAY[${userDomain}]::text[]`
+          }
+        ]
       }
     });
 
     if (!agent) {
       throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'Agent not found'
+        code: 'FORBIDDEN',
+        message: 'Access denied to this agent'
       });
     }
 

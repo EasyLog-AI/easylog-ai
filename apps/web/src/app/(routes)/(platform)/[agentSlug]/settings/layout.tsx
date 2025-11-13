@@ -1,8 +1,13 @@
 import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
+import { sql } from 'drizzle-orm';
+import { headers } from 'next/headers';
+import { notFound } from 'next/navigation';
 
+import getCurrentUser from '@/app/_auth/data/getCurrentUser';
 import NavigationMenu from '@/app/_ui/components/NavigationMenu/NavigationMenu';
 import NavigationMenuItem from '@/app/_ui/components/NavigationMenu/NavigationMenuItem';
 import NavigationMenuProvider from '@/app/_ui/components/NavigationMenu/NavigationMenuProvider';
+import db from '@/database/client';
 import getQueryClient from '@/lib/react-query';
 import api from '@/lib/trpc/server';
 
@@ -16,6 +21,36 @@ const SettingsLayout = async ({
   }>;
 }) => {
   const { agentSlug } = await params;
+
+  // Check if user has access to this agent
+  const user = await getCurrentUser(await headers());
+
+  if (!user) {
+    return notFound();
+  }
+
+  const userDomain = user.email.split('@')[1];
+
+  console.log(userDomain);
+
+  const agent = await db.query.agents.findFirst({
+    where: {
+      slug: agentSlug,
+      OR: [
+        {
+          RAW: (table) => sql`${table.allowedDomains} @> ARRAY['*']::text[]`
+        },
+        {
+          RAW: (table) =>
+            sql`${table.allowedDomains} @> ARRAY[${userDomain}]::text[]`
+        }
+      ]
+    }
+  });
+
+  if (!agent) {
+    return notFound();
+  }
 
   const queryClient = getQueryClient();
 

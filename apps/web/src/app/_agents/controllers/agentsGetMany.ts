@@ -1,3 +1,4 @@
+import { or, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
 import db from '@/database/client';
@@ -5,8 +6,8 @@ import { agents } from '@/database/schema';
 import { protectedProcedure } from '@/lib/trpc/procedures';
 
 /**
- * Get all agents with their roles. Optionally filter by knowledgeBase
- * capability.
+ * Get all agents with their roles that the user has access to. Filters based on
+ * email domain access control.
  */
 const agentsGetMany = protectedProcedure
   .meta({
@@ -26,9 +27,22 @@ const agentsGetMany = protectedProcedure
       .optional()
       .default({})
   )
-  .query(async ({ input }) => {
+  .query(async ({ input, ctx }) => {
+    const userDomain = ctx.user.email.split('@')[1];
+
     const [data, total] = await Promise.all([
       db.query.agents.findMany({
+        where: {
+          OR: [
+            {
+              RAW: (table) => sql`${table.allowedDomains} @> ARRAY['*']::text[]`
+            },
+            {
+              RAW: (table) =>
+                sql`${table.allowedDomains} @> ARRAY[${userDomain}]::text[]`
+            }
+          ]
+        },
         with: {
           roles: true,
           documents: true
@@ -39,7 +53,13 @@ const agentsGetMany = protectedProcedure
         limit: input.limit,
         offset: input.cursor
       }),
-      db.$count(agents)
+      db.$count(
+        agents,
+        or(
+          sql`${agents.allowedDomains} @> ARRAY['*']::text[]`,
+          sql`${agents.allowedDomains} @> ARRAY[${userDomain}]::text[]`
+        )
+      )
     ]);
 
     const hasMore = input.cursor + input.limit < total;

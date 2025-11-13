@@ -41,7 +41,8 @@ const updateAgentSchema = z.object({
       followUps: z.boolean().optional(),
       submissions: z.boolean().optional()
     })
-    .optional()
+    .optional(),
+  allowedDomains: z.array(z.string()).optional()
 });
 
 export type UpdateAgentSchema = z.infer<typeof updateAgentSchema>;
