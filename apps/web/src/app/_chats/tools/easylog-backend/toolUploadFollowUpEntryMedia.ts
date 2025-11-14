@@ -7,18 +7,18 @@ import { v4 as uuidv4 } from 'uuid';
 import { ResponseError } from '@/lib/easylog/generated-client';
 import tryCatch from '@/utils/try-catch';
 
-import { uploadSubmissionMediaConfig } from './config';
+import { uploadFollowUpEntryMediaConfig } from './config';
 import getEasylogClient from './utils/getEasylogClient';
 import { ChatMessage } from '../../types';
 
-const toolUploadSubmissionMedia = (
+const toolUploadFollowUpEntryMedia = (
   userId: string,
   messageHistory: ChatMessage[],
   messageStreamWriter?: UIMessageStreamWriter
 ) => {
   return tool({
-    ...uploadSubmissionMediaConfig,
-    execute: async ({ submissionId, fileName }) => {
+    ...uploadFollowUpEntryMediaConfig,
+    execute: async ({ followUpEntryId, fileName }) => {
       const id = uuidv4();
 
       messageStreamWriter?.write({
@@ -26,7 +26,7 @@ const toolUploadSubmissionMedia = (
         id,
         data: {
           status: 'in_progress',
-          message: 'Media van inzending uploaden...'
+          message: 'Media van opvolgingsitem uploaden...'
         }
       });
 
@@ -79,8 +79,8 @@ const toolUploadSubmissionMedia = (
       const client = await getEasylogClient(userId);
 
       const [result, error] = await tryCatch(
-        client.submissions.uploadSubmissionMedia({
-          submission: submissionId,
+        client.followUps.uploadFollowUpEntryMedia({
+          entry: followUpEntryId,
           file
         })
       );
@@ -92,7 +92,7 @@ const toolUploadSubmissionMedia = (
           id,
           data: {
             status: 'error',
-            message: 'Fout bij uploaden van media van inzending'
+            message: 'Fout bij uploaden van media van opvolgingsitem'
           }
         });
         return await error.response.text();
@@ -105,20 +105,20 @@ const toolUploadSubmissionMedia = (
           id,
           data: {
             status: 'error',
-            message: `Fout bij uploaden van media van inzending: ${error.message}`
+            message: `Fout bij uploaden van media van opvolgingsitem: ${error.message}`
           }
         });
-        return `Error uploading media of submission: ${error.message}`;
+        return `Error uploading media of follow-up entry: ${error.message}`;
       }
 
-      console.log('uploaded submission media', result);
+      console.log('uploaded follow-up entry media', result);
 
       messageStreamWriter?.write({
         type: 'data-executing-tool',
         id,
         data: {
           status: 'completed',
-          message: 'Inzendingsmedium geüpload'
+          message: 'Opvolgingsitem medium geüpload'
         }
       });
 
@@ -127,4 +127,4 @@ const toolUploadSubmissionMedia = (
   });
 };
 
-export default toolUploadSubmissionMedia;
+export default toolUploadFollowUpEntryMedia;

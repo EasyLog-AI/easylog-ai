@@ -2,13 +2,15 @@
 
 All URIs are relative to _/api_
 
-| Method                                               | HTTP request                         | Description                 |
-| ---------------------------------------------------- | ------------------------------------ | --------------------------- |
-| [**createFollowUp**](FollowUpsApi.md#createfollowup) | **POST** /v2/follow-ups              | Create follow-up            |
-| [**deleteFollowUp**](FollowUpsApi.md#deletefollowup) | **DELETE** /v2/follow-ups/{followUp} | Delete follow-up            |
-| [**listFollowUps**](FollowUpsApi.md#listfollowups)   | **GET** /v2/follow-ups               | List follow-ups (paginated) |
-| [**showFollowUp**](FollowUpsApi.md#showfollowup)     | **GET** /v2/follow-ups/{followUp}    | Show follow-up              |
-| [**updateFollowUp**](FollowUpsApi.md#updatefollowup) | **PATCH** /v2/follow-ups/{followUp}  | Update follow-up            |
+| Method                                                                   | HTTP request                                  | Description                       |
+| ------------------------------------------------------------------------ | --------------------------------------------- | --------------------------------- |
+| [**createFollowUp**](FollowUpsApi.md#createfollowup)                     | **POST** /v2/follow-ups                       | Create follow-up                  |
+| [**deleteFollowUp**](FollowUpsApi.md#deletefollowup)                     | **DELETE** /v2/follow-ups/{followUp}          | Delete follow-up                  |
+| [**listFollowUpEntryMedia**](FollowUpsApi.md#listfollowupentrymedia)     | **GET** /v2/follow-ups/entries/{entry}/media  | List media for a follow-up entry  |
+| [**listFollowUps**](FollowUpsApi.md#listfollowups)                       | **GET** /v2/follow-ups                        | List follow-ups (paginated)       |
+| [**showFollowUp**](FollowUpsApi.md#showfollowup)                         | **GET** /v2/follow-ups/{followUp}             | Show follow-up                    |
+| [**updateFollowUp**](FollowUpsApi.md#updatefollowup)                     | **PATCH** /v2/follow-ups/{followUp}           | Update follow-up                  |
+| [**uploadFollowUpEntryMedia**](FollowUpsApi.md#uploadfollowupentrymedia) | **POST** /v2/follow-ups/entries/{entry}/media | Upload media to a follow-up entry |
 
 ## createFollowUp
 
@@ -144,6 +146,74 @@ example().catch(console.error);
 | ----------- | ------------------- | ---------------- |
 | **204**     | Follow-up deleted   | -                |
 | **404**     | Follow-up not found | -                |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+## listFollowUpEntryMedia
+
+> ListFollowUpEntryMedia200Response listFollowUpEntryMedia(entry)
+
+List media for a follow-up entry
+
+Get all media files attached to a follow-up entry.
+
+### Example
+
+```ts
+import { Configuration, FollowUpsApi } from '';
+import type { ListFollowUpEntryMediaRequest } from '';
+
+async function example() {
+  console.log('🚀 Testing  SDK...');
+  const config = new Configuration({
+    // To configure OAuth2 access token for authorization: passport password
+    accessToken: 'YOUR ACCESS TOKEN'
+  });
+  const api = new FollowUpsApi(config);
+
+  const body = {
+    // number | Follow-up Entry ID
+    entry: 789
+  } satisfies ListFollowUpEntryMediaRequest;
+
+  try {
+    const data = await api.listFollowUpEntryMedia(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+| Name      | Type     | Description        | Notes                     |
+| --------- | -------- | ------------------ | ------------------------- |
+| **entry** | `number` | Follow-up Entry ID | [Defaults to `undefined`] |
+
+### Return type
+
+[**ListFollowUpEntryMedia200Response**](ListFollowUpEntryMedia200Response.md)
+
+### Authorization
+
+[passport password](../README.md#passport-password)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+### HTTP response details
+
+| Status code | Description                                             | Response headers |
+| ----------- | ------------------------------------------------------- | ---------------- |
+| **200**     | Media collection                                        | -                |
+| **403**     | Forbidden - not authorized to view this follow-up entry | -                |
+| **404**     | Follow-up entry not found                               | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -354,5 +424,77 @@ example().catch(console.error);
 | **200**     | Updated follow-up   | -                |
 | **404**     | Follow-up not found | -                |
 | **422**     | Validation error    | -                |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+## uploadFollowUpEntryMedia
+
+> UploadFollowUpEntryMedia201Response uploadFollowUpEntryMedia(entry, file)
+
+Upload media to a follow-up entry
+
+Upload a file and attach it to a follow-up entry. Maximum file size: 10MB.
+
+### Example
+
+```ts
+import { Configuration, FollowUpsApi } from '';
+import type { UploadFollowUpEntryMediaRequest } from '';
+
+async function example() {
+  console.log('🚀 Testing  SDK...');
+  const config = new Configuration({
+    // To configure OAuth2 access token for authorization: passport password
+    accessToken: 'YOUR ACCESS TOKEN'
+  });
+  const api = new FollowUpsApi(config);
+
+  const body = {
+    // number | Follow-up Entry ID
+    entry: 789,
+    // Blob | File to upload (max 10MB)
+    file: BINARY_DATA_HERE
+  } satisfies UploadFollowUpEntryMediaRequest;
+
+  try {
+    const data = await api.uploadFollowUpEntryMedia(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+| Name      | Type     | Description               | Notes                     |
+| --------- | -------- | ------------------------- | ------------------------- |
+| **entry** | `number` | Follow-up Entry ID        | [Defaults to `undefined`] |
+| **file**  | `Blob`   | File to upload (max 10MB) | [Defaults to `undefined`] |
+
+### Return type
+
+[**UploadFollowUpEntryMedia201Response**](UploadFollowUpEntryMedia201Response.md)
+
+### Authorization
+
+[passport password](../README.md#passport-password)
+
+### HTTP request headers
+
+- **Content-Type**: `multipart/form-data`
+- **Accept**: `application/json`
+
+### HTTP response details
+
+| Status code | Description                                               | Response headers |
+| ----------- | --------------------------------------------------------- | ---------------- |
+| **201**     | Media uploaded                                            | -                |
+| **403**     | Forbidden - not authorized to update this follow-up entry | -                |
+| **404**     | Follow-up entry not found                                 | -                |
+| **422**     | Validation error                                          | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)

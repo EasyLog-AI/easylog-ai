@@ -14,18 +14,24 @@ import * as runtime from '../runtime';
 import type {
   FollowUpCollection,
   FollowUpResource,
+  ListFollowUpEntryMedia200Response,
   StoreFollowUpInput,
-  UpdateFollowUpInput
+  UpdateFollowUpInput,
+  UploadFollowUpEntryMedia201Response
 } from '../models/index';
 import {
   FollowUpCollectionFromJSON,
   FollowUpCollectionToJSON,
   FollowUpResourceFromJSON,
   FollowUpResourceToJSON,
+  ListFollowUpEntryMedia200ResponseFromJSON,
+  ListFollowUpEntryMedia200ResponseToJSON,
   StoreFollowUpInputFromJSON,
   StoreFollowUpInputToJSON,
   UpdateFollowUpInputFromJSON,
-  UpdateFollowUpInputToJSON
+  UpdateFollowUpInputToJSON,
+  UploadFollowUpEntryMedia201ResponseFromJSON,
+  UploadFollowUpEntryMedia201ResponseToJSON
 } from '../models/index';
 
 export interface CreateFollowUpRequest {
@@ -34,6 +40,10 @@ export interface CreateFollowUpRequest {
 
 export interface DeleteFollowUpRequest {
   followUp: number;
+}
+
+export interface ListFollowUpEntryMediaRequest {
+  entry: number;
 }
 
 export interface ListFollowUpsRequest {
@@ -48,6 +58,11 @@ export interface ShowFollowUpRequest {
 export interface UpdateFollowUpRequest {
   followUp: number;
   updateFollowUpInput: UpdateFollowUpInput;
+}
+
+export interface UploadFollowUpEntryMediaRequest {
+  entry: number;
+  file: Blob;
 }
 
 export class FollowUpsApi extends runtime.BaseAPI {
@@ -159,11 +174,73 @@ export class FollowUpsApi extends runtime.BaseAPI {
   }
 
   /**
-   * List all follow-ups for the current client. Follow-ups are filtered by
-   * user group membership unless the user has the FollowUpOverrideGroups
-   * permission. Users will only see follow-ups that are either assigned to
-   * their groups or have no group assignment (ungrouped). List follow-ups
-   * (paginated)
+   * Get all media files attached to a follow-up entry. List media for a
+   * follow-up entry
+   */
+  async listFollowUpEntryMediaRaw(
+    requestParameters: ListFollowUpEntryMediaRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction
+  ): Promise<runtime.ApiResponse<ListFollowUpEntryMedia200Response>> {
+    if (requestParameters['entry'] == null) {
+      throw new runtime.RequiredError(
+        'entry',
+        'Required parameter "entry" was null or undefined when calling listFollowUpEntryMedia().'
+      );
+    }
+
+    const queryParameters: any = {};
+
+    const headerParameters: runtime.HTTPHeaders = {};
+
+    if (this.configuration && this.configuration.accessToken) {
+      // oauth required
+      headerParameters['Authorization'] = await this.configuration.accessToken(
+        'passport',
+        []
+      );
+    }
+
+    let urlPath = `/v2/follow-ups/entries/{entry}/media`;
+    urlPath = urlPath.replace(
+      `{${'entry'}}`,
+      encodeURIComponent(String(requestParameters['entry']))
+    );
+
+    const response = await this.request(
+      {
+        path: urlPath,
+        method: 'GET',
+        headers: headerParameters,
+        query: queryParameters
+      },
+      initOverrides
+    );
+
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
+      ListFollowUpEntryMedia200ResponseFromJSON(jsonValue)
+    );
+  }
+
+  /**
+   * Get all media files attached to a follow-up entry. List media for a
+   * follow-up entry
+   */
+  async listFollowUpEntryMedia(
+    requestParameters: ListFollowUpEntryMediaRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction
+  ): Promise<ListFollowUpEntryMedia200Response> {
+    const response = await this.listFollowUpEntryMediaRaw(
+      requestParameters,
+      initOverrides
+    );
+    return await response.value();
+  }
+
+  /**
+   * List all follow-ups for the current client. Follow-ups are filtered by user
+   * group membership unless the user has the FollowUpOverrideGroups permission.
+   * Users will only see follow-ups that are either assigned to their groups or
+   * have no group assignment (ungrouped). List follow-ups (paginated)
    */
   async listFollowUpsRaw(
     requestParameters: ListFollowUpsRequest,
@@ -207,11 +284,10 @@ export class FollowUpsApi extends runtime.BaseAPI {
   }
 
   /**
-   * List all follow-ups for the current client. Follow-ups are filtered by
-   * user group membership unless the user has the FollowUpOverrideGroups
-   * permission. Users will only see follow-ups that are either assigned to
-   * their groups or have no group assignment (ungrouped). List follow-ups
-   * (paginated)
+   * List all follow-ups for the current client. Follow-ups are filtered by user
+   * group membership unless the user has the FollowUpOverrideGroups permission.
+   * Users will only see follow-ups that are either assigned to their groups or
+   * have no group assignment (ungrouped). List follow-ups (paginated)
    */
   async listFollowUps(
     requestParameters: ListFollowUpsRequest = {},
@@ -344,6 +420,97 @@ export class FollowUpsApi extends runtime.BaseAPI {
     initOverrides?: RequestInit | runtime.InitOverrideFunction
   ): Promise<FollowUpResource> {
     const response = await this.updateFollowUpRaw(
+      requestParameters,
+      initOverrides
+    );
+    return await response.value();
+  }
+
+  /**
+   * Upload a file and attach it to a follow-up entry. Maximum file size: 10MB.
+   * Upload media to a follow-up entry
+   */
+  async uploadFollowUpEntryMediaRaw(
+    requestParameters: UploadFollowUpEntryMediaRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction
+  ): Promise<runtime.ApiResponse<UploadFollowUpEntryMedia201Response>> {
+    if (requestParameters['entry'] == null) {
+      throw new runtime.RequiredError(
+        'entry',
+        'Required parameter "entry" was null or undefined when calling uploadFollowUpEntryMedia().'
+      );
+    }
+
+    if (requestParameters['file'] == null) {
+      throw new runtime.RequiredError(
+        'file',
+        'Required parameter "file" was null or undefined when calling uploadFollowUpEntryMedia().'
+      );
+    }
+
+    const queryParameters: any = {};
+
+    const headerParameters: runtime.HTTPHeaders = {};
+
+    if (this.configuration && this.configuration.accessToken) {
+      // oauth required
+      headerParameters['Authorization'] = await this.configuration.accessToken(
+        'passport',
+        []
+      );
+    }
+
+    const consumes: runtime.Consume[] = [
+      { contentType: 'multipart/form-data' }
+    ];
+    // @ts-ignore: canConsumeForm may be unused
+    const canConsumeForm = runtime.canConsumeForm(consumes);
+
+    let formParams: { append(param: string, value: any): any };
+    let useForm = false;
+    // use FormData to transmit files using content-type "multipart/form-data"
+    useForm = canConsumeForm;
+    if (useForm) {
+      formParams = new FormData();
+    } else {
+      formParams = new URLSearchParams();
+    }
+
+    if (requestParameters['file'] != null) {
+      formParams.append('file', requestParameters['file'] as any);
+    }
+
+    let urlPath = `/v2/follow-ups/entries/{entry}/media`;
+    urlPath = urlPath.replace(
+      `{${'entry'}}`,
+      encodeURIComponent(String(requestParameters['entry']))
+    );
+
+    const response = await this.request(
+      {
+        path: urlPath,
+        method: 'POST',
+        headers: headerParameters,
+        query: queryParameters,
+        body: formParams
+      },
+      initOverrides
+    );
+
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
+      UploadFollowUpEntryMedia201ResponseFromJSON(jsonValue)
+    );
+  }
+
+  /**
+   * Upload a file and attach it to a follow-up entry. Maximum file size: 10MB.
+   * Upload media to a follow-up entry
+   */
+  async uploadFollowUpEntryMedia(
+    requestParameters: UploadFollowUpEntryMediaRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction
+  ): Promise<UploadFollowUpEntryMedia201Response> {
+    const response = await this.uploadFollowUpEntryMediaRaw(
       requestParameters,
       initOverrides
     );

@@ -53,11 +53,7 @@ const getToolNamesFromCapabilities = (
 
   // Knowledge base capability
   if (capabilities.knowledgeBase) {
-    toolNames.push(
-      'searchKnowledge',
-      'researchKnowledge',
-      'exploreKnowledge'
-    );
+    toolNames.push('searchKnowledge', 'researchKnowledge', 'exploreKnowledge');
   }
 
   if (capabilities.loadDocument) {
@@ -99,6 +95,8 @@ const getToolNamesFromCapabilities = (
       'deleteFollowUpEntry',
       'listFollowUpCategories',
       'showFollowUpCategory',
+      'listFollowUpEntryMedia',
+      'uploadFollowUpEntryMedia',
       'listForms',
       'showForm',
       'listProjectForms',

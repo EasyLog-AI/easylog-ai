@@ -74,7 +74,7 @@ docs/FormListItem.md
 docs/FormListResource.md
 docs/FormResource.md
 docs/FormsApi.md
-docs/ListSubmissionMedia200Response.md
+docs/ListFollowUpEntryMedia200Response.md
 docs/MediaApi.md
 docs/MediaDetailResource.md
 docs/MediaDetailResourceConversions.md
@@ -120,7 +120,7 @@ docs/UpdateCategoryInput.md
 docs/UpdateFollowUpInput.md
 docs/UpdateFormInput.md
 docs/UpdateSubmissionInput.md
-docs/UploadSubmissionMedia201Response.md
+docs/UploadFollowUpEntryMedia201Response.md
 index.ts
 models/AllocationType.ts
 models/Announcement.ts
@@ -170,7 +170,7 @@ models/FormListCollection.ts
 models/FormListItem.ts
 models/FormListResource.ts
 models/FormResource.ts
-models/ListSubmissionMedia200Response.ts
+models/ListFollowUpEntryMedia200Response.ts
 models/MediaDetailResource.ts
 models/MediaDetailResourceConversions.ts
 models/MediaDetailResourceDimensions.ts
@@ -211,6 +211,6 @@ models/UpdateCategoryInput.ts
 models/UpdateFollowUpInput.ts
 models/UpdateFormInput.ts
 models/UpdateSubmissionInput.ts
-models/UploadSubmissionMedia201Response.ts
+models/UploadFollowUpEntryMedia201Response.ts
 models/index.ts
 runtime.ts

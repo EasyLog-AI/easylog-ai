@@ -92,12 +92,24 @@ const ChatInput = () => {
         role: 'user',
         content: [{ type: 'input_text', text: data.content ?? '' }]
       });
-    } else {
+
+      return;
+    }
+
+    if (data.files && data.files.length > 0) {
       void sendMessage({
-        text: data.content ?? '',
+        text: `[uploaded files: ${Array.from(data.files)
+          .map((file) => file.name)
+          .join(', ')}]`,
         files: data.files
       });
+      return;
     }
+
+    void sendMessage({
+      text: data.content ?? '',
+      files: data.files
+    });
   };
 
   const { ref: textareaFormRef, ...rest } = register('content');

@@ -12,7 +12,7 @@
 
 import * as runtime from '../runtime';
 import type {
-  ListSubmissionMedia200Response,
+  ListFollowUpEntryMedia200Response,
   PersistSubmission201Response,
   PersistSubmissionRequest,
   PrepareSubmission200Response,
@@ -20,11 +20,11 @@ import type {
   SubmissionCollection,
   SubmissionResource,
   UpdateSubmissionInput,
-  UploadSubmissionMedia201Response
+  UploadFollowUpEntryMedia201Response
 } from '../models/index';
 import {
-  ListSubmissionMedia200ResponseFromJSON,
-  ListSubmissionMedia200ResponseToJSON,
+  ListFollowUpEntryMedia200ResponseFromJSON,
+  ListFollowUpEntryMedia200ResponseToJSON,
   PersistSubmission201ResponseFromJSON,
   PersistSubmission201ResponseToJSON,
   PersistSubmissionRequestFromJSON,
@@ -39,8 +39,8 @@ import {
   SubmissionResourceToJSON,
   UpdateSubmissionInputFromJSON,
   UpdateSubmissionInputToJSON,
-  UploadSubmissionMedia201ResponseFromJSON,
-  UploadSubmissionMedia201ResponseToJSON
+  UploadFollowUpEntryMedia201ResponseFromJSON,
+  UploadFollowUpEntryMedia201ResponseToJSON
 } from '../models/index';
 
 export interface DeleteSubmissionRequest {
@@ -149,7 +149,7 @@ export class SubmissionsApi extends runtime.BaseAPI {
   async listSubmissionMediaRaw(
     requestParameters: ListSubmissionMediaRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction
-  ): Promise<runtime.ApiResponse<ListSubmissionMedia200Response>> {
+  ): Promise<runtime.ApiResponse<ListFollowUpEntryMedia200Response>> {
     if (requestParameters['submission'] == null) {
       throw new runtime.RequiredError(
         'submission',
@@ -186,7 +186,7 @@ export class SubmissionsApi extends runtime.BaseAPI {
     );
 
     return new runtime.JSONApiResponse(response, (jsonValue) =>
-      ListSubmissionMedia200ResponseFromJSON(jsonValue)
+      ListFollowUpEntryMedia200ResponseFromJSON(jsonValue)
     );
   }
 
@@ -194,7 +194,7 @@ export class SubmissionsApi extends runtime.BaseAPI {
   async listSubmissionMedia(
     requestParameters: ListSubmissionMediaRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction
-  ): Promise<ListSubmissionMedia200Response> {
+  ): Promise<ListFollowUpEntryMedia200Response> {
     const response = await this.listSubmissionMediaRaw(
       requestParameters,
       initOverrides
@@ -591,7 +591,7 @@ export class SubmissionsApi extends runtime.BaseAPI {
   async uploadSubmissionMediaRaw(
     requestParameters: UploadSubmissionMediaRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction
-  ): Promise<runtime.ApiResponse<UploadSubmissionMedia201Response>> {
+  ): Promise<runtime.ApiResponse<UploadFollowUpEntryMedia201Response>> {
     if (requestParameters['submission'] == null) {
       throw new runtime.RequiredError(
         'submission',
@@ -656,7 +656,7 @@ export class SubmissionsApi extends runtime.BaseAPI {
     );
 
     return new runtime.JSONApiResponse(response, (jsonValue) =>
-      UploadSubmissionMedia201ResponseFromJSON(jsonValue)
+      UploadFollowUpEntryMedia201ResponseFromJSON(jsonValue)
     );
   }
 
@@ -667,7 +667,7 @@ export class SubmissionsApi extends runtime.BaseAPI {
   async uploadSubmissionMedia(
     requestParameters: UploadSubmissionMediaRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction
-  ): Promise<UploadSubmissionMedia201Response> {
+  ): Promise<UploadFollowUpEntryMedia201Response> {
     const response = await this.uploadSubmissionMediaRaw(
       requestParameters,
       initOverrides

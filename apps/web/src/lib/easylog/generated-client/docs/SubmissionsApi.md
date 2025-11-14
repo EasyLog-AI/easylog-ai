@@ -83,7 +83,7 @@ example().catch(console.error);
 
 ## listSubmissionMedia
 
-> ListSubmissionMedia200Response listSubmissionMedia(submission)
+> ListFollowUpEntryMedia200Response listSubmissionMedia(submission)
 
 List media for a submission
 
@@ -128,7 +128,7 @@ example().catch(console.error);
 
 ### Return type
 
-[**ListSubmissionMedia200Response**](ListSubmissionMedia200Response.md)
+[**ListFollowUpEntryMedia200Response**](ListFollowUpEntryMedia200Response.md)
 
 ### Authorization
 
@@ -531,7 +531,7 @@ example().catch(console.error);
 
 ## uploadSubmissionMedia
 
-> UploadSubmissionMedia201Response uploadSubmissionMedia(submission, file)
+> UploadFollowUpEntryMedia201Response uploadSubmissionMedia(submission, file)
 
 Upload media to a submission
 
@@ -579,7 +579,7 @@ example().catch(console.error);
 
 ### Return type
 
-[**UploadSubmissionMedia201Response**](UploadSubmissionMedia201Response.md)
+[**UploadFollowUpEntryMedia201Response**](UploadFollowUpEntryMedia201Response.md)
 
 ### Authorization
 
