@@ -1140,6 +1140,130 @@
                 ]
             }
         },
+        "/v2/follow-ups/entries/{entry}/media": {
+            "get": {
+                "tags": [
+                    "Follow-ups"
+                ],
+                "summary": "List media for a follow-up entry",
+                "description": "Get all media files attached to a follow-up entry.",
+                "operationId": "listFollowUpEntryMedia",
+                "parameters": [
+                    {
+                        "name": "entry",
+                        "in": "path",
+                        "description": "Follow-up Entry ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Media collection",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/MediaResource"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - not authorized to view this follow-up entry"
+                    },
+                    "404": {
+                        "description": "Follow-up entry not found"
+                    }
+                },
+                "security": [
+                    {
+                        "passport": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Follow-ups"
+                ],
+                "summary": "Upload media to a follow-up entry",
+                "description": "Upload a file and attach it to a follow-up entry. Maximum file size: 10MB.",
+                "operationId": "uploadFollowUpEntryMedia",
+                "parameters": [
+                    {
+                        "name": "entry",
+                        "in": "path",
+                        "description": "Follow-up Entry ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "file"
+                                ],
+                                "properties": {
+                                    "file": {
+                                        "description": "File to upload (max 10MB)",
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Media uploaded",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/MediaResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - not authorized to update this follow-up entry"
+                    },
+                    "404": {
+                        "description": "Follow-up entry not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "passport": []
+                    }
+                ]
+            }
+        },
         "/v2/follow-ups": {
             "get": {
                 "tags": [
@@ -5662,6 +5786,10 @@
         {
             "name": "Datasources",
             "description": "Datasources"
+        },
+        {
+            "name": "Follow-ups",
+            "description": "Follow-ups"
         },
         {
             "name": "Calendar",

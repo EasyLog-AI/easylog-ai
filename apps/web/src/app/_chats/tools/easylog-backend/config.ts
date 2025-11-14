@@ -725,3 +725,29 @@ export const uploadSubmissionMediaConfig = {
       )
   })
 } as const;
+
+export const listFollowUpEntryMediaConfig = {
+  name: 'listFollowUpEntryMedia',
+  description: 'Get all media files attached to a follow-up entry.',
+  inputSchema: z.object({
+    followUpEntryId: z
+      .number()
+      .describe('The ID of the follow-up entry to get media for')
+  })
+} as const;
+
+export const uploadFollowUpEntryMediaConfig = {
+  name: 'uploadFollowUpEntryMedia',
+  description:
+    'Upload a single media file and attach it to an existing follow-up entry.',
+  inputSchema: z.object({
+    followUpEntryId: z
+      .number()
+      .describe('The ID of the follow-up entry to attach the media to'),
+    fileName: z
+      .string()
+      .describe(
+        'Name of the file including extension, this must be a file that was previously uploaded in the chat'
+      )
+  })
+} as const;

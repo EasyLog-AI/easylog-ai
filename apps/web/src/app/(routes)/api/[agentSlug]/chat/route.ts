@@ -53,6 +53,7 @@ import toolGetResourceGroups from '@/app/_chats/tools/easylog-backend/toolGetRes
 import toolGetResources from '@/app/_chats/tools/easylog-backend/toolGetResources';
 import toolListFollowUpCategories from '@/app/_chats/tools/easylog-backend/toolListFollowUpCategories';
 import toolListFollowUpEntries from '@/app/_chats/tools/easylog-backend/toolListFollowUpEntries';
+import toolListFollowUpEntryMedia from '@/app/_chats/tools/easylog-backend/toolListFollowUpEntryMedia';
 import toolListFollowUps from '@/app/_chats/tools/easylog-backend/toolListFollowUps';
 import toolListForms from '@/app/_chats/tools/easylog-backend/toolListForms';
 import toolListProjectForms from '@/app/_chats/tools/easylog-backend/toolListProjectForms';
@@ -72,6 +73,7 @@ import toolUpdateMultipleAllocations from '@/app/_chats/tools/easylog-backend/to
 import toolUpdatePlanningPhase from '@/app/_chats/tools/easylog-backend/toolUpdatePlanningPhase';
 import toolUpdatePlanningProject from '@/app/_chats/tools/easylog-backend/toolUpdatePlanningProject';
 import toolUpdateSubmission from '@/app/_chats/tools/easylog-backend/toolUpdateSubmission';
+import toolUploadFollowUpEntryMedia from '@/app/_chats/tools/easylog-backend/toolUploadFollowUpEntryMedia';
 import toolUploadSubmissionMedia from '@/app/_chats/tools/easylog-backend/toolUploadSubmissionMedia';
 import toolExecuteSQL from '@/app/_chats/tools/execute-sql/toolExecuteSQL';
 import toolExploreKnowledge from '@/app/_chats/tools/knowledge-base/toolExploreKnowledge';
@@ -279,6 +281,12 @@ export const POST = async (
           createFollowUpEntry: toolCreateFollowUpEntry(user.id, writer),
           updateFollowUpEntry: toolUpdateFollowUpEntry(user.id, writer),
           deleteFollowUpEntry: toolDeleteFollowUpEntry(user.id, writer),
+          listFollowUpEntryMedia: toolListFollowUpEntryMedia(user.id, writer),
+          uploadFollowUpEntryMedia: toolUploadFollowUpEntryMedia(
+            user.id,
+            combinedMessages,
+            writer
+          ),
           listFollowUpCategories: toolListFollowUpCategories(user.id, writer),
           showFollowUpCategory: toolShowFollowUpCategory(user.id, writer),
           listForms: toolListForms(user.id, writer),
