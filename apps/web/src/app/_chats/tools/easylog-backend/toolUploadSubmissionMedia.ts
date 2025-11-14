@@ -1,7 +1,7 @@
 import { Buffer } from 'buffer';
 
 import * as Sentry from '@sentry/nextjs';
-import { UIMessageStreamWriter, tool } from 'ai';
+import { FileUIPart, UIMessageStreamWriter, tool } from 'ai';
 import { v4 as uuidv4 } from 'uuid';
 
 import { ResponseError } from '@/lib/easylog/generated-client';
@@ -9,19 +9,16 @@ import tryCatch from '@/utils/try-catch';
 
 import { uploadSubmissionMediaConfig } from './config';
 import getEasylogClient from './utils/getEasylogClient';
+import { ChatMessage } from '../../types';
 
 const toolUploadSubmissionMedia = (
   userId: string,
+  messageHistory: ChatMessage[],
   messageStreamWriter?: UIMessageStreamWriter
 ) => {
   return tool({
     ...uploadSubmissionMediaConfig,
-    execute: async ({
-      submissionId,
-      fileName,
-      fileContentBase64,
-      mimeType
-    }) => {
+    execute: async ({ submissionId, fileName }) => {
       const id = uuidv4();
 
       messageStreamWriter?.write({
@@ -29,41 +26,54 @@ const toolUploadSubmissionMedia = (
         id,
         data: {
           status: 'in_progress',
-          message: 'Inzendingsmedium uploaden...'
+          message: 'Media van inzending uploaden...'
         }
       });
 
-      let file: Blob;
+      const filePart = messageHistory
+        .toReversed()
+        .flatMap((message) => message.parts)
+        .find(
+          (part): part is FileUIPart =>
+            part.type === 'file' && part.filename === fileName
+        ) as FileUIPart | undefined;
 
-      try {
-        const binary = Buffer.from(fileContentBase64, 'base64');
-
-        if (typeof File !== 'undefined') {
-          file = new File([binary], fileName, {
-            type: mimeType ?? 'application/octet-stream'
-          });
-        } else {
-          const blob = new Blob([binary], {
-            type: mimeType ?? 'application/octet-stream'
-          });
-          (blob as Blob & { name: string }).name = fileName;
-          file = blob;
-        }
-      } catch (conversionError) {
-        Sentry.captureException(conversionError);
-        const message =
-          conversionError instanceof Error
-            ? conversionError.message
-            : 'Unknown file conversion error';
+      if (!filePart) {
+        Sentry.captureException(
+          new Error(`File ${fileName} not found in message history`)
+        );
         messageStreamWriter?.write({
           type: 'data-executing-tool',
           id,
           data: {
-            status: 'completed',
-            message: `Fout bij uploaden van inzendingsmedium: ${message}`
+            status: 'error',
+            message: `Bestand ${fileName} niet gevonden in berichtgeschiedenis`
           }
         });
-        return `Error decoding file contents: ${message}`;
+        return `Bestand ${fileName} niet gevonden in berichtgeschiedenis`;
+      }
+
+      const base64Content = filePart.url.split(',')[1];
+
+      const [file, fileConversionError] = await tryCatch(async () => {
+        const binary = Buffer.from(base64Content, 'base64');
+
+        return new File([binary], fileName, {
+          type: filePart.mediaType
+        });
+      });
+
+      if (fileConversionError) {
+        Sentry.captureException(fileConversionError);
+        messageStreamWriter?.write({
+          type: 'data-executing-tool',
+          id,
+          data: {
+            status: 'error',
+            message: `Fout bij converteren van bestand: ${fileConversionError.message}`
+          }
+        });
+        return `Fout bij converteren van bestand: ${fileConversionError.message}`;
       }
 
       const client = await getEasylogClient(userId);
@@ -82,7 +92,7 @@ const toolUploadSubmissionMedia = (
           id,
           data: {
             status: 'error',
-            message: 'Fout bij uploaden van inzendingsmedium'
+            message: 'Fout bij uploaden van media van inzending'
           }
         });
         return await error.response.text();
@@ -95,10 +105,10 @@ const toolUploadSubmissionMedia = (
           id,
           data: {
             status: 'error',
-            message: `Fout bij uploaden van inzendingsmedium: ${error.message}`
+            message: `Fout bij uploaden van media van inzending: ${error.message}`
           }
         });
-        return `Error uploading submission media: ${error.message}`;
+        return `Error uploading media of submission: ${error.message}`;
       }
 
       console.log('uploaded submission media', result);

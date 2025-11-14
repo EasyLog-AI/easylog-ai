@@ -700,7 +700,9 @@ export const prepareSubmissionConfig = {
         z.object({
           name: z
             .string()
-            .describe('File name (including extension) to be uploaded'),
+            .describe(
+              'File name (including extension) to be uploaded, this must be a file that was previously uploaded in the chat'
+            ),
           mime: z.string().describe('MIME type of the file')
         })
       )
@@ -716,14 +718,10 @@ export const uploadSubmissionMediaConfig = {
     submissionId: z
       .number()
       .describe('The ID of the submission to attach the media to'),
-    fileName: z.string().describe('Name of the file including extension'),
-    fileContentBase64: z
+    fileName: z
       .string()
-      .describe('Base64-encoded contents of the file'),
-    mimeType: z
-      .string()
-      .nullable()
-      .optional()
-      .describe('Optional MIME type of the file')
+      .describe(
+        'Name of the file including extension, this must be a file that was previously uploaded in the chat'
+      )
   })
 } as const;

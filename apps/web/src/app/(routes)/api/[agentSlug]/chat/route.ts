@@ -295,7 +295,11 @@ export const POST = async (
           listSubmissionMedia: toolListSubmissionMedia(user.id, writer),
           showSubmissionMedia: toolShowSubmissionMedia(user.id, writer),
           prepareSubmission: toolPrepareSubmission(user.id, writer),
-          uploadSubmissionMedia: toolUploadSubmissionMedia(user.id, writer),
+          uploadSubmissionMedia: toolUploadSubmissionMedia(
+            user.id,
+            combinedMessages,
+            writer
+          ),
           executeSql: toolExecuteSQL(writer),
           searchKnowledge: toolSearchKnowledge(
             {

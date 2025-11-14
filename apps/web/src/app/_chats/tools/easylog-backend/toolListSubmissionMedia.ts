@@ -22,7 +22,7 @@ const toolListSubmissionMedia = (
         id,
         data: {
           status: 'in_progress',
-          message: 'Inzendingsmedia ophalen...'
+          message: 'Media van inzending ophalen...'
         }
       });
       const client = await getEasylogClient(userId);
@@ -40,7 +40,7 @@ const toolListSubmissionMedia = (
           id,
           data: {
             status: 'error',
-            message: 'Fout bij ophalen van inzendingsmedia'
+            message: 'Fout bij ophalen van media van inzending'
           }
         });
         return await error.response.text();
@@ -53,10 +53,10 @@ const toolListSubmissionMedia = (
           id,
           data: {
             status: 'error',
-            message: `Fout bij ophalen van inzendingsmedia: ${error.message}`
+            message: `Fout bij ophalen van media van inzending: ${error.message}`
           }
         });
-        return `Error listing submission media: ${error.message}`;
+        return `Error listing media of submission: ${error.message}`;
       }
 
       messageStreamWriter?.write({
@@ -64,7 +64,7 @@ const toolListSubmissionMedia = (
         id,
         data: {
           status: 'completed',
-          message: 'Inzendingsmedia opgehaald'
+          message: 'Media van inzending opgehaald'
         }
       });
 
