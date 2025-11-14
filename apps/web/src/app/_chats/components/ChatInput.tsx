@@ -100,7 +100,7 @@ const ChatInput = () => {
       void sendMessage({
         text: `[uploaded files: ${Array.from(data.files)
           .map((file) => file.name)
-          .join(', ')}]`,
+          .join(', ')}]${data.content ?? ''}`,
         files: data.files
       });
       return;
