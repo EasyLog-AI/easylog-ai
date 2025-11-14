@@ -121,6 +121,7 @@ docs/UpdateFollowUpInput.md
 docs/UpdateFormInput.md
 docs/UpdateSubmissionInput.md
 docs/UploadFollowUpEntryMedia201Response.md
+docs/UploadSubmissionMedia201Response.md
 index.ts
 models/AllocationType.ts
 models/Announcement.ts
@@ -212,5 +213,6 @@ models/UpdateFollowUpInput.ts
 models/UpdateFormInput.ts
 models/UpdateSubmissionInput.ts
 models/UploadFollowUpEntryMedia201Response.ts
+models/UploadSubmissionMedia201Response.ts
 models/index.ts
 runtime.ts

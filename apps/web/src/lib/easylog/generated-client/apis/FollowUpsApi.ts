@@ -237,10 +237,11 @@ export class FollowUpsApi extends runtime.BaseAPI {
   }
 
   /**
-   * List all follow-ups for the current client. Follow-ups are filtered by user
-   * group membership unless the user has the FollowUpOverrideGroups permission.
-   * Users will only see follow-ups that are either assigned to their groups or
-   * have no group assignment (ungrouped). List follow-ups (paginated)
+   * List all follow-ups for the current client. Follow-ups are filtered by
+   * user group membership unless the user has the FollowUpOverrideGroups
+   * permission. Users will only see follow-ups that are either assigned to
+   * their groups or have no group assignment (ungrouped). List follow-ups
+   * (paginated)
    */
   async listFollowUpsRaw(
     requestParameters: ListFollowUpsRequest,
@@ -284,10 +285,11 @@ export class FollowUpsApi extends runtime.BaseAPI {
   }
 
   /**
-   * List all follow-ups for the current client. Follow-ups are filtered by user
-   * group membership unless the user has the FollowUpOverrideGroups permission.
-   * Users will only see follow-ups that are either assigned to their groups or
-   * have no group assignment (ungrouped). List follow-ups (paginated)
+   * List all follow-ups for the current client. Follow-ups are filtered by
+   * user group membership unless the user has the FollowUpOverrideGroups
+   * permission. Users will only see follow-ups that are either assigned to
+   * their groups or have no group assignment (ungrouped). List follow-ups
+   * (paginated)
    */
   async listFollowUps(
     requestParameters: ListFollowUpsRequest = {},
@@ -427,8 +429,10 @@ export class FollowUpsApi extends runtime.BaseAPI {
   }
 
   /**
-   * Upload a file and attach it to a follow-up entry. Maximum file size: 10MB.
-   * Upload media to a follow-up entry
+   * Upload a file and attach it to a follow-up entry. Returns the media
+   * resource and a PATH format string. The client should use the returned
+   * 'path' to update the appropriate data field (e.g., foto, other_photo).
+   * Maximum file size: 10MB. Upload media to a follow-up entry
    */
   async uploadFollowUpEntryMediaRaw(
     requestParameters: UploadFollowUpEntryMediaRequest,
@@ -503,8 +507,10 @@ export class FollowUpsApi extends runtime.BaseAPI {
   }
 
   /**
-   * Upload a file and attach it to a follow-up entry. Maximum file size: 10MB.
-   * Upload media to a follow-up entry
+   * Upload a file and attach it to a follow-up entry. Returns the media
+   * resource and a PATH format string. The client should use the returned
+   * 'path' to update the appropriate data field (e.g., foto, other_photo).
+   * Maximum file size: 10MB. Upload media to a follow-up entry
    */
   async uploadFollowUpEntryMedia(
     requestParameters: UploadFollowUpEntryMediaRequest,

@@ -739,7 +739,7 @@ export const listFollowUpEntryMediaConfig = {
 export const uploadFollowUpEntryMediaConfig = {
   name: 'uploadFollowUpEntryMedia',
   description:
-    'Upload a single media file and attach it to an existing follow-up entry.',
+    'Upload a single media file and attach it to an existing follow-up entry. This tool uploads the file to storage and returns a "path" field in the response. To complete the upload, you can call updateFollowUpEntry to save the returned path to the appropriate data field (e.g., foto, other_photo).',
   inputSchema: z.object({
     followUpEntryId: z
       .number()

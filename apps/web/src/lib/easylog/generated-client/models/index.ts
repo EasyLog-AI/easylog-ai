@@ -90,3 +90,4 @@ export * from './UpdateFollowUpInput';
 export * from './UpdateFormInput';
 export * from './UpdateSubmissionInput';
 export * from './UploadFollowUpEntryMedia201Response';
+export * from './UploadSubmissionMedia201Response';

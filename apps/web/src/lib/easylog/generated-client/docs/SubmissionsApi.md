@@ -531,7 +531,7 @@ example().catch(console.error);
 
 ## uploadSubmissionMedia
 
-> UploadFollowUpEntryMedia201Response uploadSubmissionMedia(submission, file)
+> UploadSubmissionMedia201Response uploadSubmissionMedia(submission, file)
 
 Upload media to a submission
 
@@ -579,7 +579,7 @@ example().catch(console.error);
 
 ### Return type
 
-[**UploadFollowUpEntryMedia201Response**](UploadFollowUpEntryMedia201Response.md)
+[**UploadSubmissionMedia201Response**](UploadSubmissionMedia201Response.md)
 
 ### Authorization
 

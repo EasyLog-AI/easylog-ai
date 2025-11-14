@@ -1197,7 +1197,7 @@
                     "Follow-ups"
                 ],
                 "summary": "Upload media to a follow-up entry",
-                "description": "Upload a file and attach it to a follow-up entry. Maximum file size: 10MB.",
+                "description": "Upload a file and attach it to a follow-up entry. Returns the media resource and a PATH format string. The client should use the returned 'path' to update the appropriate data field (e.g., foto, other_photo). Maximum file size: 10MB.",
                 "operationId": "uploadFollowUpEntryMedia",
                 "parameters": [
                     {
@@ -1240,6 +1240,11 @@
                                     "properties": {
                                         "data": {
                                             "$ref": "#/components/schemas/MediaResource"
+                                        },
+                                        "path": {
+                                            "description": "Path in PATH format ({clientId}/notices/{timestamp}-{sanitized}.{ext}--ORIG--{base64}). Use this to update the appropriate data field.",
+                                            "type": "string",
+                                            "example": "1/notices/1736854327-Screenshot.png--ORIG--U2NyZWVuc2hvdC5wbmc"
                                         }
                                     },
                                     "type": "object"

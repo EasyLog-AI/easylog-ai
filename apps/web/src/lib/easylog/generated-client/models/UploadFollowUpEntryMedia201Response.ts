@@ -29,6 +29,15 @@ export interface UploadFollowUpEntryMedia201Response {
    * @type {MediaResource}
    */
   data?: MediaResource;
+  /**
+   * Path in PATH format
+   * ({clientId}/notices/{timestamp}-{sanitized}.{ext}--ORIG--{base64}). Use
+   * this to update the appropriate data field.
+   *
+   * @memberof UploadFollowUpEntryMedia201Response
+   * @type {string}
+   */
+  path?: string;
 }
 
 /**
@@ -55,7 +64,9 @@ export function UploadFollowUpEntryMedia201ResponseFromJSONTyped(
     return json;
   }
   return {
-    data: json['data'] == null ? undefined : MediaResourceFromJSON(json['data'])
+    data:
+      json['data'] == null ? undefined : MediaResourceFromJSON(json['data']),
+    path: json['path'] == null ? undefined : json['path']
   };
 }
 
@@ -74,6 +85,7 @@ export function UploadFollowUpEntryMedia201ResponseToJSONTyped(
   }
 
   return {
-    data: MediaResourceToJSON(value['data'])
+    data: MediaResourceToJSON(value['data']),
+    path: value['path']
   };
 }

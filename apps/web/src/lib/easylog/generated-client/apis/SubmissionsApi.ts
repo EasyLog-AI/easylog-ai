@@ -20,7 +20,7 @@ import type {
   SubmissionCollection,
   SubmissionResource,
   UpdateSubmissionInput,
-  UploadFollowUpEntryMedia201Response
+  UploadSubmissionMedia201Response
 } from '../models/index';
 import {
   ListFollowUpEntryMedia200ResponseFromJSON,
@@ -39,8 +39,8 @@ import {
   SubmissionResourceToJSON,
   UpdateSubmissionInputFromJSON,
   UpdateSubmissionInputToJSON,
-  UploadFollowUpEntryMedia201ResponseFromJSON,
-  UploadFollowUpEntryMedia201ResponseToJSON
+  UploadSubmissionMedia201ResponseFromJSON,
+  UploadSubmissionMedia201ResponseToJSON
 } from '../models/index';
 
 export interface DeleteSubmissionRequest {
@@ -591,7 +591,7 @@ export class SubmissionsApi extends runtime.BaseAPI {
   async uploadSubmissionMediaRaw(
     requestParameters: UploadSubmissionMediaRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction
-  ): Promise<runtime.ApiResponse<UploadFollowUpEntryMedia201Response>> {
+  ): Promise<runtime.ApiResponse<UploadSubmissionMedia201Response>> {
     if (requestParameters['submission'] == null) {
       throw new runtime.RequiredError(
         'submission',
@@ -656,7 +656,7 @@ export class SubmissionsApi extends runtime.BaseAPI {
     );
 
     return new runtime.JSONApiResponse(response, (jsonValue) =>
-      UploadFollowUpEntryMedia201ResponseFromJSON(jsonValue)
+      UploadSubmissionMedia201ResponseFromJSON(jsonValue)
     );
   }
 
@@ -667,7 +667,7 @@ export class SubmissionsApi extends runtime.BaseAPI {
   async uploadSubmissionMedia(
     requestParameters: UploadSubmissionMediaRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction
-  ): Promise<UploadFollowUpEntryMedia201Response> {
+  ): Promise<UploadSubmissionMedia201Response> {
     const response = await this.uploadSubmissionMediaRaw(
       requestParameters,
       initOverrides

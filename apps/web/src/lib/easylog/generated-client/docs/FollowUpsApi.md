@@ -433,7 +433,7 @@ example().catch(console.error);
 
 Upload media to a follow-up entry
 
-Upload a file and attach it to a follow-up entry. Maximum file size: 10MB.
+Upload a file and attach it to a follow-up entry. Returns the media resource and a PATH format string. The client should use the returned \&#39;path\&#39; to update the appropriate data field (e.g., foto, other_photo). Maximum file size: 10MB.
 
 ### Example
 
