@@ -22,16 +22,17 @@ import { searchKnowledgeConfig } from './config';
 interface ToolSearchKnowledgeProps {
   agentId: string;
   roleId?: string;
+  streamWriterId?: string;
 }
 
 const getToolSearchKnowledge = (
-  { agentId, roleId }: ToolSearchKnowledgeProps,
+  { agentId, roleId, streamWriterId }: ToolSearchKnowledgeProps,
   messageStreamWriter?: UIMessageStreamWriter
 ) => {
   return tool({
     ...searchKnowledgeConfig,
     execute: async ({ query }) => {
-      const id = uuidv4();
+      const id = streamWriterId ?? uuidv4();
       const qb = new QueryBuilder();
 
       messageStreamWriter?.write({
@@ -140,7 +141,9 @@ const getToolSearchKnowledge = (
       console.log('Search results:', results);
 
       // Filter to only include results with similarity > 0.6
-      const filteredResults = results.filter((result) => result.similarity > 0.6);
+      const filteredResults = results.filter(
+        (result) => result.similarity > 0.6
+      );
 
       messageStreamWriter?.write({
         type: 'data-executing-tool',
