@@ -10,16 +10,17 @@ import getToolSearchKnowledge from './toolSearchKnowledge';
 interface ToolExploreKnowledgeProps {
   agentId: string;
   roleId?: string;
+  streamWriterId?: string;
 }
 
 const getToolExploreKnowledge = (
-  { agentId, roleId }: ToolExploreKnowledgeProps,
+  { agentId, roleId, streamWriterId }: ToolExploreKnowledgeProps,
   messageStreamWriter?: UIMessageStreamWriter
 ) => {
   return tool({
     ...exploreKnowledgeConfig,
     execute: async ({ question }) => {
-      const id = uuidv4();
+      const id = streamWriterId ?? uuidv4();
 
       messageStreamWriter?.write({
         type: 'data-executing-tool',
@@ -36,11 +37,11 @@ const getToolExploreKnowledge = (
           model: openrouterProvider('google/gemini-2.5-flash'),
           tools: {
             searchKnowledge: getToolSearchKnowledge(
-              { agentId, roleId },
+              { agentId, roleId, streamWriterId: id },
               messageStreamWriter
             ),
             researchKnowledge: getToolResearchKnowledge(
-              { agentId, roleId },
+              { agentId, roleId, streamWriterId: id },
               messageStreamWriter
             )
           },
@@ -100,7 +101,10 @@ Example 2: Finding specific data
 - Be transparent: Explain your search process if the answer isn't obvious
 - Be persistent: Use all 15 available steps if needed to find the answer
 - Preserve markdown: If researchKnowledge returns markdown with images (![alt](url)), include them in your final answer
-- Return markdown: Use markdown formatting in your response, especially for images, lists, and emphasis`
+- Return markdown: Use markdown formatting in your response, especially for images, lists, and emphasis
+
+It is now ${new Date().toISOString()}.
+`
             },
             {
               role: 'user',

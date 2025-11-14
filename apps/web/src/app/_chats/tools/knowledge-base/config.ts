@@ -20,16 +20,16 @@ export const searchKnowledgeConfig = {
 export const researchKnowledgeConfig = {
   name: 'researchKnowledge',
   description:
-    'Access the FULL CONTENT of a knowledge item via SQL queries to answer any question about the data inside. Can answer questions about counts, statistics, trends, top N items, filtering by date/criteria, etc. Works on structured data (Excel, CSV) and unstructured content (PDFs, text). Always try this tool when asked about data - it has complete access to everything in the knowledge item.',
+    'Access the FULL CONTENT of one or more knowledge items via SQL queries to answer any question about the data inside. Can answer questions about counts, statistics, trends, top N items, filtering by date/criteria, etc. Works on structured data (Excel, CSV) and unstructured content (PDFs, text). Supports analyzing multiple knowledge items together to find correlations and relationships across documents. Always try this tool when asked about data - it has complete access to everything in the knowledge items.',
   inputSchema: z.object({
-    knowledgeId: z
-      .string()
-      .uuid()
-      .describe('UUID from searchKnowledge results (use id field)'),
+    knowledgeIds: z
+      .array(z.string().uuid())
+      .min(1)
+      .describe('Array of UUIDs from searchKnowledge results (use id field). Can provide multiple IDs to analyze documents together.'),
     question: z
       .string()
       .describe(
-        'Any question about the content - counts, statistics, filtering, top N, date ranges, etc.'
+        'Any question about the content - counts, statistics, filtering, top N, date ranges, correlations across documents, etc.'
       )
   })
 } as const;
