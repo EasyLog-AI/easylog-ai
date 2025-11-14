@@ -54,7 +54,7 @@ Answer the user's question by exploring the knowledge base through multiple sear
 
 ## Available Tools
 - searchKnowledge(query): Returns relevant knowledge items with IDs, names, summaries, and similarity scores
-- researchKnowledge(knowledgeId, question): Deep-dives into a specific knowledge item to extract detailed information. Use the "id" field (UUID) from searchKnowledge results, NOT the "name" field.
+- researchKnowledge(knowledgeIds, question): Deep-dives into one or more knowledge items to extract detailed information. Pass an array of UUIDs from the "id" field of searchKnowledge results. Can analyze multiple documents together to find correlations.
 
 ## Exploration Strategy
 
@@ -86,14 +86,20 @@ If initial attempts don't yield results, systematically try:
 Example 1: Finding a company website
 - User asks: "What is the IKEA website?"
 - Search: "IKEA" → finds item with id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890" and name: "IKEA Invoice March 2024.pdf"
-- Research: researchKnowledge("a1b2c3d4-e5f6-7890-abcd-ef1234567890", "What is the company website or URL?")
+- Research: researchKnowledge(["a1b2c3d4-e5f6-7890-abcd-ef1234567890"], "What is the company website or URL?")
 - Result: Website found in invoice header
 
 Example 2: Finding specific data
 - User asks: "How many employees does Acme Corp have?"
 - Search: "Acme Corp employees" → finds item with id: "b2c3d4e5-f6a7-8901-bcde-f12345678901" and name: "Acme Annual Report 2024"
-- Research: researchKnowledge("b2c3d4e5-f6a7-8901-bcde-f12345678901", "How many employees or staff members are mentioned?")
+- Research: researchKnowledge(["b2c3d4e5-f6a7-8901-bcde-f12345678901"], "How many employees or staff members are mentioned?")
 - Result: Employee count found in company overview section
+
+Example 3: Correlating data across multiple documents
+- User asks: "Compare sales data between Q1 and Q2 reports"
+- Search: "sales report" → finds Q1 report (id: "c3d4e5f6...") and Q2 report (id: "d4e5f6a7...")
+- Research: researchKnowledge(["c3d4e5f6...", "d4e5f6a7..."], "Compare total sales between these reports")
+- Result: Cross-document analysis showing sales growth
 
 ## Output Guidelines
 - Be thorough: Don't conclude "not found" until you've tried multiple search strategies

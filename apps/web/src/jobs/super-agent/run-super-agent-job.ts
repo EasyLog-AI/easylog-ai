@@ -141,7 +141,7 @@ ${scratchpadMessages.length > 0 ? scratchpadMessages.map((m) => `[${new Date(m.c
 ### Data Access Tools
 - **executeSql(query)**: Execute SQL queries for data analysis.
 - **searchKnowledge(query)**: Search for relevant knowledge items using hybrid vector + keyword search.
-- **researchKnowledge(knowledgeId, question)**: Research a specific knowledge item to answer a question using a recursive AI agent.
+- **researchKnowledge(knowledgeIds, question)**: Research one or more knowledge items to answer a question using a recursive AI agent. Pass an array of knowledge IDs. Can analyze multiple documents together to find correlations.
 - **exploreKnowledge(question)**: Automatically search and research knowledge to answer a question (combines search + research).
 
 ## Guidelines
