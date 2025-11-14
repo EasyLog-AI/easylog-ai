@@ -1,5 +1,7 @@
+import removeFormattingMarkers from './removeFormattingMarkers';
+
 const isHiddenText = (text: string) => {
-  return text.startsWith('[') && text.endsWith(']');
+  return removeFormattingMarkers(text).length === 0;
 };
 
 export default isHiddenText;
