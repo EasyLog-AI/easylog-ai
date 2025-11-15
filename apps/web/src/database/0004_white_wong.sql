@@ -1,0 +1,1 @@
+ALTER TABLE "agents" ADD COLUMN "allowed_domains" text[] DEFAULT '{"*"}' NOT NULL;

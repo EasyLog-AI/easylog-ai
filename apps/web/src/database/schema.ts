@@ -260,6 +260,7 @@ export const agents = pgTable('agents', {
       pqiAudits: true
     })
     .$type<AgentCapabilities>(),
+  allowedDomains: text('allowed_domains').array().notNull().default(['*']),
   ...timestamps
 });
 
